@@ -1,0 +1,108 @@
+# Promptly
+
+Developer prompt analytics -- capture, analyze, and review AI conversations tied to development work.
+
+## Quick Start
+
+```bash
+npm i -g @promptly/cli
+promptly init            # Configure MCP server in Claude Code
+promptly start TICKET-1  # Start logging conversations
+# ... work with Claude Code ...
+promptly finish          # Save session data
+promptly serve           # Open local dashboard at localhost:3000
+```
+
+## Features
+
+- **Local-first**: Everything runs on your machine. No account needed.
+- **MCP integration**: Automatically captures Claude Code conversations.
+- **Session tracking**: Tag conversations to tickets, track token usage and duration.
+- **Built-in dashboard**: View sessions in your browser at `localhost:3000`.
+- **Optional cloud sync**: For teams that want a shared dashboard.
+
+## Deployment Tiers
+
+| | Free (Local) | Cloud |
+|---|---|---|
+| **Install** | `npm i -g @promptly/cli` | SaaS |
+| **Storage** | SQLite on disk | Our infra |
+| **Dashboard** | `promptly serve` (localhost) | app.promptly.dev |
+| **Users** | Single user | Multi-user, teams |
+| **Signup** | None | Per-seat |
+| **Connectivity** | Full offline | Zero ops |
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `promptly init` | Configure MCP server in Claude Code |
+| `promptly start <ticket-id>` | Start logging AI conversations for a ticket |
+| `promptly finish` | Finish the session and save data |
+| `promptly status` | Show current session status |
+| `promptly serve` | Start local dashboard on localhost:3000 |
+| `promptly login` | Authenticate with cloud API (cloud mode) |
+
+## How It Works
+
+```
+Claude Code --> MCP Server --> ~/.promptly/buffer.json --> SQLite
+                                                            |
+                                              promptly serve (localhost:3000)
+```
+
+1. `promptly init` registers the Promptly MCP server with Claude Code.
+2. `promptly start TICKET-123` creates a session and signals the MCP server to begin logging.
+3. As you work with Claude Code, the MCP server captures all conversation turns to a local buffer.
+4. `promptly finish` writes the buffered data into SQLite and clears the buffer.
+5. `promptly serve` starts a local HTTP server that reads from SQLite and serves a dashboard.
+
+## Data Storage
+
+All data is stored locally at `~/.promptly/`:
+
+| File | Purpose |
+|------|---------|
+| `config.json` | CLI configuration (API URL, mode, token) |
+| `session.json` | Active session state |
+| `buffer.json` | MCP conversation buffer (cleared on finish) |
+| `promptly.db` | SQLite database with all completed sessions |
+
+## Cloud Mode
+
+For teams that want a shared dashboard:
+
+```bash
+promptly login --api-url https://api.promptly.dev
+promptly start TICKET-1   # Creates session locally AND on server
+promptly finish            # Saves to SQLite AND uploads to API
+```
+
+See [docs/SETUP.md](docs/SETUP.md) for cloud setup details.
+
+## Development
+
+This is a TypeScript monorepo using Turborepo and pnpm.
+
+```bash
+pnpm install
+pnpm build          # Build all packages
+pnpm dev            # Dev mode (watch)
+```
+
+### Packages
+
+| Package | Path | Description |
+|---------|------|-------------|
+| `@promptly/shared` | `packages/shared` | Shared types and utilities |
+| `@promptly/cli` | `packages/cli` | CLI tool |
+| `@promptly/mcp-server` | `packages/mcp-server` | MCP server for conversation capture |
+
+## Documentation
+
+- [Setup Guide](docs/SETUP.md) -- Installation and configuration
+- [Architecture](docs/ARCHITECTURE.md) -- Technical design and data flow
+
+## License
+
+MIT
