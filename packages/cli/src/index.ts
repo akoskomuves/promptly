@@ -43,7 +43,7 @@ program
 
 program
   .command("init")
-  .description("Configure MCP server in Claude Code")
+  .description("Auto-detect and configure MCP in Claude Code, Gemini CLI, Codex CLI")
   .action(initCommand);
 
 program.parse();

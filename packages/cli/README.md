@@ -11,9 +11,9 @@ npm i -g @getpromptly/cli
 ## Quick Start
 
 ```bash
-promptly init            # Configure MCP server in Claude Code
+promptly init            # Auto-detect & configure Claude Code, Gemini CLI, Codex CLI
 promptly start TICKET-1  # Start logging conversations
-# ... work with Claude Code ...
+# ... work with your AI coding tool ...
 promptly finish          # Save session data
 promptly serve           # Open dashboard at localhost:3000
 ```
@@ -22,7 +22,7 @@ promptly serve           # Open dashboard at localhost:3000
 
 | Command | Description |
 |---------|-------------|
-| `promptly init` | Configure MCP server in Claude Code |
+| `promptly init` | Auto-detect & configure Claude Code, Gemini CLI, Codex CLI |
 | `promptly start <ticket-id>` | Start logging AI conversations for a ticket |
 | `promptly finish` | Finish the session and save data |
 | `promptly status` | Show current session status |
@@ -32,12 +32,14 @@ promptly serve           # Open dashboard at localhost:3000
 ## How It Works
 
 ```
-Claude Code → MCP Server → ~/.promptly/buffer.json → SQLite
+Claude Code / Gemini CLI / Codex CLI
+        |
+        └──> MCP Server → ~/.promptly/buffer.json → SQLite
                                                         ↓
                                           promptly serve (localhost:3000)
 ```
 
-1. `promptly init` registers the MCP server with Claude Code.
+1. `promptly init` auto-detects installed tools and registers the MCP server.
 2. `promptly start TICKET-123` creates a session and begins logging.
 3. The MCP server captures all conversation turns, tokens, and tool calls.
 4. `promptly finish` writes data to SQLite and clears the buffer.

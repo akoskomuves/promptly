@@ -6,9 +6,9 @@ Developer prompt analytics -- capture, analyze, and review AI conversations tied
 
 ```bash
 npm i -g @getpromptly/cli
-promptly init            # Configure MCP server in Claude Code
+promptly init            # Auto-detects and configures your AI coding tools
 promptly start TICKET-1  # Start logging conversations
-# ... work with Claude Code ...
+# ... work with Claude Code, Gemini CLI, or Codex CLI ...
 promptly finish          # Save session data
 promptly serve           # Open local dashboard at localhost:3000
 ```
@@ -16,7 +16,7 @@ promptly serve           # Open local dashboard at localhost:3000
 ## Features
 
 - **Local-first**: Everything runs on your machine. No account needed.
-- **MCP integration**: Automatically captures Claude Code conversations.
+- **Multi-tool support**: Works with Claude Code, Gemini CLI, and Codex CLI via MCP.
 - **Session tracking**: Tag conversations to tickets, track token usage and duration.
 - **Built-in dashboard**: View sessions in your browser at `localhost:3000`.
 - **Optional cloud sync**: For teams that want a shared dashboard.
@@ -36,7 +36,7 @@ promptly serve           # Open local dashboard at localhost:3000
 
 | Command | Description |
 |---------|-------------|
-| `promptly init` | Configure MCP server in Claude Code |
+| `promptly init` | Auto-detect and configure MCP in Claude Code, Gemini CLI, Codex CLI |
 | `promptly start <ticket-id>` | Start logging AI conversations for a ticket |
 | `promptly finish` | Finish the session and save data |
 | `promptly status` | Show current session status |
@@ -46,14 +46,16 @@ promptly serve           # Open local dashboard at localhost:3000
 ## How It Works
 
 ```
-Claude Code --> MCP Server --> ~/.promptly/buffer.json --> SQLite
-                                                            |
-                                              promptly serve (localhost:3000)
+Claude Code / Gemini CLI / Codex CLI
+        |
+        └──> MCP Server --> ~/.promptly/buffer.json --> SQLite
+                                                          |
+                                            promptly serve (localhost:3000)
 ```
 
-1. `promptly init` registers the Promptly MCP server with Claude Code.
+1. `promptly init` auto-detects installed AI coding tools and registers the MCP server with each.
 2. `promptly start TICKET-123` creates a session and signals the MCP server to begin logging.
-3. As you work with Claude Code, the MCP server captures all conversation turns to a local buffer.
+3. As you work with your AI coding tool, the MCP server captures all conversation turns to a local buffer.
 4. `promptly finish` writes the buffered data into SQLite and clears the buffer.
 5. `promptly serve` starts a local HTTP server that reads from SQLite and serves a dashboard.
 

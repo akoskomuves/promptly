@@ -29,6 +29,21 @@ export function getActiveSession(): ActiveSessionState | null {
   }
 }
 
+/** Write session state file (used by MCP server when starting sessions directly) */
+export function writeActiveSession(state: ActiveSessionState): void {
+  ensureDir();
+  fs.writeFileSync(SESSION_STATE_FILE, JSON.stringify(state, null, 2));
+}
+
+/** Clear session state file */
+export function clearActiveSession(): void {
+  try {
+    if (fs.existsSync(SESSION_STATE_FILE)) fs.unlinkSync(SESSION_STATE_FILE);
+  } catch {
+    // ignore
+  }
+}
+
 /** Read the buffered conversation data from disk */
 export function readBuffer(): LocalSession | null {
   try {

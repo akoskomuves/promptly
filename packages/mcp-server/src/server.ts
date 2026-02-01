@@ -2,6 +2,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
   getActiveSession,
+  writeActiveSession,
+  clearActiveSession,
   initBuffer,
   addTurn,
   readBuffer,
@@ -34,6 +36,13 @@ export function createServer(): McpServer {
         };
       }
 
+      const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      writeActiveSession({
+        sessionId,
+        ticketId,
+        startedAt: new Date().toISOString(),
+        apiUrl: "http://localhost:3001",
+      });
       initBuffer(ticketId);
       return {
         content: [
@@ -58,7 +67,8 @@ export function createServer(): McpServer {
     },
     async ({ role, content, model, tokenCount }) => {
       const session = getActiveSession();
-      if (!session) {
+      const buffer = readBuffer();
+      if (!session && !buffer) {
         return {
           content: [
             {
@@ -153,6 +163,7 @@ export function createServer(): McpServer {
       ].join("\n");
 
       clearBuffer();
+      clearActiveSession();
 
       return {
         content: [{ type: "text" as const, text: summary }],
