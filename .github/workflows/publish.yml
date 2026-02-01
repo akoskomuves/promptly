@@ -21,29 +21,24 @@ jobs:
           node-version: "20"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Remove NODE_AUTH_TOKEN for OIDC
+        run: unset NODE_AUTH_TOKEN && npm config delete //registry.npmjs.org/:_authToken || true
+
       - name: Install and build
         run: pnpm install --frozen-lockfile && pnpm build
 
       - name: Publish shared
         working-directory: packages/shared
-        run: |
-          npm pkg set "version=$(node -p "require('./package.json').version")"
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ""
+        run: npm publish --access public --provenance
 
       - name: Publish mcp-server
         working-directory: packages/mcp-server
         run: |
           sed -i 's/"@getpromptly\/shared": "workspace:\*"/"@getpromptly\/shared": "^0.1.0"/' package.json
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ""
+          npm publish --access public --provenance
 
       - name: Publish cli
         working-directory: packages/cli
         run: |
           sed -i 's/"@getpromptly\/shared": "workspace:\*"/"@getpromptly\/shared": "^0.1.0"/' package.json
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ""
+          npm publish --access public --provenance
