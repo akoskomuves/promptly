@@ -19,13 +19,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Remove NODE_AUTH_TOKEN for OIDC
-        run: unset NODE_AUTH_TOKEN && npm config delete //registry.npmjs.org/:_authToken || true
 
       - name: Install and build
         run: pnpm install --frozen-lockfile && pnpm build
+
+      - name: Configure npm for OIDC
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npm config delete //registry.npmjs.org/:_authToken || true
+
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Publish shared
         working-directory: packages/shared
