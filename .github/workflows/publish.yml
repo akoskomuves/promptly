@@ -1,0 +1,51 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install and build
+        run: pnpm install --frozen-lockfile && pnpm build
+
+      - name: Publish shared
+        working-directory: packages/shared
+        run: |
+          npm pkg set "version=$(node -p "require('./package.json').version")"
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ""
+
+      - name: Publish mcp-server
+        working-directory: packages/mcp-server
+        run: |
+          sed -i 's/"@getpromptly\/shared": "workspace:\*"/"@getpromptly\/shared": "^0.1.0"/' package.json
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ""
+
+      - name: Publish cli
+        working-directory: packages/cli
+        run: |
+          sed -i 's/"@getpromptly\/shared": "workspace:\*"/"@getpromptly\/shared": "^0.1.0"/' package.json
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ""

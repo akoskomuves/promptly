@@ -1,17 +1,35 @@
 {
-  "name": "@promptly/cli",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@getpromptly/cli",
+  "version": "0.1.2",
+  "description": "Developer prompt analytics CLI - capture and review AI coding sessions",
   "type": "module",
-  "bin": {
-    "promptly": "./dist/index.js"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akoskomuves/promptly.git",
+    "directory": "packages/cli"
   },
+  "homepage": "https://getpromptly.xyz",
+  "keywords": [
+    "ai",
+    "prompt",
+    "analytics",
+    "claude",
+    "mcp",
+    "developer-tools"
+  ],
+  "bin": {
+    "promptly": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@promptly/shared": "workspace:*",
+    "@getpromptly/shared": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "commander": "^12.0.0"
   },

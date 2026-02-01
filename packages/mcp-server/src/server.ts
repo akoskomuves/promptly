@@ -8,7 +8,7 @@ import {
   clearBuffer,
   writeToSqlite,
 } from "./session.js";
-import type { ConversationTurn } from "@promptly/shared";
+import type { ConversationTurn } from "@getpromptly/shared";
 
 export function createServer(): McpServer {
   const server = new McpServer({

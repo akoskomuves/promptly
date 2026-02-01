@@ -5,7 +5,7 @@ Developer prompt analytics -- capture, analyze, and review AI conversations tied
 ## Quick Start
 
 ```bash
-npm i -g @promptly/cli
+npm i -g @getpromptly/cli
 promptly init            # Configure MCP server in Claude Code
 promptly start TICKET-1  # Start logging conversations
 # ... work with Claude Code ...
@@ -25,9 +25,9 @@ promptly serve           # Open local dashboard at localhost:3000
 
 | | Free (Local) | Cloud |
 |---|---|---|
-| **Install** | `npm i -g @promptly/cli` | SaaS |
+| **Install** | `npm i -g @getpromptly/cli` | SaaS |
 | **Storage** | SQLite on disk | Our infra |
-| **Dashboard** | `promptly serve` (localhost) | app.promptly.dev |
+| **Dashboard** | `promptly serve` (localhost) | app.getpromptly.xyz |
 | **Users** | Single user | Multi-user, teams |
 | **Signup** | None | Per-seat |
 | **Connectivity** | Full offline | Zero ops |
@@ -70,10 +70,10 @@ All data is stored locally at `~/.promptly/`:
 
 ## Cloud Mode
 
-For teams that want a shared dashboard:
+For teams that want a shared dashboard, sign up at [getpromptly.xyz](https://getpromptly.xyz).
 
 ```bash
-promptly login --api-url https://api.promptly.dev
+promptly login             # Opens browser to sign in
 promptly start TICKET-1   # Creates session locally AND on server
 promptly finish            # Saves to SQLite AND uploads to API
 ```
@@ -94,9 +94,9 @@ pnpm dev            # Dev mode (watch)
 
 | Package | Path | Description |
 |---------|------|-------------|
-| `@promptly/shared` | `packages/shared` | Shared types and utilities |
-| `@promptly/cli` | `packages/cli` | CLI tool |
-| `@promptly/mcp-server` | `packages/mcp-server` | MCP server for conversation capture |
+| `@getpromptly/shared` | `packages/shared` | Shared types and utilities |
+| `@getpromptly/cli` | `packages/cli` | CLI tool |
+| `@getpromptly/mcp-server` | `packages/mcp-server` | MCP server for conversation capture |
 
 ## Documentation
 

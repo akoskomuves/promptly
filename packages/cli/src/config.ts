@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import type { CliConfig, ActiveSessionState } from "@promptly/shared";
+import type { CliConfig, ActiveSessionState } from "@getpromptly/shared";
 
 const PROMPTLY_DIR = path.join(os.homedir(), ".promptly");
 const CONFIG_FILE = path.join(PROMPTLY_DIR, "config.json");

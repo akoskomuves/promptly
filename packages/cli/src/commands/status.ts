@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { getActiveSession } from "../config.js";
-import type { LocalSession } from "@promptly/shared";
+import type { LocalSession } from "@getpromptly/shared";
 
 const BUFFER_FILE = path.join(os.homedir(), ".promptly", "buffer.json");
 

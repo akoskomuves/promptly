@@ -1,12 +1,21 @@
 {
-  "name": "@promptly/mcp-server",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@getpromptly/mcp-server",
+  "version": "0.1.2",
+  "description": "MCP server for capturing AI coding conversations",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akoskomuves/promptly",
+    "directory": "packages/mcp-server"
+  },
+  "homepage": "https://getpromptly.xyz",
+  "keywords": ["mcp", "ai", "prompt", "analytics", "claude"],
   "bin": {
-    "promptly-mcp": "./dist/index.js"
+    "promptly-mcp": "dist/index.js"
   },
   "main": "./dist/index.js",
+  "files": ["dist"],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"
@@ -14,7 +23,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "zod": "^3.23.0",
-    "@promptly/shared": "workspace:*",
+    "@getpromptly/shared": "workspace:*",
     "better-sqlite3": "^11.0.0"
   },
   "devDependencies": {

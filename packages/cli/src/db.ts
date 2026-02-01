@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import type { LocalSession } from "@promptly/shared";
+import type { LocalSession } from "@getpromptly/shared";
 
 const PROMPTLY_DIR = path.join(os.homedir(), ".promptly");
 const DB_PATH = path.join(PROMPTLY_DIR, "promptly.db");

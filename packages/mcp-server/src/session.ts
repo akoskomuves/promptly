@@ -6,7 +6,7 @@ import type {
   ConversationTurn,
   LocalSession,
   ActiveSessionState,
-} from "@promptly/shared";
+} from "@getpromptly/shared";
 
 const PROMPTLY_DIR = path.join(os.homedir(), ".promptly");
 const SESSION_STATE_FILE = path.join(PROMPTLY_DIR, "session.json");
