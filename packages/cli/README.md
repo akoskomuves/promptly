@@ -11,7 +11,7 @@ npm i -g @getpromptly/cli
 ## Quick Start
 
 ```bash
-promptly init            # Auto-detect & configure Claude Code, Gemini CLI, Codex CLI
+promptly init            # Auto-detect & configure all supported AI coding tools
 promptly start TICKET-1  # Start logging conversations
 # ... work with your AI coding tool ...
 promptly finish          # Save session data
@@ -22,7 +22,7 @@ promptly serve           # Open dashboard at localhost:3000
 
 | Command | Description |
 |---------|-------------|
-| `promptly init` | Auto-detect & configure Claude Code, Gemini CLI, Codex CLI |
+| `promptly init` | Auto-detect & configure all supported AI coding tools |
 | `promptly start <ticket-id>` | Start logging AI conversations for a ticket |
 | `promptly finish` | Finish the session and save data |
 | `promptly status` | Show current session status |

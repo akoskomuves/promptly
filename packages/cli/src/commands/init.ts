@@ -11,7 +11,6 @@ interface Tool {
 }
 
 function findMcpBinary(): string {
-  // Check common global install locations for @getpromptly/mcp-server
   const globalPaths = [
     path.join(os.homedir(), ".npm-global", "lib", "node_modules", "@getpromptly", "mcp-server", "dist", "index.js"),
     "/usr/local/lib/node_modules/@getpromptly/mcp-server/dist/index.js",
@@ -22,7 +21,6 @@ function findMcpBinary(): string {
     if (fs.existsSync(p)) return p;
   }
 
-  // Try npm root -g to find the actual global path
   try {
     const globalRoot = execSync("npm root -g", { encoding: "utf-8" }).trim();
     const npmGlobalPath = path.join(globalRoot, "@getpromptly", "mcp-server", "dist", "index.js");
@@ -31,14 +29,12 @@ function findMcpBinary(): string {
     // ignore
   }
 
-  // Check relative to this CLI (monorepo dev)
   const monorepoPath = path.resolve(
     path.dirname(new URL(import.meta.url).pathname),
     "..", "..", "..", "mcp-server", "dist", "index.js"
   );
   if (fs.existsSync(monorepoPath)) return monorepoPath;
 
-  // Fallback: use npx
   return "";
 }
 
@@ -49,6 +45,41 @@ function hasCommand(cmd: string): boolean {
   } catch {
     return false;
   }
+}
+
+// --- Generic JSON mcpServers config (Gemini, Cursor, Windsurf, VS Code) ---
+
+function isJsonMcpConfigured(configPath: string): boolean {
+  try {
+    if (!fs.existsSync(configPath)) return false;
+    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    return !!config?.mcpServers?.promptly;
+  } catch {
+    return false;
+  }
+}
+
+function configureJsonMcp(configPath: string, command: string, args: string[]): boolean {
+  const dir = path.dirname(configPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  let config: Record<string, unknown> = {};
+  if (fs.existsSync(configPath)) {
+    try {
+      config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    } catch {
+      // start fresh
+    }
+  }
+
+  if (!config.mcpServers || typeof config.mcpServers !== "object") {
+    config.mcpServers = {};
+  }
+  (config.mcpServers as Record<string, unknown>).promptly = { command, args };
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
+  return true;
 }
 
 // --- Claude Code ---
@@ -68,7 +99,6 @@ function configureClaude(command: string, args: string[]): boolean {
     execSync(`claude mcp add-json promptly '${serverJson}'`, { stdio: "inherit" });
     return true;
   } catch {
-    // Fallback: write .mcp.json
     const mcpConfigPath = path.join(process.cwd(), ".mcp.json");
     let mcpConfig: Record<string, unknown> = {};
     if (fs.existsSync(mcpConfigPath)) {
@@ -85,44 +115,7 @@ function configureClaude(command: string, args: string[]): boolean {
   }
 }
 
-// --- Gemini CLI ---
-
-function isGeminiConfigured(): boolean {
-  const settingsPath = path.join(os.homedir(), ".gemini", "settings.json");
-  try {
-    if (!fs.existsSync(settingsPath)) return false;
-    const settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-    return !!settings?.mcpServers?.promptly;
-  } catch {
-    return false;
-  }
-}
-
-function configureGemini(command: string, args: string[]): boolean {
-  const settingsPath = path.join(os.homedir(), ".gemini", "settings.json");
-  const dir = path.dirname(settingsPath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-
-  let settings: Record<string, unknown> = {};
-  if (fs.existsSync(settingsPath)) {
-    try {
-      settings = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
-    } catch {
-      // start fresh
-    }
-  }
-
-  if (!settings.mcpServers || typeof settings.mcpServers !== "object") {
-    settings.mcpServers = {};
-  }
-  (settings.mcpServers as Record<string, unknown>).promptly = { command, args };
-  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n");
-  return true;
-}
-
-// --- Codex CLI ---
+// --- Codex CLI (TOML) ---
 
 function isCodexConfigured(): boolean {
   const configPath = path.join(os.homedir(), ".codex", "config.toml");
@@ -155,6 +148,66 @@ function configureCodex(command: string, args: string[]): boolean {
   return true;
 }
 
+// --- Detection for IDE-based tools (config file existence) ---
+
+function hasConfigDir(dirPath: string): boolean {
+  return fs.existsSync(dirPath);
+}
+
+// --- Tool definitions ---
+
+interface ToolDef {
+  name: string;
+  detect: () => boolean;
+  isConfigured: (cmd: string, args: string[]) => boolean;
+  configure: (cmd: string, args: string[]) => boolean;
+}
+
+function getToolDefs(): ToolDef[] {
+  const home = os.homedir();
+
+  return [
+    // CLI tools (detected by command)
+    {
+      name: "Claude Code",
+      detect: () => hasCommand("claude"),
+      isConfigured: () => isClaudeConfigured(),
+      configure: (cmd, args) => configureClaude(cmd, args),
+    },
+    {
+      name: "Gemini CLI",
+      detect: () => hasCommand("gemini"),
+      isConfigured: () => isJsonMcpConfigured(path.join(home, ".gemini", "settings.json")),
+      configure: (cmd, args) => configureJsonMcp(path.join(home, ".gemini", "settings.json"), cmd, args),
+    },
+    {
+      name: "Codex CLI",
+      detect: () => hasCommand("codex"),
+      isConfigured: () => isCodexConfigured(),
+      configure: (cmd, args) => configureCodex(cmd, args),
+    },
+    // IDE tools (detected by config directory existence)
+    {
+      name: "Cursor",
+      detect: () => hasConfigDir(path.join(home, ".cursor")),
+      isConfigured: () => isJsonMcpConfigured(path.join(home, ".cursor", "mcp.json")),
+      configure: (cmd, args) => configureJsonMcp(path.join(home, ".cursor", "mcp.json"), cmd, args),
+    },
+    {
+      name: "Windsurf",
+      detect: () => hasConfigDir(path.join(home, ".codeium", "windsurf")),
+      isConfigured: () => isJsonMcpConfigured(path.join(home, ".codeium", "windsurf", "mcp_config.json")),
+      configure: (cmd, args) => configureJsonMcp(path.join(home, ".codeium", "windsurf", "mcp_config.json"), cmd, args),
+    },
+    {
+      name: "VS Code (Copilot)",
+      detect: () => hasCommand("code"),
+      isConfigured: () => isJsonMcpConfigured(path.join(home, ".vscode", "mcp.json")),
+      configure: (cmd, args) => configureJsonMcp(path.join(home, ".vscode", "mcp.json"), cmd, args),
+    },
+  ];
+}
+
 // --- Main ---
 
 export async function initCommand() {
@@ -176,16 +229,19 @@ export async function initCommand() {
   }
 
   // Detect tools
-  const tools: Tool[] = [
-    { name: "Claude Code", detected: hasCommand("claude"), configured: false },
-    { name: "Gemini CLI", detected: hasCommand("gemini"), configured: false },
-    { name: "Codex CLI", detected: hasCommand("codex"), configured: false },
-  ];
+  const toolDefs = getToolDefs();
+  const tools: Tool[] = toolDefs.map(def => ({
+    name: def.name,
+    detected: def.detect(),
+    configured: false,
+  }));
 
   // Check which are already configured
-  if (tools[0].detected) tools[0].configured = isClaudeConfigured();
-  if (tools[1].detected) tools[1].configured = isGeminiConfigured();
-  if (tools[2].detected) tools[2].configured = isCodexConfigured();
+  for (let i = 0; i < tools.length; i++) {
+    if (tools[i].detected) {
+      tools[i].configured = toolDefs[i].isConfigured(command, args);
+    }
+  }
 
   // Report detection
   console.log("\nDetected AI coding tools:");
@@ -203,7 +259,7 @@ export async function initCommand() {
   if (toConfigure.length === 0) {
     if (tools.every(t => !t.detected)) {
       console.log("\nNo supported AI coding tools detected.");
-      console.log("Install Claude Code, Gemini CLI, or Codex CLI and run this again.");
+      console.log("Supported: Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, VS Code.");
     } else {
       console.log("\nAll detected tools are already configured.");
     }
@@ -225,14 +281,10 @@ export async function initCommand() {
   // Configure each tool
   for (const tool of toConfigure) {
     process.stdout.write(`\nConfiguring ${tool.name}... `);
-    let ok = false;
-
-    if (tool.name === "Claude Code") ok = configureClaude(command, args);
-    else if (tool.name === "Gemini CLI") ok = configureGemini(command, args);
-    else if (tool.name === "Codex CLI") ok = configureCodex(command, args);
-
+    const def = toolDefs.find(d => d.name === tool.name)!;
+    const ok = def.configure(command, args);
     console.log(ok ? "done." : "failed.");
   }
 
-  console.log("\nSetup complete. Restart your AI coding tool to activate Promptly.");
+  console.log("\nSetup complete. Restart your AI coding tools to activate Promptly.");
 }

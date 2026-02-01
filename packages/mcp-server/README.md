@@ -4,7 +4,7 @@ MCP server for capturing AI coding conversations. Used by [@getpromptly/cli](htt
 
 ## Overview
 
-This package provides an MCP (Model Context Protocol) server that integrates with Claude Code, Gemini CLI, and Codex CLI to capture conversation turns, token usage, and tool calls during development sessions.
+This package provides an MCP (Model Context Protocol) server that integrates with any MCP-compatible AI coding tool (Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, VS Code/Copilot) to capture conversation turns, token usage, and tool calls during development sessions.
 
 ## Installation
 

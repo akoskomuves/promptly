@@ -8,7 +8,7 @@ Developer prompt analytics -- capture, analyze, and review AI conversations tied
 npm i -g @getpromptly/cli
 promptly init            # Auto-detects and configures your AI coding tools
 promptly start TICKET-1  # Start logging conversations
-# ... work with Claude Code, Gemini CLI, or Codex CLI ...
+# ... work with any supported AI coding tool ...
 promptly finish          # Save session data
 promptly serve           # Open local dashboard at localhost:3000
 ```
@@ -16,7 +16,7 @@ promptly serve           # Open local dashboard at localhost:3000
 ## Features
 
 - **Local-first**: Everything runs on your machine. No account needed.
-- **Multi-tool support**: Works with Claude Code, Gemini CLI, and Codex CLI via MCP.
+- **Multi-tool support**: Works with Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, and VS Code/Copilot via MCP.
 - **Session tracking**: Tag conversations to tickets, track token usage and duration.
 - **Built-in dashboard**: View sessions in your browser at `localhost:3000`.
 - **Optional cloud sync**: For teams that want a shared dashboard.
@@ -36,7 +36,7 @@ promptly serve           # Open local dashboard at localhost:3000
 
 | Command | Description |
 |---------|-------------|
-| `promptly init` | Auto-detect and configure MCP in Claude Code, Gemini CLI, Codex CLI |
+| `promptly init` | Auto-detect and configure MCP in all supported AI coding tools |
 | `promptly start <ticket-id>` | Start logging AI conversations for a ticket |
 | `promptly finish` | Finish the session and save data |
 | `promptly status` | Show current session status |
