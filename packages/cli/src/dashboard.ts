@@ -40,6 +40,7 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
             '<span>' + duration + '</span>' +
             '<span>' + s.message_count + ' messages</span>' +
             '<span>' + s.total_tokens.toLocaleString() + ' tokens</span>' +
+            (s.client_tool ? '<span>' + esc(s.client_tool) + '</span>' : '') +
             (models.length ? '<span>' + models.join(', ') + '</span>' : '') +
           '</div>' +
         '</a>';
@@ -97,6 +98,7 @@ export function sessionDetailPage(sessionJson: string): string {
         stat('Prompt Tokens', s.prompt_tokens.toLocaleString()) +
         stat('Response Tokens', s.response_tokens.toLocaleString()) +
         stat('Tool Calls', s.tool_call_count) +
+        (s.client_tool ? stat('AI Tool', s.client_tool) : '') +
       '</div>' +
       '<h2>Conversation</h2>' +
       (conversations.length === 0

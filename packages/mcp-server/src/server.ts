@@ -12,6 +12,16 @@ import {
 } from "./session.js";
 import type { ConversationTurn } from "@getpromptly/shared";
 
+function getClientToolName(server: McpServer): string | undefined {
+  try {
+    const clientInfo = server.server.getClientVersion();
+    if (!clientInfo?.name) return undefined;
+    return clientInfo.name;
+  } catch {
+    return undefined;
+  }
+}
+
 export function createServer(): McpServer {
   const server = new McpServer({
     name: "promptly",
@@ -43,7 +53,8 @@ export function createServer(): McpServer {
         startedAt: new Date().toISOString(),
         apiUrl: "http://localhost:3001",
       });
-      initBuffer(ticketId);
+      const clientTool = getClientToolName(server);
+      initBuffer(ticketId, clientTool);
       return {
         content: [
           {

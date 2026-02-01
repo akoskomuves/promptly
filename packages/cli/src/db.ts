@@ -35,9 +35,16 @@ export function getDb(): Database.Database {
       conversations TEXT DEFAULT '[]',
       models TEXT DEFAULT '[]',
       tags TEXT DEFAULT '[]',
+      client_tool TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
   `);
+  // Migrate: add client_tool column if missing
+  try {
+    _db.exec("ALTER TABLE sessions ADD COLUMN client_tool TEXT");
+  } catch {
+    // column already exists
+  }
   return _db;
 }
 
@@ -104,6 +111,7 @@ export interface DbSession {
   conversations: string;
   models: string;
   tags: string;
+  client_tool: string | null;
   created_at: string;
 }
 

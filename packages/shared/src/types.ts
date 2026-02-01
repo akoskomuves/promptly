@@ -34,6 +34,7 @@ export interface LocalSession {
   status: SessionStatus;
   conversations: ConversationTurn[];
   models: string[];
+  clientTool?: string; // e.g. "claude-code", "cursor", "gemini-cli"
   totalTokens: number;
   promptTokens: number;
   responseTokens: number;
