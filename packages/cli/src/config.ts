@@ -16,13 +16,13 @@ function ensureDir() {
 export function loadConfig(): CliConfig {
   try {
     if (!fs.existsSync(CONFIG_FILE)) {
-      return { apiUrl: "http://localhost:3001", mode: "local" };
+      return { apiUrl: "https://getpromptlyapi-production.up.railway.app", mode: "local" };
     }
     const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8")) as CliConfig;
     if (!config.mode) config.mode = "local";
     return config;
   } catch {
-    return { apiUrl: "http://localhost:3001", mode: "local" };
+    return { apiUrl: "https://getpromptlyapi-production.up.railway.app", mode: "local" };
   }
 }
 
