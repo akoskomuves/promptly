@@ -1,0 +1,137 @@
+import { listSessionsInRange, listAllSessions } from "../db.js";
+import type { DbSession } from "../db.js";
+
+export async function reportCommand(options: {
+  from?: string;
+  to?: string;
+  period?: string;
+}) {
+  const { from, to } = resolveRange(options);
+  const sessions = from && to ? listSessionsInRange(from, to) : listAllSessions();
+
+  if (sessions.length === 0) {
+    console.log("No sessions found for this period.");
+    return;
+  }
+
+  const completed = sessions.filter((s) => s.status === "COMPLETED");
+  const totalTokens = sum(sessions, (s) => s.total_tokens);
+  const promptTokens = sum(sessions, (s) => s.prompt_tokens);
+  const responseTokens = sum(sessions, (s) => s.response_tokens);
+  const totalMessages = sum(sessions, (s) => s.message_count);
+  const totalToolCalls = sum(sessions, (s) => s.tool_call_count);
+
+  // Duration stats (completed sessions only)
+  const durations = completed
+    .filter((s) => s.finished_at)
+    .map(
+      (s) =>
+        (new Date(s.finished_at!).getTime() - new Date(s.started_at).getTime()) / 60000
+    );
+  const avgDuration =
+    durations.length > 0
+      ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+      : 0;
+
+  // Models used
+  const modelSet = new Set<string>();
+  sessions.forEach((s) => {
+    JSON.parse(s.models || "[]").forEach((m: string) => modelSet.add(m));
+  });
+
+  // Tools used
+  const toolCounts: Record<string, number> = {};
+  sessions.forEach((s) => {
+    if (s.client_tool) {
+      toolCounts[s.client_tool] = (toolCounts[s.client_tool] || 0) + 1;
+    }
+  });
+
+  // Tags
+  const tagCounts: Record<string, number> = {};
+  sessions.forEach((s) => {
+    JSON.parse(s.tags || "[]").forEach((t: string) => {
+      tagCounts[t] = (tagCounts[t] || 0) + 1;
+    });
+  });
+
+  const label = from && to ? `${from.slice(0, 10)} to ${to.slice(0, 10)}` : "All time";
+
+  console.log(`\n  Promptly Report — ${label}\n`);
+  console.log(`  Sessions:         ${sessions.length} total, ${completed.length} completed`);
+  console.log(`  Total tokens:     ${totalTokens.toLocaleString()} (${promptTokens.toLocaleString()} prompt, ${responseTokens.toLocaleString()} response)`);
+  console.log(`  Messages:         ${totalMessages.toLocaleString()}`);
+  console.log(`  Tool calls:       ${totalToolCalls.toLocaleString()}`);
+  console.log(`  Avg duration:     ${avgDuration}m`);
+  console.log(`  Avg tokens/sess:  ${sessions.length > 0 ? Math.round(totalTokens / sessions.length).toLocaleString() : 0}`);
+
+  if (modelSet.size > 0) {
+    console.log(`  Models:           ${[...modelSet].join(", ")}`);
+  }
+  if (Object.keys(toolCounts).length > 0) {
+    const tools = Object.entries(toolCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([t, c]) => `${t} (${c})`)
+      .join(", ");
+    console.log(`  AI tools:         ${tools}`);
+  }
+  if (Object.keys(tagCounts).length > 0) {
+    const tags = Object.entries(tagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([t, c]) => `${t} (${c})`)
+      .join(", ");
+    console.log(`  Tags:             ${tags}`);
+  }
+
+  console.log();
+}
+
+function resolveRange(options: { from?: string; to?: string; period?: string }): {
+  from: string | undefined;
+  to: string | undefined;
+} {
+  if (options.from || options.to) {
+    const from = options.from
+      ? new Date(options.from).toISOString()
+      : undefined;
+    const to = options.to
+      ? new Date(options.to).toISOString()
+      : new Date().toISOString();
+    return { from, to };
+  }
+
+  if (options.period) {
+    const now = new Date();
+    const to = now.toISOString();
+    let from: Date;
+
+    switch (options.period) {
+      case "today":
+        from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        break;
+      case "week":
+        from = new Date(now);
+        from.setDate(from.getDate() - 7);
+        break;
+      case "month":
+        from = new Date(now);
+        from.setMonth(from.getMonth() - 1);
+        break;
+      case "year":
+        from = new Date(now);
+        from.setFullYear(from.getFullYear() - 1);
+        break;
+      default:
+        console.error(`Unknown period: ${options.period}. Use today, week, month, or year.`);
+        process.exit(1);
+    }
+
+    return { from: from.toISOString(), to };
+  }
+
+  return { from: undefined, to: undefined };
+}
+
+function sum(sessions: DbSession[], fn: (s: DbSession) => number): number {
+  return sessions.reduce((acc, s) => acc + fn(s), 0);
+}

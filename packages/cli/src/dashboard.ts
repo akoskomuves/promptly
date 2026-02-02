@@ -15,37 +15,144 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
   <main class="container">
     <h1>Sessions</h1>
     <p class="muted">${total} total sessions</p>
+    <div class="filters">
+      <input type="text" id="search" placeholder="Search by ticket ID, tag, or conversation..." class="search-input">
+      <select id="filter-status" class="filter-select">
+        <option value="">All statuses</option>
+        <option value="COMPLETED">Completed</option>
+        <option value="ACTIVE">Active</option>
+      </select>
+      <select id="filter-tool" class="filter-select">
+        <option value="">All tools</option>
+      </select>
+    </div>
+    <div class="export-buttons">
+      <a href="/api/sessions/export.json" class="btn btn-sm">Export JSON</a>
+      <a href="/api/sessions/export.csv" class="btn btn-sm">Export CSV</a>
+    </div>
+    <div id="charts" class="charts-row"></div>
+    <p class="muted" id="result-count"></p>
     <div id="sessions"></div>
   </main>
   <script>
-    const sessions = ${sessionsJson};
+    const allSessions = ${sessionsJson};
     const container = document.getElementById('sessions');
-    if (sessions.length === 0) {
-      container.innerHTML = '<div class="empty"><p>No sessions yet.</p><p>Run <code>promptly start TICKET-ID</code> to create your first session.</p></div>';
-    } else {
-      container.innerHTML = sessions.map(s => {
+    const searchInput = document.getElementById('search');
+    const statusFilter = document.getElementById('filter-status');
+    const toolFilter = document.getElementById('filter-tool');
+    const resultCount = document.getElementById('result-count');
+
+    // Populate tool filter options
+    const tools = [...new Set(allSessions.map(s => s.client_tool).filter(Boolean))];
+    tools.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      toolFilter.appendChild(opt);
+    });
+
+    function render() {
+      const query = searchInput.value.toLowerCase();
+      const status = statusFilter.value;
+      const tool = toolFilter.value;
+
+      const filtered = allSessions.filter(s => {
+        if (status && s.status !== status) return false;
+        if (tool && s.client_tool !== tool) return false;
+        if (query) {
+          const ticketMatch = s.ticket_id.toLowerCase().includes(query);
+          const convos = JSON.parse(s.conversations || '[]');
+          const convoMatch = convos.some(c => c.content.toLowerCase().includes(query));
+          const modelMatch = (s.models || '').toLowerCase().includes(query);
+          const tagMatch = JSON.parse(s.tags || '[]').some(t => t.toLowerCase().includes(query));
+          if (!ticketMatch && !convoMatch && !modelMatch && !tagMatch) return false;
+        }
+        return true;
+      });
+
+      resultCount.textContent = filtered.length === allSessions.length
+        ? ''
+        : filtered.length + ' of ' + allSessions.length + ' sessions';
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="empty"><p>No matching sessions.</p></div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(s => {
         const started = new Date(s.started_at).toLocaleString();
         const duration = s.finished_at
           ? formatDuration(s.started_at, s.finished_at)
           : 'In progress';
         const models = JSON.parse(s.models || '[]');
+        const sTags = JSON.parse(s.tags || '[]');
         const statusClass = s.status === 'COMPLETED' ? 'badge-green' : 'badge-yellow';
+        const tagsHtml = sTags.map(t => '<span class="tag">' + esc(t) + '</span>').join('');
         return '<a href="/sessions/' + s.id + '" class="session-card">' +
           '<div class="session-header">' +
             '<strong>' + esc(s.ticket_id) + '</strong>' +
-            '<span class="badge ' + statusClass + '">' + s.status + '</span>' +
+            '<div>' + tagsHtml + '<span class="badge ' + statusClass + '">' + s.status + '</span></div>' +
           '</div>' +
           '<div class="session-meta">' +
             '<span>' + started + '</span>' +
             '<span>' + duration + '</span>' +
             '<span>' + s.message_count + ' messages</span>' +
             '<span>' + s.total_tokens.toLocaleString() + ' tokens</span>' +
+            '<span class="cost" data-id="' + s.id + '"></span>' +
             (s.client_tool ? '<span>' + esc(s.client_tool) + '</span>' : '') +
             (models.length ? '<span>' + models.join(', ') + '</span>' : '') +
           '</div>' +
         '</a>';
       }).join('');
     }
+
+    searchInput.addEventListener('input', render);
+    statusFilter.addEventListener('change', render);
+    toolFilter.addEventListener('change', render);
+    render();
+
+    // Fetch live pricing and show estimated costs
+    let pricingData = null;
+    fetch('/api/pricing').then(r => r.json()).then(models => {
+      pricingData = models;
+      updateCosts();
+    }).catch(() => {});
+
+    function findPrice(modelName) {
+      if (!pricingData || !modelName) return null;
+      const lower = modelName.toLowerCase();
+      if (pricingData[lower]) return pricingData[lower];
+      // Partial match
+      for (const [key, val] of Object.entries(pricingData)) {
+        if (lower.includes(key) || key.includes(lower)) return val;
+      }
+      return null;
+    }
+
+    function calcCost(session) {
+      const models = JSON.parse(session.models || '[]');
+      if (!models.length || (!session.prompt_tokens && !session.response_tokens)) return null;
+      const p = findPrice(models[0]);
+      if (!p) return null;
+      const cost = (session.prompt_tokens / 1e6) * p.input_price_per_million + (session.response_tokens / 1e6) * p.output_price_per_million;
+      if (cost < 0.01) return '<$0.01';
+      return '$' + cost.toFixed(2);
+    }
+
+    function updateCosts() {
+      allSessions.forEach(s => {
+        const el = document.querySelector('.cost[data-id="' + s.id + '"]');
+        if (el) {
+          const cost = calcCost(s);
+          el.textContent = cost || '';
+        }
+      });
+    }
+
+    // Re-apply costs after filter re-renders
+    const origRender = render;
+    render = function() { origRender(); if (pricingData) updateCosts(); };
+
     function formatDuration(start, end) {
       const ms = new Date(end) - new Date(start);
       const min = Math.floor(ms / 60000);
@@ -53,6 +160,88 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
       return Math.floor(min / 60) + 'h ' + (min % 60) + 'm';
     }
     function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // Charts
+    (function() {
+      const chartsEl = document.getElementById('charts');
+      if (allSessions.length < 2) { chartsEl.style.display = 'none'; return; }
+
+      // Aggregate by day
+      const byDay = {};
+      allSessions.forEach(s => {
+        const day = s.started_at.slice(0, 10);
+        if (!byDay[day]) byDay[day] = { sessions: 0, tokens: 0 };
+        byDay[day].sessions++;
+        byDay[day].tokens += s.total_tokens;
+      });
+
+      const days = Object.keys(byDay).sort();
+      // Fill gaps
+      if (days.length >= 2) {
+        const start = new Date(days[0]);
+        const end = new Date(days[days.length - 1]);
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const key = d.toISOString().slice(0, 10);
+          if (!byDay[key]) byDay[key] = { sessions: 0, tokens: 0 };
+        }
+      }
+      const sortedDays = Object.keys(byDay).sort();
+      const last30 = sortedDays.slice(-30);
+
+      function barChart(containerId, data, label, color) {
+        const max = Math.max(...data.map(d => d.value), 1);
+        const w = 500, h = 160, pad = 30, barGap = 2;
+        const barW = Math.max(2, (w - pad) / data.length - barGap);
+
+        let svg = '<svg viewBox="0 0 ' + w + ' ' + (h + 20) + '" class="chart-svg">';
+        // Y axis labels
+        svg += '<text x="0" y="12" class="chart-label">' + max.toLocaleString() + '</text>';
+        svg += '<text x="0" y="' + (h - 2) + '" class="chart-label">0</text>';
+        // Bars
+        data.forEach((d, i) => {
+          const barH = Math.max(2, (d.value / max) * (h - 20));
+          const x = pad + i * (barW + barGap);
+          const y = h - barH;
+          // Invisible full-height hover target
+          svg += '<rect x="' + x + '" y="0" width="' + barW + '" height="' + h + '" fill="transparent" class="chart-hover" data-val="' + d.value.toLocaleString() + '" data-date="' + d.label + '"></rect>';
+          // Visible bar
+          svg += '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + barH + '" fill="' + (d.value === 0 ? '#333' : color) + '" rx="1" pointer-events="none"></rect>';
+        });
+        // X axis labels (first, middle, last)
+        if (data.length > 0) {
+          const positions = [0, Math.floor(data.length / 2), data.length - 1];
+          positions.forEach(i => {
+            const x = pad + i * (barW + barGap) + barW / 2;
+            svg += '<text x="' + x + '" y="' + (h + 14) + '" text-anchor="middle" class="chart-label">' + data[i].label.slice(5) + '</text>';
+          });
+        }
+        svg += '</svg>';
+        return '<div class="chart-card"><h3>' + label + '</h3>' + svg + '</div>';
+      }
+
+      const sessionsData = last30.map(d => ({ label: d, value: byDay[d].sessions }));
+      const tokensData = last30.map(d => ({ label: d, value: byDay[d].tokens }));
+
+      chartsEl.innerHTML =
+        '<div id="chart-tooltip" class="chart-tooltip"></div>' +
+        barChart('sessions-chart', sessionsData, 'Sessions per day', '#6366f1') +
+        barChart('tokens-chart', tokensData, 'Tokens per day', '#4ade80');
+
+      const tooltip = document.getElementById('chart-tooltip');
+      chartsEl.addEventListener('mouseover', function(e) {
+        const rect = e.target.closest('.chart-hover');
+        if (!rect) { tooltip.style.display = 'none'; return; }
+        tooltip.textContent = rect.dataset.date + ': ' + rect.dataset.val;
+        tooltip.style.display = 'block';
+      });
+      chartsEl.addEventListener('mousemove', function(e) {
+        tooltip.style.left = (e.pageX + 12) + 'px';
+        tooltip.style.top = (e.pageY - 28) + 'px';
+      });
+      chartsEl.addEventListener('mouseout', function(e) {
+        if (!e.target.closest('.chart-hover')) tooltip.style.display = 'none';
+      });
+    })();
   </script>
 </body>
 </html>`;
@@ -98,7 +287,16 @@ export function sessionDetailPage(sessionJson: string): string {
         stat('Prompt Tokens', s.prompt_tokens.toLocaleString()) +
         stat('Response Tokens', s.response_tokens.toLocaleString()) +
         stat('Tool Calls', s.tool_call_count) +
+        '<div class="stat" id="cost-stat" style="display:none"><div class="stat-label">Est. Cost</div><div class="stat-value" id="cost-value"></div></div>' +
         (s.client_tool ? stat('AI Tool', s.client_tool) : '') +
+      '</div>' +
+      '<div class="tags-section">' +
+        '<h2>Tags</h2>' +
+        '<div id="tags-container" class="tags-container"></div>' +
+        '<div class="tag-input-row">' +
+          '<input type="text" id="tag-input" placeholder="Add tag..." class="search-input" style="flex:1;max-width:200px;">' +
+          '<button id="tag-add" class="btn btn-sm">Add</button>' +
+        '</div>' +
       '</div>' +
       '<h2>Conversation</h2>' +
       (conversations.length === 0
@@ -124,6 +322,71 @@ export function sessionDetailPage(sessionJson: string): string {
       return '<div class="stat"><div class="stat-label">' + label + '</div><div class="stat-value">' + value + '</div></div>';
     }
     function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // Fetch live pricing
+    if (models.length && (s.prompt_tokens || s.response_tokens)) {
+      fetch('/api/pricing').then(r => r.json()).then(pricing => {
+        const model = models[0].toLowerCase();
+        let p = pricing[model];
+        if (!p) {
+          for (const [key, val] of Object.entries(pricing)) {
+            if (model.includes(key) || key.includes(model)) { p = val; break; }
+          }
+        }
+        if (p) {
+          const cost = (s.prompt_tokens / 1e6) * p.input_price_per_million + (s.response_tokens / 1e6) * p.output_price_per_million;
+          const costEl = document.getElementById('cost-stat');
+          const valEl = document.getElementById('cost-value');
+          costEl.style.display = '';
+          valEl.textContent = cost < 0.01 ? '<$0.01' : '$' + cost.toFixed(2);
+        }
+      }).catch(() => {});
+    }
+
+    // Tag management
+    const currentTags = tags.slice();
+    const tagsContainer = document.getElementById('tags-container');
+    const tagInput = document.getElementById('tag-input');
+    const tagAdd = document.getElementById('tag-add');
+
+    function renderTags() {
+      tagsContainer.innerHTML = currentTags.length === 0
+        ? '<span class="muted" style="font-size:13px">No tags</span>'
+        : currentTags.map((t, i) =>
+            '<span class="tag">' + esc(t) + ' <span class="tag-remove" data-idx="' + i + '">&times;</span></span>'
+          ).join('');
+    }
+
+    function saveTags() {
+      fetch('/api/sessions/' + s.id + '/tags', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: currentTags }),
+      });
+    }
+
+    tagsContainer.addEventListener('click', function(e) {
+      const idx = e.target.dataset?.idx;
+      if (idx !== undefined) {
+        currentTags.splice(parseInt(idx), 1);
+        saveTags();
+        renderTags();
+      }
+    });
+
+    function addTag() {
+      const val = tagInput.value.trim();
+      if (val && !currentTags.includes(val)) {
+        currentTags.push(val);
+        saveTags();
+        renderTags();
+        tagInput.value = '';
+      }
+    }
+
+    tagAdd.addEventListener('click', addTag);
+    tagInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') addTag(); });
+    renderTags();
   </script>
 </body>
 </html>`;
@@ -146,6 +409,29 @@ function baseStyles(): string {
     .badge-yellow { background: #3a3a1a; color: #facc15; }
     .empty { padding: 40px; text-align: center; color: #666; border: 1px dashed #333; border-radius: 8px; }
     .empty code { background: #222; padding: 2px 6px; border-radius: 4px; }
+    .filters { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 200px; padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; }
+    .search-input:focus { border-color: #555; }
+    .search-input::placeholder { color: #555; }
+    .filter-select { padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; cursor: pointer; }
+    .filter-select:focus { border-color: #555; }
+    .export-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
+    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; }
+    .btn-sm { background: #222; color: #ededed; border: 1px solid #333; }
+    .btn-sm:hover { border-color: #555; }
+    .tag { display: inline-block; padding: 2px 8px; margin: 2px 4px 2px 0; background: #1a2a3a; color: #7dd3fc; border-radius: 4px; font-size: 12px; }
+    .tag-remove { cursor: pointer; margin-left: 4px; opacity: 0.6; }
+    .tag-remove:hover { opacity: 1; }
+    .tags-section { margin: 24px 0; }
+    .tags-container { margin: 8px 0; }
+    .tag-input-row { display: flex; gap: 8px; align-items: center; }
+    .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .chart-card { background: #111; border-radius: 8px; padding: 16px; }
+    .chart-card h3 { font-size: 14px; color: #888; margin-bottom: 12px; font-weight: 500; }
+    .chart-svg { width: 100%; height: auto; }
+    .chart-label { fill: #666; font-size: 10px; }
+    .chart-hover:hover + rect { opacity: 0.8; }
+    .chart-tooltip { display: none; position: absolute; background: #222; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; pointer-events: none; white-space: nowrap; z-index: 10; border: 1px solid #444; }
     .session-card { display: block; padding: 16px; border: 1px solid #222; border-radius: 8px; text-decoration: none; color: #ededed; margin-bottom: 8px; transition: border-color 0.15s; }
     .session-card:hover { border-color: #444; }
     .session-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
@@ -166,3 +452,4 @@ function baseStyles(): string {
     .tool-pre { margin: 4px 0; padding: 8px; background: #0a0a0a; border-radius: 4px; font-size: 12px; overflow: auto; }
   `;
 }
+

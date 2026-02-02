@@ -6,6 +6,7 @@ import { finishCommand } from "./commands/finish.js";
 import { statusCommand } from "./commands/status.js";
 import { serveCommand } from "./commands/serve.js";
 import { initCommand } from "./commands/init.js";
+import { reportCommand } from "./commands/report.js";
 
 const program = new Command();
 
@@ -45,5 +46,13 @@ program
   .command("init")
   .description("Auto-detect and configure MCP in all supported AI coding tools")
   .action(initCommand);
+
+program
+  .command("report")
+  .description("Show summary stats for a time period")
+  .option("--from <date>", "Start date (YYYY-MM-DD)")
+  .option("--to <date>", "End date (YYYY-MM-DD)")
+  .option("--period <period>", "Preset period: today, week, month, year")
+  .action(reportCommand);
 
 program.parse();

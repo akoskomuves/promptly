@@ -115,6 +115,13 @@ export interface DbSession {
   created_at: string;
 }
 
+export function listAllSessions(): DbSession[] {
+  const db = getDb();
+  return db
+    .prepare(`SELECT * FROM sessions ORDER BY started_at DESC`)
+    .all() as DbSession[];
+}
+
 export function listSessions(limit = 50, offset = 0): DbSession[] {
   const db = getDb();
   return db
@@ -137,6 +144,19 @@ export function countSessions(): number {
     count: number;
   };
   return row.count;
+}
+
+export function listSessionsInRange(from: string, to: string): DbSession[] {
+  const db = getDb();
+  return db
+    .prepare(`SELECT * FROM sessions WHERE started_at >= ? AND started_at < ? ORDER BY started_at DESC`)
+    .all(from, to) as DbSession[];
+}
+
+export function updateSessionTags(id: string, tags: string[]): boolean {
+  const db = getDb();
+  const result = db.prepare(`UPDATE sessions SET tags = ? WHERE id = ?`).run(JSON.stringify(tags), id);
+  return result.changes > 0;
 }
 
 function generateId(): string {
