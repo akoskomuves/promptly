@@ -27,13 +27,13 @@ Cloud/Self-Hosted (optional)
 
 ## Packages
 
-### @promptly/shared
+### @getpromptly/shared
 
 Shared TypeScript types used by all packages. No runtime dependencies.
 
 Key types: `SessionStatus`, `ConversationTurn`, `LocalSession`, `CliConfig`, `ActiveSessionState`.
 
-### @promptly/mcp-server
+### @getpromptly/mcp-server
 
 MCP server that runs as a subprocess of Claude Code. Provides 4 tools:
 
@@ -46,7 +46,7 @@ MCP server that runs as a subprocess of Claude Code. Provides 4 tools:
 
 Uses `@modelcontextprotocol/sdk` with stdio transport. Buffers data to `~/.promptly/buffer.json` for crash recovery, and writes completed sessions to `~/.promptly/promptly.db` (SQLite).
 
-### @promptly/cli
+### @getpromptly/cli
 
 CLI tool built with Commander.js. Commands:
 
@@ -59,7 +59,7 @@ CLI tool built with Commander.js. Commands:
 | `serve` | Starts HTTP server reading SQLite | Same |
 | `login` | Sets cloud config | Sets cloud config |
 
-### @promptly/api
+### @getpromptly/api
 
 Fastify REST API for cloud/team mode. Uses Prisma ORM with PostgreSQL.
 
@@ -74,7 +74,7 @@ Endpoints:
 | `PATCH` | `/api/sessions/:id` | Update tags/status |
 | `GET` | `/health` | Health check |
 
-### @promptly/web
+### @getpromptly/web
 
 Next.js 14 App Router dashboard for cloud mode. Server-side rendered, fetches from API.
 

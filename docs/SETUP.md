@@ -10,7 +10,7 @@
 ### 1. Install
 
 ```bash
-npm i -g @promptly/cli
+npm i -g @getpromptly/cli
 ```
 
 ### 2. Configure MCP
@@ -19,7 +19,7 @@ npm i -g @promptly/cli
 promptly init
 ```
 
-This detects your Claude Code config and adds the Promptly MCP server entry. Restart Claude Code after running this.
+This auto-detects your AI coding tools (Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, VS Code) and configures the MCP server. Restart your AI tool after running this.
 
 ### 3. Start a Session
 
@@ -46,43 +46,29 @@ promptly serve
 
 ## Cloud Setup (Teams)
 
-### 1. Deploy the API
+For teams that want a shared dashboard, use the hosted cloud at [app.getpromptly.xyz](https://app.getpromptly.xyz).
+
+### 1. Connect CLI
 
 ```bash
-cd packages/api
-cp .env.example .env
-# Set DATABASE_URL to your PostgreSQL instance
-pnpm prisma migrate deploy
-pnpm start
+promptly login
 ```
 
-### 2. Deploy the Web Dashboard
+This opens your browser to sign in. After authenticating, your CLI is connected to the cloud.
+
+### 2. Use as normal
 
 ```bash
-cd packages/web
-# Set NEXT_PUBLIC_API_URL to your API URL
-pnpm build && pnpm start
-```
-
-### 3. Connect CLI
-
-```bash
-promptly login --api-url https://your-api.example.com
-```
-
-This sets mode to `cloud`. Sessions will be saved locally AND uploaded to the API.
-
-### 4. Verify
-
-```bash
-promptly start TEST-1
+promptly start TICKET-123
+# Work with your AI coding tool...
 promptly finish
-# Check both localhost:3000 and your web dashboard
 ```
+
+Sessions are saved locally AND synced to the cloud dashboard at [app.getpromptly.xyz](https://app.getpromptly.xyz).
 
 ## Self-Hosted Setup
 
-See [SELF-HOSTING.md](SELF-HOSTING.md) for Docker Compose deployment.
+For enterprise deployments, see [SELF-HOSTING.md](SELF-HOSTING.md).
 
 ## Configuration
 
