@@ -1,3 +1,4 @@
+import { select } from "@inquirer/prompts";
 import { loadConfig, saveConfig, isLocalMode } from "../config.js";
 
 interface Team {
@@ -6,7 +7,27 @@ interface Team {
   slug: string;
 }
 
-export async function teamSetCommand(slug: string) {
+interface TeamWithMembers extends Team {
+  members: { id: string; role: string }[];
+  _count: { sessions: number };
+}
+
+async function fetchTeams(config: { apiUrl: string; token: string }): Promise<TeamWithMembers[]> {
+  const res = await fetch(`${config.apiUrl}/api/teams`, {
+    headers: {
+      Authorization: `Bearer ${config.token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch teams: ${res.status}`);
+  }
+
+  const { teams } = (await res.json()) as { teams: TeamWithMembers[] };
+  return teams;
+}
+
+export async function teamSetCommand(slug?: string) {
   const config = loadConfig();
 
   if (isLocalMode(config)) {
@@ -19,11 +40,35 @@ export async function teamSetCommand(slug: string) {
     process.exit(1);
   }
 
+  const token = config.token; // Verified above
+
   try {
+    // If no slug provided, show interactive selector
+    if (!slug) {
+      const teams = await fetchTeams({ apiUrl: config.apiUrl, token });
+
+      if (teams.length === 0) {
+        console.log("No teams available.");
+        console.log("Create a team at https://app.getpromptly.xyz/teams");
+        process.exit(0);
+      }
+
+      const selected = await select({
+        message: "Select a team:",
+        choices: teams.map((t) => ({
+          name: `${t.name} (${t.slug}) - ${t.members.length} members, ${t._count.sessions} sessions`,
+          value: t.slug,
+          description: config.defaultTeamSlug === t.slug ? "Currently default" : undefined,
+        })),
+      });
+
+      slug = selected;
+    }
+
     // Verify the team exists and user has access
     const res = await fetch(`${config.apiUrl}/api/teams/${slug}`, {
       headers: {
-        Authorization: `Bearer ${config.token}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 
@@ -77,7 +122,8 @@ export async function teamCommand(
 ) {
   if (!action) {
     console.log("Usage:");
-    console.log("  promptly team set <slug>  - Set default team for new sessions");
+    console.log("  promptly team set         - Select default team interactively");
+    console.log("  promptly team set <slug>  - Set default team by slug");
     console.log("  promptly team unset       - Clear default team");
     console.log("");
     console.log("Run 'promptly teams' to list your teams.");
@@ -85,11 +131,7 @@ export async function teamCommand(
   }
 
   if (action === "set") {
-    if (!slug) {
-      console.error("Please provide a team slug.");
-      console.error("Usage: promptly team set <slug>");
-      process.exit(1);
-    }
+    // slug is optional - if not provided, interactive selector will be shown
     await teamSetCommand(slug);
   } else if (action === "unset") {
     await teamUnsetCommand();
