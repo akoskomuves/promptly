@@ -43,7 +43,8 @@ promptly serve           # Open local dashboard at localhost:3000
 | `promptly serve` | Start local dashboard on localhost:3000 |
 | `promptly login` | Authenticate with cloud API (cloud mode) |
 | `promptly teams` | List your teams (cloud mode) |
-| `promptly team set <slug>` | Set default team for new sessions |
+| `promptly team set` | Interactive team selector |
+| `promptly team set <slug>` | Set default team by slug |
 | `promptly team unset` | Clear default team (personal sessions) |
 
 ## How It Works
@@ -80,7 +81,7 @@ For teams that want a shared dashboard, sign up at [getpromptly.xyz](https://get
 ```bash
 promptly login             # Opens browser to sign in
 promptly teams             # List your teams
-promptly team set my-team  # Set default team for new sessions
+promptly team set          # Interactive team selector (or: promptly team set my-team)
 promptly start TICKET-1    # Creates session in your team
 promptly finish            # Saves to SQLite AND uploads to API
 ```

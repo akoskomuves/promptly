@@ -78,7 +78,8 @@ Create a team at [app.getpromptly.xyz/teams](https://app.getpromptly.xyz/teams),
 
 ```bash
 promptly teams              # List your teams
-promptly team set my-team   # Set default team
+promptly team set           # Interactive team selector
+promptly team set my-team   # Or set by slug directly
 ```
 
 New sessions will be shared with all team members.
