@@ -1,4 +1,6 @@
-import { loadConfig, isLocalMode } from "../config.js";
+import { select } from "@inquirer/prompts";
+import open from "open";
+import { loadConfig, saveConfig, isLocalMode } from "../config.js";
 
 interface TeamMember {
   id: string;
@@ -66,8 +68,47 @@ export async function teamsCommand() {
       console.log("");
     }
 
-    if (!config.defaultTeamSlug) {
-      console.log("Tip: Run 'promptly team set <slug>' to set a default team.");
+    // Quick actions menu
+    console.log("");
+    const choices = [
+      { name: "Done", value: "done" },
+      ...teams.map(t => ({
+        name: `Set "${t.name}" as default`,
+        value: `set:${t.slug}`,
+      })),
+      { name: "Open dashboard in browser", value: "dashboard" },
+      { name: "Create new team", value: "create" },
+    ];
+
+    if (config.defaultTeamSlug) {
+      choices.splice(1, 0, { name: "Clear default team", value: "unset" });
+    }
+
+    const action = await select({
+      message: "Quick actions:",
+      choices,
+    });
+
+    if (action === "done") {
+      return;
+    } else if (action === "unset") {
+      delete config.defaultTeamSlug;
+      saveConfig(config);
+      console.log("Default team cleared.");
+    } else if (action === "dashboard") {
+      const url = "https://app.getpromptly.xyz/teams";
+      console.log(`Opening ${url}...`);
+      await open(url);
+    } else if (action === "create") {
+      const url = "https://app.getpromptly.xyz/teams/new";
+      console.log(`Opening ${url}...`);
+      await open(url);
+    } else if (action.startsWith("set:")) {
+      const slug = action.replace("set:", "");
+      const team = teams.find(t => t.slug === slug);
+      config.defaultTeamSlug = slug;
+      saveConfig(config);
+      console.log(`Default team set to: ${team?.name} (${slug})`);
     }
   } catch (err) {
     console.error(

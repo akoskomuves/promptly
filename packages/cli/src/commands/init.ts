@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { createInterface } from "node:readline/promises";
+import { checkbox, confirm } from "@inquirer/prompts";
 
 interface Tool {
   name: string;
@@ -254,9 +254,9 @@ export async function initCommand() {
     console.log(`  ${tool.name}: ${status}`);
   }
 
-  const toConfigure = tools.filter(t => t.detected && !t.configured);
+  const availableToConfigure = tools.filter(t => t.detected && !t.configured);
 
-  if (toConfigure.length === 0) {
+  if (availableToConfigure.length === 0) {
     if (tools.every(t => !t.detected)) {
       console.log("\nNo supported AI coding tools detected.");
       console.log("Supported: Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, VS Code.");
@@ -266,19 +266,26 @@ export async function initCommand() {
     return;
   }
 
-  console.log(`\nWill configure: ${toConfigure.map(t => t.name).join(", ")}`);
-  console.log(`Server: ${command} ${args.join(" ")}\n`);
+  console.log(`\nServer: ${command} ${args.join(" ")}\n`);
 
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const answer = await rl.question("Proceed? (Y/n) ");
-  rl.close();
+  // Let user select which tools to configure
+  const selectedTools = await checkbox({
+    message: "Select tools to configure:",
+    choices: availableToConfigure.map(t => ({
+      name: t.name,
+      value: t.name,
+      checked: true, // Pre-select all by default
+    })),
+  });
 
-  if (answer && answer.toLowerCase() !== "y" && answer.toLowerCase() !== "yes") {
-    console.log("Aborted.");
+  if (selectedTools.length === 0) {
+    console.log("No tools selected. Aborted.");
     return;
   }
 
-  // Configure each tool
+  const toConfigure = availableToConfigure.filter(t => selectedTools.includes(t.name));
+
+  // Configure each selected tool
   for (const tool of toConfigure) {
     process.stdout.write(`\nConfiguring ${tool.name}... `);
     const def = toolDefs.find(d => d.name === tool.name)!;

@@ -1,3 +1,4 @@
+import { input } from "@inquirer/prompts";
 import {
   loadConfig,
   isLocalMode,
@@ -6,7 +7,14 @@ import {
 } from "../config.js";
 import { createSession, generateId } from "../db.js";
 
-export async function startCommand(ticketId: string) {
+export async function startCommand(ticketId?: string) {
+  // Prompt for ticket ID if not provided
+  if (!ticketId) {
+    ticketId = await input({
+      message: "Ticket ID:",
+      validate: (value) => value.trim().length > 0 || "Ticket ID is required",
+    });
+  }
   const existing = getActiveSession();
   if (existing) {
     console.error(

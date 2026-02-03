@@ -6,11 +6,12 @@ Developer prompt analytics -- capture, analyze, and review AI conversations tied
 
 ```bash
 npm i -g @getpromptly/cli
-promptly init            # Auto-detects and configures your AI coding tools
-promptly start TICKET-1  # Start logging conversations
+promptly init            # Select which AI tools to configure
+promptly start           # Prompts for ticket ID interactively
 # ... work with any supported AI coding tool ...
 promptly finish          # Save session data
 promptly serve           # Open local dashboard at localhost:3000
+promptly report          # View stats (select time period)
 ```
 
 ## Features
@@ -36,16 +37,18 @@ promptly serve           # Open local dashboard at localhost:3000
 
 | Command | Description |
 |---------|-------------|
-| `promptly init` | Auto-detect and configure MCP in all supported AI coding tools |
-| `promptly start <ticket-id>` | Start logging AI conversations for a ticket |
-| `promptly finish` | Finish the session and save data |
+| `promptly init` | Configure MCP (interactive tool selector) |
+| `promptly start` | Start logging (prompts for ticket ID) |
+| `promptly start <ticket-id>` | Start logging for specific ticket |
+| `promptly finish` | Finish session and save data |
 | `promptly status` | Show current session status |
 | `promptly serve` | Start local dashboard on localhost:3000 |
-| `promptly login` | Authenticate with cloud API (cloud mode) |
-| `promptly teams` | List your teams (cloud mode) |
+| `promptly report` | Show stats (interactive period selector) |
+| `promptly login` | Authenticate with cloud API |
+| `promptly teams` | List teams with quick actions |
 | `promptly team set` | Interactive team selector |
 | `promptly team set <slug>` | Set default team by slug |
-| `promptly team unset` | Clear default team (personal sessions) |
+| `promptly team unset` | Clear default team |
 
 ## How It Works
 

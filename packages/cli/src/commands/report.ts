@@ -1,3 +1,4 @@
+import { select } from "@inquirer/prompts";
 import { listSessionsInRange, listAllSessions } from "../db.js";
 import type { DbSession } from "../db.js";
 
@@ -6,6 +7,23 @@ export async function reportCommand(options: {
   to?: string;
   period?: string;
 }) {
+  // Interactive period selector if no options provided
+  if (!options.from && !options.to && !options.period) {
+    const period = await select({
+      message: "Select time period:",
+      choices: [
+        { name: "Today", value: "today" },
+        { name: "Last 7 days", value: "week" },
+        { name: "Last 30 days", value: "month" },
+        { name: "Last year", value: "year" },
+        { name: "All time", value: "all" },
+      ],
+    });
+    if (period !== "all") {
+      options.period = period;
+    }
+  }
+
   const { from, to } = resolveRange(options);
   const sessions = from && to ? listSessionsInRange(from, to) : listAllSessions();
 
