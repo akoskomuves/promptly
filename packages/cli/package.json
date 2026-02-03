@@ -1,6 +1,6 @@
 {
   "name": "@getpromptly/cli",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Developer prompt analytics CLI - capture and review AI coding sessions",
   "type": "module",
   "license": "MIT",
