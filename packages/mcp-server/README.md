@@ -12,8 +12,10 @@ Installed automatically when you run `promptly init` from [@getpromptly/cli](htt
 
 ```bash
 npm i -g @getpromptly/cli
-promptly init
+promptly init    # Select which AI tools to configure
 ```
+
+The init command auto-detects installed AI tools and lets you choose which ones to configure with this MCP server.
 
 ## MCP Tools
 
