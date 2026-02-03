@@ -7,6 +7,8 @@ import { statusCommand } from "./commands/status.js";
 import { serveCommand } from "./commands/serve.js";
 import { initCommand } from "./commands/init.js";
 import { reportCommand } from "./commands/report.js";
+import { teamsCommand } from "./commands/teams.js";
+import { teamCommand } from "./commands/team.js";
 
 const program = new Command();
 
@@ -54,5 +56,15 @@ program
   .option("--to <date>", "End date (YYYY-MM-DD)")
   .option("--period <period>", "Preset period: today, week, month, year")
   .action(reportCommand);
+
+program
+  .command("teams")
+  .description("List your teams (cloud mode)")
+  .action(teamsCommand);
+
+program
+  .command("team [action] [slug]")
+  .description("Manage default team: set <slug> | unset")
+  .action(teamCommand);
 
 program.parse();

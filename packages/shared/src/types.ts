@@ -1,6 +1,12 @@
 // Session status
 export type SessionStatus = "ACTIVE" | "COMPLETED" | "ABANDONED";
 
+// Team role
+export type TeamRole = "OWNER" | "ADMIN" | "MEMBER";
+
+// Invite status
+export type InviteStatus = "PENDING" | "ACCEPTED" | "EXPIRED";
+
 // Review status
 export type ReviewStatus =
   | "PENDING"
@@ -46,6 +52,7 @@ export interface LocalSession {
 export interface CreateSessionRequest {
   ticketId: string;
   ticketUrl?: string;
+  teamId?: string;
 }
 
 // API request to upload session data
@@ -67,6 +74,7 @@ export interface SessionResponse {
   ticketId: string;
   ticketUrl?: string;
   userId: string;
+  teamId?: string;
   status: SessionStatus;
   startedAt: string;
   finishedAt?: string;
@@ -82,12 +90,69 @@ export interface SessionResponse {
   updatedAt: string;
 }
 
+// Team data
+export interface Team {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamMember {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: TeamRole;
+  joinedAt: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+}
+
+export interface TeamInvite {
+  id: string;
+  teamId: string;
+  email: string;
+  role: TeamRole;
+  status: InviteStatus;
+  invitedById: string;
+  token: string;
+  expiresAt: string;
+  createdAt: string;
+  invitedBy?: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
+}
+
+// API request to create a team
+export interface CreateTeamRequest {
+  name: string;
+  slug?: string; // auto-generated from name if not provided
+}
+
+// API request to create a team invite
+export interface CreateTeamInviteRequest {
+  email: string;
+  role?: TeamRole;
+}
+
+// API response for team with members
+export interface TeamWithMembers extends Team {
+  members: TeamMember[];
+}
+
 // CLI config stored at ~/.promptly/config.json
 export interface CliConfig {
   apiUrl: string;
   token?: string;
   userEmail?: string;
   mode?: "local" | "cloud";
+  defaultTeamSlug?: string;
 }
 
 // State file for active session ~/.promptly/session.json

@@ -3,7 +3,13 @@
 ## Prerequisites
 
 - Node.js 20+
-- Claude Code (for MCP integration)
+- One of the supported AI coding tools:
+  - Claude Code
+  - Gemini CLI
+  - Codex CLI
+  - Cursor
+  - Windsurf
+  - VS Code (with Copilot or similar)
 
 ## Local Setup (Free Tier)
 
@@ -27,9 +33,9 @@ This auto-detects your AI coding tools (Claude Code, Gemini CLI, Codex CLI, Curs
 promptly start TICKET-123
 ```
 
-### 4. Work with Claude Code
+### 4. Work with Your AI Tool
 
-Use Claude Code as normal. The MCP server captures conversation turns in the background.
+Use your AI coding tool as normal. The MCP server captures conversation turns in the background.
 
 ### 5. Finish
 
@@ -66,6 +72,21 @@ promptly finish
 
 Sessions are saved locally AND synced to the cloud dashboard at [app.getpromptly.xyz](https://app.getpromptly.xyz).
 
+### 3. Create or Join a Team
+
+Create a team at [app.getpromptly.xyz/teams](https://app.getpromptly.xyz/teams), then set it as your default:
+
+```bash
+promptly teams              # List your teams
+promptly team set my-team   # Set default team
+```
+
+New sessions will be shared with all team members.
+
+```bash
+promptly team unset         # Clear default (personal sessions)
+```
+
 ## Self-Hosted Setup
 
 For enterprise deployments, see [SELF-HOSTING.md](SELF-HOSTING.md).
@@ -76,26 +97,37 @@ CLI config is stored at `~/.promptly/config.json`:
 
 ```json
 {
-  "apiUrl": "http://localhost:3001",
-  "mode": "local",
-  "token": null
+  "apiUrl": "https://api.getpromptly.xyz",
+  "mode": "cloud",
+  "token": "your-api-key",
+  "userEmail": "you@example.com",
+  "defaultTeamSlug": "my-team"
 }
 ```
 
 | Field | Description | Default |
 |-------|-------------|---------|
-| `apiUrl` | API server URL | `http://localhost:3001` |
+| `apiUrl` | API server URL | `https://api.getpromptly.xyz` |
 | `mode` | `"local"` or `"cloud"` | `"local"` |
 | `token` | Auth token for cloud mode | `null` |
 | `userEmail` | User email (cloud mode) | `null` |
+| `defaultTeamSlug` | Default team for new sessions | `null` |
 
 ## Troubleshooting
 
 ### MCP server not capturing conversations
 
-1. Verify MCP config: check `~/.claude/claude_desktop_config.json` has a `promptly` entry.
-2. Restart Claude Code after running `promptly init`.
+1. Verify MCP config was added by running `promptly init` again (it will show which tools were configured).
+2. Restart your AI coding tool after running `promptly init`.
 3. Check `~/.promptly/buffer.json` exists during an active session.
+
+**Config locations by tool:**
+- Claude Code: `~/.claude/claude_desktop_config.json`
+- Gemini CLI: `~/.gemini/settings.json`
+- Codex CLI: `~/.codex/config.json`
+- Cursor: `~/.cursor/mcp.json`
+- Windsurf: `~/.codeium/windsurf/mcp_config.json`
+- VS Code: `~/.vscode/mcp.json`
 
 ### `promptly serve` shows no sessions
 

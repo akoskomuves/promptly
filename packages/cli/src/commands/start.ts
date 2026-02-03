@@ -37,13 +37,29 @@ export async function startCommand(ticketId: string) {
 
   // Cloud mode: create session on API
   try {
+    // Get teamId from default team slug if set
+    let teamId: string | undefined;
+    if (config.defaultTeamSlug) {
+      const teamRes = await fetch(`${config.apiUrl}/api/teams/${config.defaultTeamSlug}`, {
+        headers: {
+          ...(config.token ? { Authorization: `Bearer ${config.token}` } : {}),
+        },
+      });
+      if (teamRes.ok) {
+        const team = (await teamRes.json()) as { id: string; name: string };
+        teamId = team.id;
+      } else {
+        console.warn(`Warning: Default team '${config.defaultTeamSlug}' not found. Creating personal session.`);
+      }
+    }
+
     const res = await fetch(`${config.apiUrl}/api/sessions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(config.token ? { Authorization: `Bearer ${config.token}` } : {}),
       },
-      body: JSON.stringify({ ticketId }),
+      body: JSON.stringify({ ticketId, teamId }),
     });
 
     if (!res.ok) {
@@ -62,6 +78,9 @@ export async function startCommand(ticketId: string) {
     });
 
     console.log(`Session started for ${ticketId}`);
+    if (teamId) {
+      console.log(`  Team: ${config.defaultTeamSlug}`);
+    }
     console.log("  Recording all AI conversations...");
     console.log("  Run 'promptly finish' when done.");
   } catch (err) {
