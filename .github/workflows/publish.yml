@@ -33,16 +33,35 @@ jobs:
 
       - name: Publish shared
         working-directory: packages/shared
-        run: npm publish --access public --provenance
+        run: |
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if npm view "$PKG_NAME@$PKG_VERSION" version 2>/dev/null; then
+            echo "Version $PKG_VERSION already published, skipping"
+          else
+            npm publish --access public --provenance
+          fi
 
       - name: Publish mcp-server
         working-directory: packages/mcp-server
         run: |
           sed -i 's/"@getpromptly\/shared": "workspace:\*"/"@getpromptly\/shared": "^0.1.0"/' package.json
-          npm publish --access public --provenance
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if npm view "$PKG_NAME@$PKG_VERSION" version 2>/dev/null; then
+            echo "Version $PKG_VERSION already published, skipping"
+          else
+            npm publish --access public --provenance
+          fi
 
       - name: Publish cli
         working-directory: packages/cli
         run: |
           sed -i 's/"@getpromptly\/shared": "workspace:\*"/"@getpromptly\/shared": "^0.1.0"/' package.json
-          npm publish --access public --provenance
+          PKG_NAME=$(node -p "require('./package.json').name")
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if npm view "$PKG_NAME@$PKG_VERSION" version 2>/dev/null; then
+            echo "Version $PKG_VERSION already published, skipping"
+          else
+            npm publish --access public --provenance
+          fi
