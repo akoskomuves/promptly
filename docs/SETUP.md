@@ -27,7 +27,7 @@ promptly init
 
 This auto-detects your AI coding tools (Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, VS Code) and configures the MCP server.
 
-**For Claude Code users**: You'll be prompted to install the `/track` skill, which adds native slash commands for session tracking.
+**For supported tools**: You'll be prompted to install the `/track` command, which adds native slash commands for session tracking (Claude Code, Codex CLI, Gemini CLI, VS Code + Copilot).
 
 Restart your AI tool after running this.
 
@@ -54,9 +54,18 @@ promptly serve
 # Open http://localhost:3000
 ```
 
-## Claude Code /track Skill
+## Native /track Commands
 
-If you're using Claude Code, `promptly init` offers to install a `/track` skill that provides native slash commands for session tracking.
+`promptly init` offers to install native `/track` commands for supported AI tools. This provides slash commands for session tracking directly in your AI tool.
+
+### Supported Tools
+
+| Tool | Command Location |
+|------|------------------|
+| Claude Code | `.claude/skills/track/SKILL.md` |
+| Codex CLI | `.codex/skills/track/SKILL.md` |
+| Gemini CLI | `.gemini/commands/track.toml` |
+| VS Code + Copilot | `.github/prompts/track.prompt.md` |
 
 ### Commands
 
@@ -66,22 +75,23 @@ If you're using Claude Code, `promptly init` offers to install a `/track` skill 
 | `/track status` | Check if tracking is active |
 | `/track finish` | End session and save to dashboard |
 
-### Installation Location
+### Installation Location (Claude Code)
 
 During `promptly init`, you can choose:
 
 - **Project** (default): `.claude/skills/track/SKILL.md` — Only available in this project
 - **Global**: `~/.claude/skills/track/SKILL.md` — Available in all projects
 
-### Reinstalling the Skill
+### Installing/Reinstalling
 
-If you skipped installation or want to reinstall:
+For existing users or to reinstall:
 
 ```bash
-promptly init
+promptly skill install    # Install for all configured tools
+promptly skill status     # Check installation status
 ```
 
-Even if all tools are already configured, it will offer to install the `/track` skill.
+Or run `promptly init` again — even if tools are already configured, it will offer to install `/track` commands.
 
 ## Cloud Setup (Teams)
 
@@ -174,10 +184,13 @@ CLI config is stored at `~/.promptly/config.json`:
 2. Verify token in `~/.promptly/config.json`.
 3. Session is still saved locally -- view with `promptly serve`.
 
-### `/track` command not found in Claude Code
+### `/track` command not found
 
-1. Run `promptly init` again and accept the skill installation prompt.
-2. Restart Claude Code after installing the skill.
-3. Check if the skill file exists:
-   - Project: `.claude/skills/track/SKILL.md`
-   - Global: `~/.claude/skills/track/SKILL.md`
+1. Run `promptly skill install` to install for all configured tools.
+2. Restart your AI tool after installing.
+3. Run `promptly skill status` to verify installation.
+4. Check if files exist:
+   - Claude Code: `.claude/skills/track/SKILL.md` or `~/.claude/skills/track/SKILL.md`
+   - Codex CLI: `.codex/skills/track/SKILL.md`
+   - Gemini CLI: `.gemini/commands/track.toml`
+   - VS Code + Copilot: `.github/prompts/track.prompt.md`

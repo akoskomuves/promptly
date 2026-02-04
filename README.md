@@ -14,21 +14,24 @@ promptly serve           # Open local dashboard at localhost:3000
 promptly report          # View stats (select time period)
 ```
 
-### Claude Code Users
+### Native /track Commands
 
-After `promptly init`, you can use the `/track` slash command directly in Claude Code:
+After `promptly init`, use the `/track` command directly in your AI tool:
 
-```
-/track AUTH-123          # Start tracking a session
-/track status            # Check if tracking is active
-/track finish            # End and save the session
-```
+| Tool | Command |
+|------|---------|
+| Claude Code | `/track AUTH-123` |
+| Codex CLI | `/track AUTH-123` |
+| Gemini CLI | `/track AUTH-123` |
+| VS Code + Copilot | `/track AUTH-123` |
+
+All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 
 ## Features
 
 - **Local-first**: Everything runs on your machine. No account needed.
 - **Multi-tool support**: Works with Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, and VS Code/Copilot via MCP.
-- **Native `/track` command**: Claude Code users get a built-in slash command for session tracking.
+- **Native `/track` command**: Built-in slash commands for Claude Code, Codex CLI, Gemini CLI, and VS Code + Copilot.
 - **Session tracking**: Tag conversations to tickets, track token usage and duration.
 - **Built-in dashboard**: View sessions in your browser at `localhost:3000`.
 - **Optional cloud sync**: For teams that want a shared dashboard.
@@ -60,7 +63,7 @@ After `promptly init`, you can use the `/track` slash command directly in Claude
 | `promptly team set` | Interactive team selector |
 | `promptly team set <slug>` | Set default team by slug |
 | `promptly team unset` | Clear default team |
-| `promptly skill install` | Install /track skill for Claude Code |
+| `promptly skill install` | Install /track command for all configured tools |
 | `promptly skill status` | Check skill installation status |
 
 ## How It Works

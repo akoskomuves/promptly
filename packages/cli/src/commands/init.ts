@@ -115,47 +115,154 @@ function configureClaude(command: string, args: string[]): boolean {
   }
 }
 
-// --- Claude Code Skill ---
+// --- AI Tool Skills ---
 
-import { isSkillInstalled, installSkill } from "./skill.js";
+import {
+  isSkillInstalled,
+  installSkill,
+  isCodexSkillInstalled,
+  installCodexSkill,
+  isGeminiCommandInstalled,
+  installGeminiCommand,
+  isVSCodePromptInstalled,
+  installVSCodePrompt,
+} from "./skill.js";
 
-async function maybeInstallClaudeSkill(): Promise<void> {
-  const projectSkillExists = isSkillInstalled("project");
-  const globalSkillExists = isSkillInstalled("global");
+async function maybeInstallSkills(claudeConfigured: boolean, codexConfigured: boolean, geminiConfigured: boolean, vscodeConfigured: boolean): Promise<void> {
+  let installedAny = false;
 
-  if (projectSkillExists || globalSkillExists) {
-    const location = projectSkillExists ? "project" : "global";
-    console.log(`\n/track skill already installed (${location}).`);
-    return;
+  // Claude Code skill
+  if (claudeConfigured) {
+    const projectSkillExists = isSkillInstalled("project");
+    const globalSkillExists = isSkillInstalled("global");
+
+    if (projectSkillExists || globalSkillExists) {
+      const location = projectSkillExists ? "project" : "global";
+      console.log(`\nClaude Code /track skill already installed (${location}).`);
+    } else {
+      console.log("\n--- Claude Code /track Skill ---");
+      console.log("The /track skill lets you start/stop session tracking with a slash command.");
+
+      const doInstall = await confirm({
+        message: "Install /track skill for Claude Code?",
+        default: true,
+      });
+
+      if (doInstall) {
+        const installGlobal = await confirm({
+          message: "Install globally (~/.claude/skills/) for all projects?",
+          default: false,
+        });
+
+        const location = installGlobal ? "global" : "project";
+        process.stdout.write(`Installing Claude Code skill (${location})... `);
+        const ok = installSkill(location);
+        console.log(ok ? "done." : "failed.");
+        if (ok) installedAny = true;
+      }
+    }
   }
 
-  console.log("\n--- Claude Code /track Skill ---");
-  console.log("The /track skill lets you start/stop session tracking with a slash command.");
+  // Codex CLI skill
+  if (codexConfigured) {
+    const projectSkillExists = isCodexSkillInstalled("project");
+    const globalSkillExists = isCodexSkillInstalled("global");
 
-  const doInstall = await confirm({
-    message: "Install /track skill for Claude Code?",
-    default: true,
-  });
+    if (projectSkillExists || globalSkillExists) {
+      const location = projectSkillExists ? "project" : "global";
+      console.log(`\nCodex CLI $track skill already installed (${location}).`);
+    } else {
+      console.log("\n--- Codex CLI $track Skill ---");
+      console.log("The $track skill lets you start/stop session tracking with a command.");
 
-  if (!doInstall) {
-    return;
+      const doInstall = await confirm({
+        message: "Install $track skill for Codex CLI?",
+        default: true,
+      });
+
+      if (doInstall) {
+        const installGlobal = await confirm({
+          message: "Install globally (~/.codex/skills/) for all projects?",
+          default: false,
+        });
+
+        const location = installGlobal ? "global" : "project";
+        process.stdout.write(`Installing Codex CLI skill (${location})... `);
+        const ok = installCodexSkill(location);
+        console.log(ok ? "done." : "failed.");
+        if (ok) installedAny = true;
+      }
+    }
   }
 
-  const installGlobal = await confirm({
-    message: "Install globally (~/.claude/skills/) for all projects?",
-    default: false,
-  });
+  // Gemini CLI command
+  if (geminiConfigured) {
+    const projectCmdExists = isGeminiCommandInstalled("project");
+    const globalCmdExists = isGeminiCommandInstalled("global");
 
-  const location = installGlobal ? "global" : "project";
-  process.stdout.write(`Installing /track skill (${location})... `);
-  const ok = installSkill(location);
-  console.log(ok ? "done." : "failed.");
+    if (projectCmdExists || globalCmdExists) {
+      const location = projectCmdExists ? "project" : "global";
+      console.log(`\nGemini CLI /track command already installed (${location}).`);
+    } else {
+      console.log("\n--- Gemini CLI /track Command ---");
+      console.log("The /track command lets you start/stop session tracking.");
 
-  if (ok) {
-    console.log(`\nYou can now use these commands in Claude Code:`);
-    console.log(`  /track <ticket-id>  — Start tracking a session`);
-    console.log(`  /track status       — Check tracking status`);
-    console.log(`  /track finish       — End and save session`);
+      const doInstall = await confirm({
+        message: "Install /track command for Gemini CLI?",
+        default: true,
+      });
+
+      if (doInstall) {
+        const installGlobal = await confirm({
+          message: "Install globally (~/.gemini/commands/) for all projects?",
+          default: false,
+        });
+
+        const location = installGlobal ? "global" : "project";
+        process.stdout.write(`Installing Gemini CLI command (${location})... `);
+        const ok = installGeminiCommand(location);
+        console.log(ok ? "done." : "failed.");
+        if (ok) installedAny = true;
+      }
+    }
+  }
+
+  // VS Code + Copilot prompt
+  if (vscodeConfigured) {
+    if (isVSCodePromptInstalled()) {
+      console.log("\nVS Code + Copilot /track prompt already installed.");
+    } else {
+      console.log("\n--- VS Code + Copilot /track Prompt ---");
+      console.log("The /track prompt lets you start/stop session tracking in Copilot.");
+
+      const doInstall = await confirm({
+        message: "Install /track prompt for VS Code + Copilot?",
+        default: true,
+      });
+
+      if (doInstall) {
+        process.stdout.write("Installing VS Code prompt (.github/prompts/)... ");
+        const ok = installVSCodePrompt();
+        console.log(ok ? "done." : "failed.");
+        if (ok) installedAny = true;
+      }
+    }
+  }
+
+  if (installedAny) {
+    console.log("\nSkill/command usage:");
+    if (claudeConfigured) {
+      console.log("  Claude Code:       /track <ticket-id>, /track status, /track finish");
+    }
+    if (codexConfigured) {
+      console.log("  Codex CLI:         $track <ticket-id>, $track status, $track finish");
+    }
+    if (geminiConfigured) {
+      console.log("  Gemini CLI:        /track <ticket-id>, /track status, /track finish");
+    }
+    if (vscodeConfigured) {
+      console.log("  VS Code + Copilot: /track <ticket-id>, /track status, /track finish");
+    }
   }
 }
 
@@ -299,9 +406,16 @@ export async function initCommand() {
   }
 
   const availableToConfigure = tools.filter(t => t.detected && !t.configured);
+
+  // Track which tools are configured for skill installation
   const claudeTool = tools.find(t => t.name === "Claude Code");
-  const claudeDetected = claudeTool?.detected ?? false;
+  const codexTool = tools.find(t => t.name === "Codex CLI");
+  const geminiTool = tools.find(t => t.name === "Gemini CLI");
+  const vscodeTool = tools.find(t => t.name === "VS Code (Copilot)");
   const claudeAlreadyConfigured = claudeTool?.configured ?? false;
+  const codexAlreadyConfigured = codexTool?.configured ?? false;
+  const geminiAlreadyConfigured = geminiTool?.configured ?? false;
+  const vscodeAlreadyConfigured = vscodeTool?.configured ?? false;
 
   if (availableToConfigure.length === 0) {
     if (tools.every(t => !t.detected)) {
@@ -310,9 +424,9 @@ export async function initCommand() {
       return;
     } else {
       console.log("\nAll detected tools are already configured.");
-      // Continue to check if /track skill needs to be installed for Claude
-      if (claudeAlreadyConfigured) {
-        await maybeInstallClaudeSkill();
+      // Check if skills need to be installed
+      if (claudeAlreadyConfigured || codexAlreadyConfigured || geminiAlreadyConfigured || vscodeAlreadyConfigured) {
+        await maybeInstallSkills(claudeAlreadyConfigured, codexAlreadyConfigured, geminiAlreadyConfigured, vscodeAlreadyConfigured);
       }
       return;
     }
@@ -345,10 +459,18 @@ export async function initCommand() {
     console.log(ok ? "done." : "failed.");
   }
 
-  // Install Claude Code /track skill if Claude was configured
+  // Install skills for configured tools
   const claudeJustConfigured = toConfigure.some(t => t.name === "Claude Code");
-  if (claudeJustConfigured || claudeAlreadyConfigured) {
-    await maybeInstallClaudeSkill();
+  const codexJustConfigured = toConfigure.some(t => t.name === "Codex CLI");
+  const geminiJustConfigured = toConfigure.some(t => t.name === "Gemini CLI");
+  const vscodeJustConfigured = toConfigure.some(t => t.name === "VS Code (Copilot)");
+  const claudeConfigured = claudeJustConfigured || claudeAlreadyConfigured;
+  const codexConfigured = codexJustConfigured || codexAlreadyConfigured;
+  const geminiConfigured = geminiJustConfigured || geminiAlreadyConfigured;
+  const vscodeConfigured = vscodeJustConfigured || vscodeAlreadyConfigured;
+
+  if (claudeConfigured || codexConfigured || geminiConfigured || vscodeConfigured) {
+    await maybeInstallSkills(claudeConfigured, codexConfigured, geminiConfigured, vscodeConfigured);
   }
 
   console.log("\nSetup complete. Restart your AI coding tools to activate Promptly.");

@@ -7,17 +7,30 @@ import {
   saveActiveSession,
 } from "../config.js";
 import { createSession, generateId } from "../db.js";
-import { isClaudeConfigured, isSkillInstalledAnywhere } from "./skill.js";
+import {
+  isClaudeConfigured,
+  isSkillInstalledAnywhere,
+  isCodexConfigured,
+  isCodexSkillInstalledAnywhere,
+  isGeminiConfigured,
+  isGeminiCommandInstalledAnywhere,
+  isVSCodeConfigured,
+  isVSCodePromptInstalled,
+} from "./skill.js";
 
 function maybeShowSkillHint(config: ReturnType<typeof loadConfig>): void {
   // Only show hint once
   if (config.skillHintShown) return;
 
-  // Only show if Claude is configured but skill not installed
-  if (!isClaudeConfigured()) return;
-  if (isSkillInstalledAnywhere()) return;
+  // Check if any tool is configured but skill/command not installed
+  const claudeNeedsSkill = isClaudeConfigured() && !isSkillInstalledAnywhere();
+  const codexNeedsSkill = isCodexConfigured() && !isCodexSkillInstalledAnywhere();
+  const geminiNeedsCmd = isGeminiConfigured() && !isGeminiCommandInstalledAnywhere();
+  const vscodeNeedsPrompt = isVSCodeConfigured() && !isVSCodePromptInstalled();
 
-  console.log("\n  Tip: Install the /track skill for Claude Code:");
+  if (!claudeNeedsSkill && !codexNeedsSkill && !geminiNeedsCmd && !vscodeNeedsPrompt) return;
+
+  console.log("\n  Tip: Install tracking commands for your AI tools:");
   console.log("       promptly skill install\n");
 
   // Mark hint as shown
