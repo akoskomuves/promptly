@@ -100,6 +100,60 @@ Manual testing checklist for Promptly features.
    - Use `/track AUTH-001` prompt
    - Verify MCP tools are called
 
+### Cursor (Limited Support)
+
+**Limitation:** Cursor commands (`.cursor/commands/`) cannot directly invoke MCP tools. The AI must be instructed to use the MCP tools manually.
+
+**Workaround:**
+
+1. Configure MCP via `promptly init` (creates `~/.cursor/mcp.json`)
+2. Manually instruct Cursor AI to use session tracking:
+   ```
+   Use the promptly MCP tools to track this session:
+   - Call mcp__promptly__promptly_start with ticketId "TICKET-123"
+   - When done, call mcp__promptly__promptly_finish
+   ```
+
+**Test cases:**
+
+1. **MCP configuration**
+   - Run `promptly init` and select Cursor
+   - Verify `~/.cursor/mcp.json` has promptly server entry
+   - Restart Cursor
+
+2. **Manual MCP usage**
+   - Ask Cursor AI to list available MCP tools
+   - Verify promptly tools appear (promptly_start, promptly_log, promptly_status, promptly_finish)
+   - Instruct AI to call promptly_start with a ticket ID
+   - Verify session starts
+
+### Windsurf (Limited Support)
+
+**Limitation:** Windsurf workflows (`.windsurf/workflows/`) have indirect MCP access through Cascade. The AI needs guidance to use MCP tools.
+
+**Workaround:**
+
+1. Configure MCP via `promptly init` (creates `~/.codeium/windsurf/mcp_config.json`)
+2. Guide Cascade to use session tracking:
+   ```
+   I want to track this coding session. Please use the promptly MCP server:
+   1. Call promptly_start with ticketId "TICKET-123" to begin
+   2. Call promptly_finish when we're done
+   ```
+
+**Test cases:**
+
+1. **MCP configuration**
+   - Run `promptly init` and select Windsurf
+   - Verify `~/.codeium/windsurf/mcp_config.json` has promptly server entry
+   - Restart Windsurf
+
+2. **Guided MCP usage**
+   - Ask Cascade about available MCP tools
+   - Verify promptly tools are accessible
+   - Guide Cascade to start a session
+   - Verify session appears in `promptly status`
+
 ## CLI Commands
 
 ### promptly init
