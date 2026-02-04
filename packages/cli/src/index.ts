@@ -9,6 +9,7 @@ import { initCommand } from "./commands/init.js";
 import { reportCommand } from "./commands/report.js";
 import { teamsCommand } from "./commands/teams.js";
 import { teamCommand } from "./commands/team.js";
+import { skillCommand } from "./commands/skill.js";
 
 const program = new Command();
 
@@ -66,5 +67,10 @@ program
   .command("team [action] [slug]")
   .description("Manage default team: set <slug> | unset")
   .action(teamCommand);
+
+program
+  .command("skill [action]")
+  .description("Manage Claude Code /track skill: install | uninstall | status")
+  .action(skillCommand);
 
 program.parse();

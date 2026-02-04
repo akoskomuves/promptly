@@ -1,11 +1,29 @@
 import { input } from "@inquirer/prompts";
 import {
   loadConfig,
+  saveConfig,
   isLocalMode,
   getActiveSession,
   saveActiveSession,
 } from "../config.js";
 import { createSession, generateId } from "../db.js";
+import { isClaudeConfigured, isSkillInstalledAnywhere } from "./skill.js";
+
+function maybeShowSkillHint(config: ReturnType<typeof loadConfig>): void {
+  // Only show hint once
+  if (config.skillHintShown) return;
+
+  // Only show if Claude is configured but skill not installed
+  if (!isClaudeConfigured()) return;
+  if (isSkillInstalledAnywhere()) return;
+
+  console.log("\n  Tip: Install the /track skill for Claude Code:");
+  console.log("       promptly skill install\n");
+
+  // Mark hint as shown
+  config.skillHintShown = true;
+  saveConfig(config);
+}
 
 export async function startCommand(ticketId?: string) {
   // Prompt for ticket ID if not provided
@@ -40,6 +58,7 @@ export async function startCommand(ticketId?: string) {
     console.log("  Recording all AI conversations...");
     console.log("  Run 'promptly finish' when done.");
     console.log("  Run 'promptly serve' to view the dashboard.");
+    maybeShowSkillHint(config);
     return;
   }
 
@@ -91,6 +110,7 @@ export async function startCommand(ticketId?: string) {
     }
     console.log("  Recording all AI conversations...");
     console.log("  Run 'promptly finish' when done.");
+    maybeShowSkillHint(config);
   } catch (err) {
     console.error(
       `Could not reach API at ${config.apiUrl}. Is it running?`

@@ -6,7 +6,7 @@ Developer prompt analytics -- capture, analyze, and review AI conversations tied
 
 ```bash
 npm i -g @getpromptly/cli
-promptly init            # Select which AI tools to configure
+promptly init            # Configure AI tools + install /track skill
 promptly start           # Prompts for ticket ID interactively
 # ... work with any supported AI coding tool ...
 promptly finish          # Save session data
@@ -14,10 +14,21 @@ promptly serve           # Open local dashboard at localhost:3000
 promptly report          # View stats (select time period)
 ```
 
+### Claude Code Users
+
+After `promptly init`, you can use the `/track` slash command directly in Claude Code:
+
+```
+/track AUTH-123          # Start tracking a session
+/track status            # Check if tracking is active
+/track finish            # End and save the session
+```
+
 ## Features
 
 - **Local-first**: Everything runs on your machine. No account needed.
 - **Multi-tool support**: Works with Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, and VS Code/Copilot via MCP.
+- **Native `/track` command**: Claude Code users get a built-in slash command for session tracking.
 - **Session tracking**: Tag conversations to tickets, track token usage and duration.
 - **Built-in dashboard**: View sessions in your browser at `localhost:3000`.
 - **Optional cloud sync**: For teams that want a shared dashboard.
@@ -49,6 +60,8 @@ promptly report          # View stats (select time period)
 | `promptly team set` | Interactive team selector |
 | `promptly team set <slug>` | Set default team by slug |
 | `promptly team unset` | Clear default team |
+| `promptly skill install` | Install /track skill for Claude Code |
+| `promptly skill status` | Check skill installation status |
 
 ## How It Works
 

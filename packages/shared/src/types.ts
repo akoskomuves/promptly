@@ -153,6 +153,7 @@ export interface CliConfig {
   userEmail?: string;
   mode?: "local" | "cloud";
   defaultTeamSlug?: string;
+  skillHintShown?: boolean; // True after showing /track skill hint
 }
 
 // State file for active session ~/.promptly/session.json

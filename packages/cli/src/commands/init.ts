@@ -115,6 +115,50 @@ function configureClaude(command: string, args: string[]): boolean {
   }
 }
 
+// --- Claude Code Skill ---
+
+import { isSkillInstalled, installSkill } from "./skill.js";
+
+async function maybeInstallClaudeSkill(): Promise<void> {
+  const projectSkillExists = isSkillInstalled("project");
+  const globalSkillExists = isSkillInstalled("global");
+
+  if (projectSkillExists || globalSkillExists) {
+    const location = projectSkillExists ? "project" : "global";
+    console.log(`\n/track skill already installed (${location}).`);
+    return;
+  }
+
+  console.log("\n--- Claude Code /track Skill ---");
+  console.log("The /track skill lets you start/stop session tracking with a slash command.");
+
+  const doInstall = await confirm({
+    message: "Install /track skill for Claude Code?",
+    default: true,
+  });
+
+  if (!doInstall) {
+    return;
+  }
+
+  const installGlobal = await confirm({
+    message: "Install globally (~/.claude/skills/) for all projects?",
+    default: false,
+  });
+
+  const location = installGlobal ? "global" : "project";
+  process.stdout.write(`Installing /track skill (${location})... `);
+  const ok = installSkill(location);
+  console.log(ok ? "done." : "failed.");
+
+  if (ok) {
+    console.log(`\nYou can now use these commands in Claude Code:`);
+    console.log(`  /track <ticket-id>  — Start tracking a session`);
+    console.log(`  /track status       — Check tracking status`);
+    console.log(`  /track finish       — End and save session`);
+  }
+}
+
 // --- Codex CLI (TOML) ---
 
 function isCodexConfigured(): boolean {
@@ -255,15 +299,23 @@ export async function initCommand() {
   }
 
   const availableToConfigure = tools.filter(t => t.detected && !t.configured);
+  const claudeTool = tools.find(t => t.name === "Claude Code");
+  const claudeDetected = claudeTool?.detected ?? false;
+  const claudeAlreadyConfigured = claudeTool?.configured ?? false;
 
   if (availableToConfigure.length === 0) {
     if (tools.every(t => !t.detected)) {
       console.log("\nNo supported AI coding tools detected.");
       console.log("Supported: Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, VS Code.");
+      return;
     } else {
       console.log("\nAll detected tools are already configured.");
+      // Continue to check if /track skill needs to be installed for Claude
+      if (claudeAlreadyConfigured) {
+        await maybeInstallClaudeSkill();
+      }
+      return;
     }
-    return;
   }
 
   console.log(`\nServer: ${command} ${args.join(" ")}\n`);
@@ -291,6 +343,12 @@ export async function initCommand() {
     const def = toolDefs.find(d => d.name === tool.name)!;
     const ok = def.configure(command, args);
     console.log(ok ? "done." : "failed.");
+  }
+
+  // Install Claude Code /track skill if Claude was configured
+  const claudeJustConfigured = toConfigure.some(t => t.name === "Claude Code");
+  if (claudeJustConfigured || claudeAlreadyConfigured) {
+    await maybeInstallClaudeSkill();
   }
 
   console.log("\nSetup complete. Restart your AI coding tools to activate Promptly.");

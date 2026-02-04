@@ -11,12 +11,22 @@ npm i -g @getpromptly/cli
 ## Quick Start
 
 ```bash
-promptly init            # Select which AI tools to configure
+promptly init            # Configure AI tools + install /track skill
 promptly start           # Prompts for ticket ID interactively
 # ... work with your AI coding tool ...
 promptly finish          # Save session data
 promptly serve           # Open dashboard at localhost:3000
 promptly report          # View stats (select time period)
+```
+
+### Claude Code Users
+
+After `promptly init`, you can use the `/track` slash command directly in Claude Code:
+
+```
+/track AUTH-123          # Start tracking a session
+/track status            # Check if tracking is active
+/track finish            # End and save the session
 ```
 
 ## Commands
@@ -35,6 +45,9 @@ promptly report          # View stats (select time period)
 | `promptly team set` | Interactive team selector |
 | `promptly team set <slug>` | Set default team by slug |
 | `promptly team unset` | Clear default team |
+| `promptly skill install` | Install /track skill for Claude Code |
+| `promptly skill uninstall` | Remove /track skill |
+| `promptly skill status` | Check skill installation status |
 
 All commands support direct arguments for scripting/automation.
 

@@ -25,7 +25,11 @@ npm i -g @getpromptly/cli
 promptly init
 ```
 
-This auto-detects your AI coding tools (Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, VS Code) and configures the MCP server. Restart your AI tool after running this.
+This auto-detects your AI coding tools (Claude Code, Gemini CLI, Codex CLI, Cursor, Windsurf, VS Code) and configures the MCP server.
+
+**For Claude Code users**: You'll be prompted to install the `/track` skill, which adds native slash commands for session tracking.
+
+Restart your AI tool after running this.
 
 ### 3. Start a Session
 
@@ -49,6 +53,35 @@ promptly finish
 promptly serve
 # Open http://localhost:3000
 ```
+
+## Claude Code /track Skill
+
+If you're using Claude Code, `promptly init` offers to install a `/track` skill that provides native slash commands for session tracking.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `/track <ticket-id>` | Start tracking (e.g., `/track AUTH-123`) |
+| `/track status` | Check if tracking is active |
+| `/track finish` | End session and save to dashboard |
+
+### Installation Location
+
+During `promptly init`, you can choose:
+
+- **Project** (default): `.claude/skills/track/SKILL.md` — Only available in this project
+- **Global**: `~/.claude/skills/track/SKILL.md` — Available in all projects
+
+### Reinstalling the Skill
+
+If you skipped installation or want to reinstall:
+
+```bash
+promptly init
+```
+
+Even if all tools are already configured, it will offer to install the `/track` skill.
 
 ## Cloud Setup (Teams)
 
@@ -140,3 +173,11 @@ CLI config is stored at `~/.promptly/config.json`:
 1. Check API is running: `curl http://your-api/health`.
 2. Verify token in `~/.promptly/config.json`.
 3. Session is still saved locally -- view with `promptly serve`.
+
+### `/track` command not found in Claude Code
+
+1. Run `promptly init` again and accept the skill installation prompt.
+2. Restart Claude Code after installing the skill.
+3. Check if the skill file exists:
+   - Project: `.claude/skills/track/SKILL.md`
+   - Global: `~/.claude/skills/track/SKILL.md`
