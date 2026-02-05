@@ -3,6 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import { loadConfig, isLocalMode, getActiveSession, clearActiveSession } from "../config.js";
 import { finishSession } from "../db.js";
+import { captureGitActivity } from "../git.js";
 import type { LocalSession } from "@getpromptly/shared";
 
 const BUFFER_FILE = path.join(os.homedir(), ".promptly", "buffer.json");
@@ -27,6 +28,7 @@ export async function finishCommand() {
   }
 
   const finishedAt = new Date().toISOString();
+  const gitActivity = captureGitActivity(session.startedAt);
 
   const uploadData = {
     conversations: buffer?.conversations ?? [],
@@ -39,6 +41,7 @@ export async function finishCommand() {
     toolCallCount: buffer?.toolCallCount ?? 0,
     startedAt: session.startedAt,
     finishedAt,
+    gitActivity: gitActivity ?? undefined,
   };
 
   // Always write to local SQLite
@@ -78,6 +81,10 @@ export async function finishCommand() {
   console.log(`  Duration: ${minutes} minutes`);
   console.log(`  Messages: ${buffer?.messageCount ?? 0}`);
   console.log(`  Tokens: ${buffer?.totalTokens ?? 0}`);
+  if (gitActivity && gitActivity.totalCommits > 0) {
+    console.log(`  Branch: ${gitActivity.branch}`);
+    console.log(`  Commits: ${gitActivity.totalCommits} (+${gitActivity.totalInsertions}/-${gitActivity.totalDeletions} lines)`);
+  }
 
   if (isLocalMode(config)) {
     console.log(`\n  Run 'promptly serve' to view the dashboard.`);

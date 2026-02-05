@@ -101,6 +101,24 @@ export async function reportCommand(options: {
     console.log(`  Tags:             ${tags}`);
   }
 
+  // Git stats
+  let totalCommits = 0, totalInsertions = 0, totalDeletions = 0;
+  sessions.forEach((s) => {
+    if (s.git_activity) {
+      try {
+        const ga = JSON.parse(s.git_activity);
+        totalCommits += ga.totalCommits ?? 0;
+        totalInsertions += ga.totalInsertions ?? 0;
+        totalDeletions += ga.totalDeletions ?? 0;
+      } catch {
+        // ignore malformed git_activity
+      }
+    }
+  });
+  if (totalCommits > 0) {
+    console.log(`  Git commits:      ${totalCommits} (+${totalInsertions}/-${totalDeletions} lines)`);
+  }
+
   console.log();
 }
 

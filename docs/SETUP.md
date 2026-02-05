@@ -47,6 +47,8 @@ Use your AI coding tool as normal. The MCP server captures conversation turns in
 promptly finish
 ```
 
+This captures git activity (commits, branch, diff stats) from the session window, saves everything to SQLite, and clears the buffer. If you're in a git repo, the session detail will show which commits were made during the session.
+
 ### 6. View Dashboard
 
 ```bash

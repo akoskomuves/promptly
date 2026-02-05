@@ -32,6 +32,26 @@ export interface ToolCallRecord {
   timestamp: string;
 }
 
+// A single git commit captured during a session
+export interface GitCommit {
+  hash: string; // short hash (7 chars)
+  message: string; // subject line
+  timestamp: string; // ISO 8601
+  filesChanged: number;
+  insertions: number;
+  deletions: number;
+}
+
+// Aggregated git activity during a session
+export interface GitActivity {
+  branch: string;
+  commits: GitCommit[];
+  totalCommits: number;
+  totalInsertions: number;
+  totalDeletions: number;
+  totalFilesChanged: number;
+}
+
 // Session data as stored locally by MCP server before upload
 export interface LocalSession {
   ticketId: string;
@@ -67,6 +87,7 @@ export interface UploadSessionRequest {
   toolCallCount: number;
   startedAt: string;
   finishedAt: string;
+  gitActivity?: GitActivity;
 }
 
 // API response for a session
@@ -87,6 +108,7 @@ export interface SessionResponse {
   conversations: ConversationTurn[];
   models: string[];
   tags: string[];
+  gitActivity?: GitActivity;
   createdAt: string;
   updatedAt: string;
 }

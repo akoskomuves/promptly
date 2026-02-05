@@ -131,6 +131,7 @@ export function writeToSqlite(session: LocalSession): void {
         models TEXT DEFAULT '[]',
         tags TEXT DEFAULT '[]',
         client_tool TEXT,
+        git_activity TEXT,
         created_at TEXT DEFAULT (datetime('now'))
       );
     `);
@@ -138,6 +139,12 @@ export function writeToSqlite(session: LocalSession): void {
     // Migrate: add client_tool column if missing
     try {
       db.exec("ALTER TABLE sessions ADD COLUMN client_tool TEXT");
+    } catch {
+      // column already exists
+    }
+    // Migrate: add git_activity column if missing
+    try {
+      db.exec("ALTER TABLE sessions ADD COLUMN git_activity TEXT");
     } catch {
       // column already exists
     }

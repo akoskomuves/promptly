@@ -31,7 +31,7 @@ Cloud/Self-Hosted (optional)
 
 Shared TypeScript types used by all packages. No runtime dependencies.
 
-Key types: `SessionStatus`, `ConversationTurn`, `LocalSession`, `CliConfig`, `ActiveSessionState`.
+Key types: `SessionStatus`, `ConversationTurn`, `LocalSession`, `CliConfig`, `ActiveSessionState`, `GitCommit`, `GitActivity`.
 
 ### @getpromptly/mcp-server
 
@@ -100,7 +100,8 @@ Pages:
 
 3. promptly finish
    -> Read buffer.json
-   -> Update SQLite row (conversations, tokens, status: COMPLETED)
+   -> Capture git activity (commits since startedAt, branch, diff stats)
+   -> Update SQLite row (conversations, tokens, git_activity, status: COMPLETED)
    -> Delete session.json and buffer.json
 ```
 
@@ -117,8 +118,9 @@ Pages:
 
 3. promptly finish
    -> Read buffer.json
+   -> Capture git activity (commits since startedAt, branch, diff stats)
    -> Update SQLite row
-   -> POST /api/sessions/:id/upload (updates PostgreSQL)
+   -> POST /api/sessions/:id/upload (updates PostgreSQL, includes gitActivity)
    -> Delete session.json and buffer.json
 ```
 
@@ -139,6 +141,8 @@ CREATE TABLE sessions (
   conversations TEXT DEFAULT '[]',   -- JSON array
   models TEXT DEFAULT '[]',          -- JSON array
   tags TEXT DEFAULT '[]',            -- JSON array
+  client_tool TEXT,
+  git_activity TEXT,                 -- JSON: { branch, commits[], totals }
   created_at TEXT DEFAULT (datetime('now'))
 );
 ```

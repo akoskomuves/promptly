@@ -45,6 +45,12 @@ export function getDb(): Database.Database {
   } catch {
     // column already exists
   }
+  // Migrate: add git_activity column if missing
+  try {
+    _db.exec("ALTER TABLE sessions ADD COLUMN git_activity TEXT");
+  } catch {
+    // column already exists
+  }
   return _db;
 }
 
@@ -67,6 +73,7 @@ export function finishSession(
     toolCallCount: number;
     startedAt: string;
     finishedAt: string;
+    gitActivity?: unknown;
   }
 ): void {
   const db = getDb();
@@ -81,7 +88,8 @@ export function finishSession(
       tool_call_count = ?,
       conversations = ?,
       models = ?,
-      started_at = ?
+      started_at = ?,
+      git_activity = ?
     WHERE id = ?`
   ).run(
     data.finishedAt,
@@ -93,6 +101,7 @@ export function finishSession(
     JSON.stringify(data.conversations),
     JSON.stringify(data.models),
     data.startedAt,
+    data.gitActivity ? JSON.stringify(data.gitActivity) : null,
     id
   );
 }
@@ -112,6 +121,7 @@ export interface DbSession {
   models: string;
   tags: string;
   client_tool: string | null;
+  git_activity: string | null;
   created_at: string;
 }
 

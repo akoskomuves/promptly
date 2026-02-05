@@ -34,6 +34,7 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 - **Native `/track` command**: Built-in slash commands for Claude Code, Codex CLI, Gemini CLI, and VS Code + Copilot.
 - **Auto-prompt**: AI tools offer session tracking at conversation start — no manual setup needed.
 - **Session tracking**: Tag conversations to tickets, track token usage and duration.
+- **Git-aware sessions**: Automatically captures commits, branches, and diff stats made during each session.
 - **Built-in dashboard**: View sessions in your browser at `localhost:3000`.
 - **Optional cloud sync**: For teams that want a shared dashboard.
 

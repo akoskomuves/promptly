@@ -99,6 +99,13 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
             '<span>' + s.message_count + ' messages</span>' +
             '<span>' + s.total_tokens.toLocaleString() + ' tokens</span>' +
             '<span class="cost" data-id="' + s.id + '"></span>' +
+            (function() {
+              try {
+                var ga = s.git_activity ? JSON.parse(s.git_activity) : null;
+                if (ga && ga.totalCommits > 0) return '<span class="git-badge">' + ga.totalCommits + ' commit' + (ga.totalCommits !== 1 ? 's' : '') + ', +' + ga.totalInsertions + '/-' + ga.totalDeletions + '</span>';
+              } catch(e) {}
+              return '';
+            })() +
             (s.client_tool ? '<span>' + esc(s.client_tool) + '</span>' : '') +
             (models.length ? '<span>' + models.join(', ') + '</span>' : '') +
           '</div>' +
@@ -274,6 +281,10 @@ export function sessionDetailPage(sessionJson: string): string {
       ? Math.floor((new Date(s.finished_at) - new Date(s.started_at)) / 60000)
       : null;
 
+    var gitActivity = null;
+    try { if (s.git_activity) gitActivity = JSON.parse(s.git_activity); } catch(e) {}
+    var hasGit = gitActivity && gitActivity.totalCommits > 0;
+
     const detail = document.getElementById('detail');
     detail.innerHTML =
       '<div class="detail-header">' +
@@ -289,6 +300,9 @@ export function sessionDetailPage(sessionJson: string): string {
         stat('Tool Calls', s.tool_call_count) +
         '<div class="stat" id="cost-stat" style="display:none"><div class="stat-label">Est. Cost</div><div class="stat-value" id="cost-value"></div></div>' +
         (s.client_tool ? stat('AI Tool', s.client_tool) : '') +
+        (hasGit ? stat('Commits', gitActivity.totalCommits) : '') +
+        (hasGit ? stat('Lines Changed', '+' + gitActivity.totalInsertions + ' / -' + gitActivity.totalDeletions) : '') +
+        (hasGit ? stat('Branch', gitActivity.branch) : '') +
       '</div>' +
       '<div class="tags-section">' +
         '<h2>Tags</h2>' +
@@ -298,6 +312,23 @@ export function sessionDetailPage(sessionJson: string): string {
           '<button id="tag-add" class="btn btn-sm">Add</button>' +
         '</div>' +
       '</div>' +
+      (hasGit ?
+        '<h2>Git Activity</h2>' +
+        '<div class="git-summary">' +
+          '<span>' + gitActivity.totalCommits + ' commit' + (gitActivity.totalCommits !== 1 ? 's' : '') + ' on <strong>' + esc(gitActivity.branch) + '</strong></span>' +
+          '<span class="git-stats-inline">+' + gitActivity.totalInsertions + ' / -' + gitActivity.totalDeletions + ' lines</span>' +
+          '<span>' + gitActivity.totalFilesChanged + ' file' + (gitActivity.totalFilesChanged !== 1 ? 's' : '') + ' changed</span>' +
+        '</div>' +
+        '<div class="commits-list">' +
+          gitActivity.commits.map(function(c) {
+            return '<div class="commit-item">' +
+              '<span class="commit-hash">' + esc(c.hash) + '</span>' +
+              '<span class="commit-message">' + esc(c.message) + '</span>' +
+              '<span class="commit-stats">+' + c.insertions + '/-' + c.deletions + '</span>' +
+            '</div>';
+          }).join('') +
+        '</div>'
+      : '') +
       '<h2>Conversation</h2>' +
       (conversations.length === 0
         ? '<p class="muted">No conversation data recorded.</p>'
@@ -450,6 +481,14 @@ function baseStyles(): string {
     .tool-details { margin-top: 8px; }
     .tool-details summary { cursor: pointer; font-size: 12px; color: #888; }
     .tool-pre { margin: 4px 0; padding: 8px; background: #0a0a0a; border-radius: 4px; font-size: 12px; overflow: auto; }
+    .git-badge { color: #facc15; }
+    .git-summary { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 16px; background: #111; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
+    .git-stats-inline { color: #4ade80; }
+    .commits-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px; }
+    .commit-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #111; border-radius: 6px; font-size: 13px; }
+    .commit-hash { font-family: ui-monospace, monospace; color: #facc15; background: #2a2a1a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .commit-message { flex: 1; }
+    .commit-stats { color: #4ade80; white-space: nowrap; font-size: 12px; }
   `;
 }
 
