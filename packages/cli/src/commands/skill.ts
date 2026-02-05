@@ -3,6 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import { execSync } from "node:child_process";
 import { confirm } from "@inquirer/prompts";
+import { installAutoPromptInteractive, getAutoPromptStatus } from "./autoprompt.js";
 
 const TRACK_SKILL_CONTENT = `---
 name: track
@@ -487,6 +488,19 @@ async function installSkillInteractive() {
     console.log("  VS Code + Copilot: /track <ticket-id>, /track status, /track finish");
     console.log("\nRestart your AI tool to activate.");
   }
+
+  // Offer auto-prompt for all configured tools
+  const claudeConfigured = isClaudeInstalled() && isClaudeConfigured();
+  const codexConfigured = isCodexInstalled() && isCodexConfigured();
+  const geminiConfigured = isGeminiInstalled() && isGeminiConfigured();
+  const vscodeConfigured = isVSCodeInstalled() && isVSCodeConfigured();
+
+  await installAutoPromptInteractive({
+    claude: claudeConfigured,
+    codex: codexConfigured,
+    gemini: geminiConfigured,
+    vscode: vscodeConfigured,
+  });
 }
 
 async function uninstallSkillInteractive() {
@@ -571,4 +585,29 @@ function showSkillStatus() {
   console.log(`  Installed:         ${vscodeInstalled ? "yes" : "no"}`);
   console.log(`  MCP configured:    ${vscodeConfigured ? "yes" : "no"}`);
   console.log(`  Prompt (project):  ${vscodePrompt ? "installed" : "not installed"}`);
+
+  // Auto-prompt status
+  console.log("\nAuto-prompt:");
+  const toolStatuses = [
+    getAutoPromptStatus("claude", "Claude Code"),
+    getAutoPromptStatus("codex", "Codex CLI"),
+    getAutoPromptStatus("gemini", "Gemini CLI"),
+    getAutoPromptStatus("vscode", "VS Code + Copilot"),
+    getAutoPromptStatus("cursor", "Cursor"),
+    getAutoPromptStatus("windsurf", "Windsurf"),
+  ];
+
+  for (const status of toolStatuses) {
+    const parts: string[] = [];
+    if (status.projectEnabled && status.projectPath) {
+      const rel = path.relative(process.cwd(), status.projectPath);
+      parts.push(`project (${rel})`);
+    }
+    if (status.globalEnabled && status.globalPath) {
+      const abbrev = status.globalPath.replace(os.homedir(), "~");
+      parts.push(`global (${abbrev})`);
+    }
+    const label = parts.length > 0 ? `enabled — ${parts.join(", ")}` : "not enabled";
+    console.log(`  ${status.label.padEnd(20)} ${label}`);
+  }
 }

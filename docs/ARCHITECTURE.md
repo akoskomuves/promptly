@@ -154,6 +154,12 @@ Key differences from SQLite:
 - `models` and `tags` as `String[]` (PostgreSQL arrays)
 - Has `updatedAt` with `@updatedAt`
 
+## System Instructions Integration
+
+The auto-prompt feature writes marked instruction blocks to each AI tool's system instructions file (e.g., `CLAUDE.md`, `GEMINI.md`, `.cursorrules`). These blocks instruct the AI to check session tracking status at conversation start and offer to begin tracking.
+
+Blocks are wrapped in `promptly:auto-prompt:start/end` markers for idempotent install, update, and removal.
+
 ## Security Considerations
 
 - Local mode: all data stays on disk. No network calls.

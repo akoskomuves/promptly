@@ -127,8 +127,13 @@ import {
   isVSCodePromptInstalled,
   installVSCodePrompt,
 } from "./skill.js";
+import { installAutoPromptInteractive } from "./autoprompt.js";
 
-async function maybeInstallSkills(claudeConfigured: boolean, codexConfigured: boolean, geminiConfigured: boolean, vscodeConfigured: boolean): Promise<void> {
+async function maybeInstallSkills(
+  claudeConfigured: boolean, codexConfigured: boolean,
+  geminiConfigured: boolean, vscodeConfigured: boolean,
+  cursorConfigured: boolean, windsurfConfigured: boolean,
+): Promise<void> {
   let installedAny = false;
 
   // Claude Code skill
@@ -264,6 +269,16 @@ async function maybeInstallSkills(claudeConfigured: boolean, codexConfigured: bo
       console.log("  VS Code + Copilot: /track <ticket-id>, /track status, /track finish");
     }
   }
+
+  // Offer auto-prompt for all configured tools (including Cursor/Windsurf)
+  await installAutoPromptInteractive({
+    claude: claudeConfigured,
+    codex: codexConfigured,
+    gemini: geminiConfigured,
+    vscode: vscodeConfigured,
+    cursor: cursorConfigured,
+    windsurf: windsurfConfigured,
+  });
 }
 
 // --- Codex CLI (TOML) ---
@@ -412,10 +427,14 @@ export async function initCommand() {
   const codexTool = tools.find(t => t.name === "Codex CLI");
   const geminiTool = tools.find(t => t.name === "Gemini CLI");
   const vscodeTool = tools.find(t => t.name === "VS Code (Copilot)");
+  const cursorTool = tools.find(t => t.name === "Cursor");
+  const windsurfTool = tools.find(t => t.name === "Windsurf");
   const claudeAlreadyConfigured = claudeTool?.configured ?? false;
   const codexAlreadyConfigured = codexTool?.configured ?? false;
   const geminiAlreadyConfigured = geminiTool?.configured ?? false;
   const vscodeAlreadyConfigured = vscodeTool?.configured ?? false;
+  const cursorAlreadyConfigured = cursorTool?.configured ?? false;
+  const windsurfAlreadyConfigured = windsurfTool?.configured ?? false;
 
   if (availableToConfigure.length === 0) {
     if (tools.every(t => !t.detected)) {
@@ -425,8 +444,8 @@ export async function initCommand() {
     } else {
       console.log("\nAll detected tools are already configured.");
       // Check if skills need to be installed
-      if (claudeAlreadyConfigured || codexAlreadyConfigured || geminiAlreadyConfigured || vscodeAlreadyConfigured) {
-        await maybeInstallSkills(claudeAlreadyConfigured, codexAlreadyConfigured, geminiAlreadyConfigured, vscodeAlreadyConfigured);
+      if (claudeAlreadyConfigured || codexAlreadyConfigured || geminiAlreadyConfigured || vscodeAlreadyConfigured || cursorAlreadyConfigured || windsurfAlreadyConfigured) {
+        await maybeInstallSkills(claudeAlreadyConfigured, codexAlreadyConfigured, geminiAlreadyConfigured, vscodeAlreadyConfigured, cursorAlreadyConfigured, windsurfAlreadyConfigured);
       }
       return;
     }
@@ -464,13 +483,17 @@ export async function initCommand() {
   const codexJustConfigured = toConfigure.some(t => t.name === "Codex CLI");
   const geminiJustConfigured = toConfigure.some(t => t.name === "Gemini CLI");
   const vscodeJustConfigured = toConfigure.some(t => t.name === "VS Code (Copilot)");
+  const cursorJustConfigured = toConfigure.some(t => t.name === "Cursor");
+  const windsurfJustConfigured = toConfigure.some(t => t.name === "Windsurf");
   const claudeConfigured = claudeJustConfigured || claudeAlreadyConfigured;
   const codexConfigured = codexJustConfigured || codexAlreadyConfigured;
   const geminiConfigured = geminiJustConfigured || geminiAlreadyConfigured;
   const vscodeConfigured = vscodeJustConfigured || vscodeAlreadyConfigured;
+  const cursorConfigured = cursorJustConfigured || cursorAlreadyConfigured;
+  const windsurfConfigured = windsurfJustConfigured || windsurfAlreadyConfigured;
 
-  if (claudeConfigured || codexConfigured || geminiConfigured || vscodeConfigured) {
-    await maybeInstallSkills(claudeConfigured, codexConfigured, geminiConfigured, vscodeConfigured);
+  if (claudeConfigured || codexConfigured || geminiConfigured || vscodeConfigured || cursorConfigured || windsurfConfigured) {
+    await maybeInstallSkills(claudeConfigured, codexConfigured, geminiConfigured, vscodeConfigured, cursorConfigured, windsurfConfigured);
   }
 
   console.log("\nSetup complete. Restart your AI coding tools to activate Promptly.");

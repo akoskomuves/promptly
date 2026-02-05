@@ -93,6 +93,34 @@ promptly skill status     # Check installation status
 
 Or run `promptly init` again — even if tools are already configured, it will offer to install `/track` commands.
 
+## Auto-Prompt
+
+After installing skills, `promptly init` offers to enable **auto-prompt**. This adds a small instruction block to each tool's system instructions file so the AI automatically offers session tracking at the start of each conversation.
+
+### How It Works
+
+- **Full MCP tools** (Claude Code, Codex CLI, Gemini CLI, VS Code + Copilot): The AI calls `promptly_status` to check if tracking is active, then offers to start if not.
+- **Limited MCP tools** (Cursor, Windsurf): The AI suggests running `promptly start <ticket-id>` manually.
+
+### Instruction Files
+
+| Tool | Project file | Global file |
+|------|-------------|-------------|
+| Claude Code | `CLAUDE.md` or `.claude/CLAUDE.md` | `~/.claude/CLAUDE.md` |
+| Codex CLI | `.codex/instructions.md` | `~/.codex/instructions.md` |
+| Gemini CLI | `GEMINI.md` | `~/.gemini/GEMINI.md` |
+| VS Code + Copilot | `.github/copilot-instructions.md` | N/A |
+| Cursor | `.cursorrules` | N/A |
+| Windsurf | `.windsurfrules` | N/A |
+
+### Checking Status
+
+```bash
+promptly skill status    # Shows auto-prompt status per tool
+```
+
+The instruction blocks are marked with `promptly:auto-prompt:start/end` markers, so re-running `promptly init` detects existing blocks and skips them.
+
 ## Cloud Setup (Teams)
 
 For teams that want a shared dashboard, use the hosted cloud at [app.getpromptly.xyz](https://app.getpromptly.xyz).

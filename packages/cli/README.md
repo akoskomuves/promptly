@@ -32,6 +32,10 @@ After `promptly init`, you can use the `/track` command directly in your AI tool
 
 All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 
+### Auto-Prompt
+
+During setup, `promptly init` can enable **auto-prompt** — your AI tool will offer session tracking at the start of each conversation without any manual action.
+
 ## Commands
 
 | Command | Description |
