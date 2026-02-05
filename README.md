@@ -113,6 +113,7 @@ promptly finish            # Saves to SQLite AND uploads to API
 - **Shared sessions**: All team members can view sessions created within the team
 - **Team analytics**: View usage by developer, model, and tool
 - **Per-tool comparison**: See which AI coding tools your team uses most (Claude Code, Cursor, Gemini CLI, etc.)
+- **Data export**: Download sessions and analytics as CSV or JSON from the dashboard
 
 See [docs/SETUP.md](docs/SETUP.md) for cloud setup details.
 

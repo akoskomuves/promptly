@@ -72,6 +72,8 @@ Endpoints:
 | `GET` | `/api/sessions/:id` | Get session detail |
 | `POST` | `/api/sessions/:id/upload` | Upload conversation data |
 | `PATCH` | `/api/sessions/:id` | Update tags/status |
+| `GET` | `/api/teams/:slug/export/sessions` | Export sessions (CSV/JSON) |
+| `GET` | `/api/teams/:slug/export/analytics` | Export analytics (CSV/JSON) |
 | `GET` | `/health` | Health check |
 
 ### @getpromptly/web

@@ -143,6 +143,17 @@ The team dashboard at [app.getpromptly.xyz/teams/your-team](https://app.getpromp
 
 Click on a developer to see their individual analytics, including their preferred models and tools.
 
+### 5. Data Export
+
+The team dashboard includes an **Export** button (next to the period selector) to download your data:
+
+- **Sessions (CSV)**: Flat file with one row per session — ticket, user, tokens, cost, models, tags, duration
+- **Sessions (JSON)**: Same data in structured JSON with metadata
+- **Analytics (CSV)**: Multi-section report with summary, by user, by model, by tool, and daily trend
+- **Analytics (JSON)**: Full analytics breakdown matching the dashboard
+
+Exports respect the currently selected time period (7d, 30d, all). Admins can export all team data; members can export their own sessions.
+
 ## Self-Hosted Setup
 
 For enterprise deployments, see [SELF-HOSTING.md](SELF-HOSTING.md).
