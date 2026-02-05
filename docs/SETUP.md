@@ -131,6 +131,18 @@ New sessions will be shared with all team members.
 promptly team unset         # Clear default (personal sessions)
 ```
 
+### 4. Team Analytics
+
+The team dashboard at [app.getpromptly.xyz/teams/your-team](https://app.getpromptly.xyz/teams) shows:
+
+- **Overview stats**: Total sessions, tokens, messages, and average duration
+- **By Developer**: Which team members are using AI tools most
+- **By Model**: Which AI models are being used (Claude Opus, GPT-4o, Gemini, etc.)
+- **By Tool**: Which AI coding tools your team prefers (Claude Code, Cursor, Gemini CLI, etc.)
+- **Usage trends**: Daily activity over time
+
+Click on a developer to see their individual analytics, including their preferred models and tools.
+
 ## Self-Hosted Setup
 
 For enterprise deployments, see [SELF-HOSTING.md](SELF-HOSTING.md).

@@ -31,6 +31,7 @@ export async function finishCommand() {
   const uploadData = {
     conversations: buffer?.conversations ?? [],
     models: buffer?.models ?? [],
+    clientTool: buffer?.clientTool,
     totalTokens: buffer?.totalTokens ?? 0,
     promptTokens: buffer?.promptTokens ?? 0,
     responseTokens: buffer?.responseTokens ?? 0,

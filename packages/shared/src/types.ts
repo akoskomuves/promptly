@@ -59,6 +59,7 @@ export interface CreateSessionRequest {
 export interface UploadSessionRequest {
   conversations: ConversationTurn[];
   models: string[];
+  clientTool?: string; // e.g., "claude-code", "gemini-cli", "codex-cli"
   totalTokens: number;
   promptTokens: number;
   responseTokens: number;

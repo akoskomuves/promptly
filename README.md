@@ -111,6 +111,8 @@ promptly finish            # Saves to SQLite AND uploads to API
 - **Invite members** via shareable link (Owner/Admin can invite)
 - **Role-based access**: Owner, Admin, Member
 - **Shared sessions**: All team members can view sessions created within the team
+- **Team analytics**: View usage by developer, model, and tool
+- **Per-tool comparison**: See which AI coding tools your team uses most (Claude Code, Cursor, Gemini CLI, etc.)
 
 See [docs/SETUP.md](docs/SETUP.md) for cloud setup details.
 
