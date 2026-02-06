@@ -1,5 +1,6 @@
 import { select } from "@inquirer/prompts";
 import { listSessionsInRange, listAllSessions } from "../db.js";
+import { extractProject } from "@getpromptly/shared";
 import type { DbSession } from "../db.js";
 
 export async function reportCommand(options: {
@@ -117,6 +118,40 @@ export async function reportCommand(options: {
   });
   if (totalCommits > 0) {
     console.log(`  Git commits:      ${totalCommits} (+${totalInsertions}/-${totalDeletions} lines)`);
+  }
+
+  // By Category
+  const categoryCounts: Record<string, number> = {};
+  sessions.forEach((s) => {
+    const cat = s.category || "uncategorized";
+    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+  });
+  if (Object.keys(categoryCounts).length > 0) {
+    const categories = Object.entries(categoryCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([c, n]) => `${c} (${n})`)
+      .join(", ");
+    console.log(`  By category:      ${categories}`);
+  }
+
+  // By Project
+  const projectStats: Record<string, { sessions: number; tokens: number }> = {};
+  sessions.forEach((s) => {
+    const project = extractProject(s.ticket_id);
+    if (project) {
+      if (!projectStats[project]) {
+        projectStats[project] = { sessions: 0, tokens: 0 };
+      }
+      projectStats[project].sessions++;
+      projectStats[project].tokens += s.total_tokens;
+    }
+  });
+  if (Object.keys(projectStats).length > 0) {
+    console.log(`  By project:`);
+    const sorted = Object.entries(projectStats).sort((a, b) => b[1].tokens - a[1].tokens);
+    for (const [project, stats] of sorted) {
+      console.log(`    ${project.padEnd(20)} ${stats.sessions} sessions, ${stats.tokens.toLocaleString()} tokens`);
+    }
   }
 
   console.log();

@@ -59,7 +59,7 @@ export async function serveCommand(options: { port?: string }) {
 
     if (url.pathname === "/api/sessions/export.csv" && req.method === "GET") {
       const sessions = listAllSessions();
-      const headers = ["id","ticket_id","started_at","finished_at","status","total_tokens","prompt_tokens","response_tokens","message_count","tool_call_count","client_tool","models"];
+      const headers = ["id","ticket_id","started_at","finished_at","status","total_tokens","prompt_tokens","response_tokens","message_count","tool_call_count","client_tool","models","category"];
       const csvRows = [headers.join(",")];
       for (const s of sessions) {
         const models = JSON.parse(s.models || "[]").join(";");
@@ -67,6 +67,7 @@ export async function serveCommand(options: { port?: string }) {
           s.id, s.ticket_id, s.started_at, s.finished_at ?? "",
           s.status, s.total_tokens, s.prompt_tokens, s.response_tokens,
           s.message_count, s.tool_call_count, s.client_tool ?? "", models,
+          s.category ?? "",
         ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
       }
       res.writeHead(200, {

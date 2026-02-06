@@ -51,6 +51,12 @@ export function getDb(): Database.Database {
   } catch {
     // column already exists
   }
+  // Migrate: add category column if missing
+  try {
+    _db.exec("ALTER TABLE sessions ADD COLUMN category TEXT");
+  } catch {
+    // column already exists
+  }
   return _db;
 }
 
@@ -74,6 +80,7 @@ export function finishSession(
     startedAt: string;
     finishedAt: string;
     gitActivity?: unknown;
+    category?: string;
   }
 ): void {
   const db = getDb();
@@ -89,7 +96,8 @@ export function finishSession(
       conversations = ?,
       models = ?,
       started_at = ?,
-      git_activity = ?
+      git_activity = ?,
+      category = ?
     WHERE id = ?`
   ).run(
     data.finishedAt,
@@ -102,6 +110,7 @@ export function finishSession(
     JSON.stringify(data.models),
     data.startedAt,
     data.gitActivity ? JSON.stringify(data.gitActivity) : null,
+    data.category ?? null,
     id
   );
 }
@@ -122,6 +131,7 @@ export interface DbSession {
   tags: string;
   client_tool: string | null;
   git_activity: string | null;
+  category: string | null;
   created_at: string;
 }
 

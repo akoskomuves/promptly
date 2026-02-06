@@ -47,7 +47,12 @@ Use your AI coding tool as normal. The MCP server captures conversation turns in
 promptly finish
 ```
 
-This captures git activity (commits, branch, diff stats) from the session window, saves everything to SQLite, and clears the buffer. If you're in a git repo, the session detail will show which commits were made during the session.
+This captures git activity (commits, branch, diff stats) from the session window, auto-categorizes the session (bug-fix, feature, refactor, investigation, testing, docs, or other), saves everything to SQLite, and clears the buffer. If you're in a git repo, the session detail will show which commits were made during the session.
+
+Categories are determined automatically using:
+1. Ticket ID prefix (e.g., `fix/login-bug` → bug-fix, `feat/new-dashboard` → feature)
+2. Git commit messages (conventional commits like `fix:`, `feat:`, `refactor:`)
+3. First user message keywords as a fallback
 
 ### 6. View Dashboard
 

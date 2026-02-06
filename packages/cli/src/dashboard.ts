@@ -25,6 +25,16 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
       <select id="filter-tool" class="filter-select">
         <option value="">All tools</option>
       </select>
+      <select id="filter-category" class="filter-select">
+        <option value="">All categories</option>
+        <option value="bug-fix">Bug Fix</option>
+        <option value="feature">Feature</option>
+        <option value="refactor">Refactor</option>
+        <option value="investigation">Investigation</option>
+        <option value="testing">Testing</option>
+        <option value="docs">Docs</option>
+        <option value="other">Other</option>
+      </select>
     </div>
     <div class="export-buttons">
       <a href="/api/sessions/export.json" class="btn btn-sm">Export JSON</a>
@@ -40,6 +50,7 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
     const searchInput = document.getElementById('search');
     const statusFilter = document.getElementById('filter-status');
     const toolFilter = document.getElementById('filter-tool');
+    const categoryFilter = document.getElementById('filter-category');
     const resultCount = document.getElementById('result-count');
 
     // Populate tool filter options
@@ -55,10 +66,12 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
       const query = searchInput.value.toLowerCase();
       const status = statusFilter.value;
       const tool = toolFilter.value;
+      const category = categoryFilter.value;
 
       const filtered = allSessions.filter(s => {
         if (status && s.status !== status) return false;
         if (tool && s.client_tool !== tool) return false;
+        if (category && (s.category || '') !== category) return false;
         if (query) {
           const ticketMatch = s.ticket_id.toLowerCase().includes(query);
           const convos = JSON.parse(s.conversations || '[]');
@@ -88,10 +101,11 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
         const sTags = JSON.parse(s.tags || '[]');
         const statusClass = s.status === 'COMPLETED' ? 'badge-green' : 'badge-yellow';
         const tagsHtml = sTags.map(t => '<span class="tag">' + esc(t) + '</span>').join('');
+        const categoryHtml = s.category ? '<span class="category-badge category-' + s.category + '">' + s.category + '</span>' : '';
         return '<a href="/sessions/' + s.id + '" class="session-card">' +
           '<div class="session-header">' +
             '<strong>' + esc(s.ticket_id) + '</strong>' +
-            '<div>' + tagsHtml + '<span class="badge ' + statusClass + '">' + s.status + '</span></div>' +
+            '<div>' + categoryHtml + tagsHtml + '<span class="badge ' + statusClass + '">' + s.status + '</span></div>' +
           '</div>' +
           '<div class="session-meta">' +
             '<span>' + started + '</span>' +
@@ -116,6 +130,7 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
     searchInput.addEventListener('input', render);
     statusFilter.addEventListener('change', render);
     toolFilter.addEventListener('change', render);
+    categoryFilter.addEventListener('change', render);
     render();
 
     // Fetch live pricing and show estimated costs
@@ -299,6 +314,7 @@ export function sessionDetailPage(sessionJson: string): string {
         stat('Response Tokens', s.response_tokens.toLocaleString()) +
         stat('Tool Calls', s.tool_call_count) +
         '<div class="stat" id="cost-stat" style="display:none"><div class="stat-label">Est. Cost</div><div class="stat-value" id="cost-value"></div></div>' +
+        (s.category ? stat('Category', '<span class="category-badge category-' + s.category + '">' + s.category + '</span>') : '') +
         (s.client_tool ? stat('AI Tool', s.client_tool) : '') +
         (hasGit ? stat('Commits', gitActivity.totalCommits) : '') +
         (hasGit ? stat('Lines Changed', '+' + gitActivity.totalInsertions + ' / -' + gitActivity.totalDeletions) : '') +
@@ -481,6 +497,14 @@ function baseStyles(): string {
     .tool-details { margin-top: 8px; }
     .tool-details summary { cursor: pointer; font-size: 12px; color: #888; }
     .tool-pre { margin: 4px 0; padding: 8px; background: #0a0a0a; border-radius: 4px; font-size: 12px; overflow: auto; }
+    .category-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase; }
+    .category-bug-fix { background: #3a1a1a; color: #f87171; }
+    .category-feature { background: #1a3a1a; color: #4ade80; }
+    .category-refactor { background: #1a1a3a; color: #818cf8; }
+    .category-investigation { background: #3a2a1a; color: #fbbf24; }
+    .category-testing { background: #1a2a3a; color: #38bdf8; }
+    .category-docs { background: #2a1a3a; color: #c084fc; }
+    .category-other { background: #222; color: #888; }
     .git-badge { color: #facc15; }
     .git-summary { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 16px; background: #111; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
     .git-stats-inline { color: #4ade80; }

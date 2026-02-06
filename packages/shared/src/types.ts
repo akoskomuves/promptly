@@ -42,6 +42,11 @@ export interface GitCommit {
   deletions: number;
 }
 
+// Session category (auto-classified at finish time)
+export type SessionCategory =
+  | "bug-fix" | "feature" | "refactor"
+  | "investigation" | "testing" | "docs" | "other";
+
 // Aggregated git activity during a session
 export interface GitActivity {
   branch: string;
@@ -88,6 +93,7 @@ export interface UploadSessionRequest {
   startedAt: string;
   finishedAt: string;
   gitActivity?: GitActivity;
+  category?: SessionCategory;
 }
 
 // API response for a session
@@ -109,6 +115,7 @@ export interface SessionResponse {
   models: string[];
   tags: string[];
   gitActivity?: GitActivity;
+  category?: SessionCategory;
   createdAt: string;
   updatedAt: string;
 }

@@ -4,6 +4,7 @@ import os from "node:os";
 import { loadConfig, isLocalMode, getActiveSession, clearActiveSession } from "../config.js";
 import { finishSession } from "../db.js";
 import { captureGitActivity } from "../git.js";
+import { categorizeSession } from "@getpromptly/shared";
 import type { LocalSession } from "@getpromptly/shared";
 
 const BUFFER_FILE = path.join(os.homedir(), ".promptly", "buffer.json");
@@ -30,6 +31,12 @@ export async function finishCommand() {
   const finishedAt = new Date().toISOString();
   const gitActivity = captureGitActivity(session.startedAt);
 
+  const category = categorizeSession({
+    ticketId: session.ticketId,
+    gitActivity,
+    conversations: buffer?.conversations ?? null,
+  });
+
   const uploadData = {
     conversations: buffer?.conversations ?? [],
     models: buffer?.models ?? [],
@@ -42,6 +49,7 @@ export async function finishCommand() {
     startedAt: session.startedAt,
     finishedAt,
     gitActivity: gitActivity ?? undefined,
+    category,
   };
 
   // Always write to local SQLite
@@ -78,6 +86,7 @@ export async function finishCommand() {
   const minutes = Math.floor(ms / 60000);
 
   console.log(`Session completed for ${session.ticketId}`);
+  console.log(`  Category: ${category}`);
   console.log(`  Duration: ${minutes} minutes`);
   console.log(`  Messages: ${buffer?.messageCount ?? 0}`);
   console.log(`  Tokens: ${buffer?.totalTokens ?? 0}`);

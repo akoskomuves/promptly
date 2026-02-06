@@ -35,6 +35,7 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 - **Auto-prompt**: AI tools offer session tracking at conversation start — no manual setup needed.
 - **Session tracking**: Tag conversations to tickets, track token usage and duration.
 - **Git-aware sessions**: Automatically captures commits, branches, and diff stats made during each session.
+- **Auto-categorization**: Sessions are classified as bug-fix, feature, refactor, investigation, testing, or docs based on ticket ID, git commits, and conversation content.
 - **Built-in dashboard**: View sessions in your browser at `localhost:3000`.
 - **Optional cloud sync**: For teams that want a shared dashboard.
 

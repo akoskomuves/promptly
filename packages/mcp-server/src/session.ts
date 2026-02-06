@@ -132,6 +132,7 @@ export function writeToSqlite(session: LocalSession): void {
         tags TEXT DEFAULT '[]',
         client_tool TEXT,
         git_activity TEXT,
+        category TEXT,
         created_at TEXT DEFAULT (datetime('now'))
       );
     `);
@@ -145,6 +146,12 @@ export function writeToSqlite(session: LocalSession): void {
     // Migrate: add git_activity column if missing
     try {
       db.exec("ALTER TABLE sessions ADD COLUMN git_activity TEXT");
+    } catch {
+      // column already exists
+    }
+    // Migrate: add category column if missing
+    try {
+      db.exec("ALTER TABLE sessions ADD COLUMN category TEXT");
     } catch {
       // column already exists
     }
