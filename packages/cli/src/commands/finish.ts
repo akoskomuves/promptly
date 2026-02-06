@@ -4,7 +4,7 @@ import os from "node:os";
 import { loadConfig, isLocalMode, getActiveSession, clearActiveSession } from "../config.js";
 import { finishSession } from "../db.js";
 import { captureGitActivity } from "../git.js";
-import { categorizeSession } from "@getpromptly/shared";
+import { categorizeSession, analyzeSession } from "@getpromptly/shared";
 import type { LocalSession } from "@getpromptly/shared";
 
 const BUFFER_FILE = path.join(os.homedir(), ".promptly", "buffer.json");
@@ -37,6 +37,12 @@ export async function finishCommand() {
     conversations: buffer?.conversations ?? null,
   });
 
+  const intelligence = analyzeSession({
+    conversations: buffer?.conversations ?? [],
+    messageCount: buffer?.messageCount ?? 0,
+    ticketId: session.ticketId,
+  });
+
   const uploadData = {
     conversations: buffer?.conversations ?? [],
     models: buffer?.models ?? [],
@@ -50,6 +56,7 @@ export async function finishCommand() {
     finishedAt,
     gitActivity: gitActivity ?? undefined,
     category,
+    intelligence,
   };
 
   // Always write to local SQLite
@@ -93,6 +100,26 @@ export async function finishCommand() {
   if (gitActivity && gitActivity.totalCommits > 0) {
     console.log(`  Branch: ${gitActivity.branch}`);
     console.log(`  Commits: ${gitActivity.totalCommits} (+${gitActivity.totalInsertions}/-${gitActivity.totalDeletions} lines)`);
+  }
+  // Intelligence summary
+  const qualityStars = "\u2605".repeat(Math.round(intelligence.qualityScore.overall)) +
+    "\u2606".repeat(5 - Math.round(intelligence.qualityScore.overall));
+  const qualityTraits: string[] = [];
+  if (intelligence.qualityScore.planModeUsed) qualityTraits.push("plan mode");
+  if (intelligence.qualityScore.oneShotSuccess) qualityTraits.push("one-shot");
+  const traitStr = qualityTraits.length > 0 ? ` (${qualityTraits.join(", ")})` : "";
+  console.log(`  Quality: ${qualityStars} ${intelligence.qualityScore.overall}/5${traitStr}`);
+  if (intelligence.toolUsage.topTools.length > 0) {
+    const toolStr = intelligence.toolUsage.topTools.slice(0, 5)
+      .map((t) => `${t.name}(${t.count})`)
+      .join(", ");
+    console.log(`  Tools: ${toolStr}`);
+  }
+  if (intelligence.subagentStats.totalSpawned > 0) {
+    const typeStr = intelligence.subagentStats.topTypes
+      .map((t) => `${t.type}: ${t.count}`)
+      .join(", ");
+    console.log(`  Subagents: ${intelligence.subagentStats.totalSpawned} spawned (${typeStr})`);
   }
 
   if (isLocalMode(config)) {

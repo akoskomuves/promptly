@@ -57,6 +57,12 @@ export function getDb(): Database.Database {
   } catch {
     // column already exists
   }
+  // Migrate: add intelligence column if missing
+  try {
+    _db.exec("ALTER TABLE sessions ADD COLUMN intelligence TEXT");
+  } catch {
+    // column already exists
+  }
   return _db;
 }
 
@@ -81,6 +87,7 @@ export function finishSession(
     finishedAt: string;
     gitActivity?: unknown;
     category?: string;
+    intelligence?: unknown;
   }
 ): void {
   const db = getDb();
@@ -97,7 +104,8 @@ export function finishSession(
       models = ?,
       started_at = ?,
       git_activity = ?,
-      category = ?
+      category = ?,
+      intelligence = ?
     WHERE id = ?`
   ).run(
     data.finishedAt,
@@ -111,6 +119,7 @@ export function finishSession(
     data.startedAt,
     data.gitActivity ? JSON.stringify(data.gitActivity) : null,
     data.category ?? null,
+    data.intelligence ? JSON.stringify(data.intelligence) : null,
     id
   );
 }
@@ -132,6 +141,7 @@ export interface DbSession {
   client_tool: string | null;
   git_activity: string | null;
   category: string | null;
+  intelligence: string | null;
   created_at: string;
 }
 

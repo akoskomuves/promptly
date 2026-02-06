@@ -155,6 +155,12 @@ export function writeToSqlite(session: LocalSession): void {
     } catch {
       // column already exists
     }
+    // Migrate: add intelligence column if missing
+    try {
+      db.exec("ALTER TABLE sessions ADD COLUMN intelligence TEXT");
+    } catch {
+      // column already exists
+    }
 
     const activeSession = getActiveSession();
     const id = activeSession?.sessionId ??

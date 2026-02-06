@@ -71,6 +71,7 @@ export interface LocalSession {
   responseTokens: number;
   messageCount: number;
   toolCallCount: number;
+  intelligence?: SessionIntelligence;
 }
 
 // API request to create a session
@@ -94,6 +95,7 @@ export interface UploadSessionRequest {
   finishedAt: string;
   gitActivity?: GitActivity;
   category?: SessionCategory;
+  intelligence?: SessionIntelligence;
 }
 
 // API response for a session
@@ -116,6 +118,7 @@ export interface SessionResponse {
   tags: string[];
   gitActivity?: GitActivity;
   category?: SessionCategory;
+  intelligence?: SessionIntelligence;
   createdAt: string;
   updatedAt: string;
 }
@@ -174,6 +177,115 @@ export interface CreateTeamInviteRequest {
 // API response for team with members
 export interface TeamWithMembers extends Team {
   members: TeamMember[];
+}
+
+// Session quality score (computed at finish time)
+export interface SessionQualityScore {
+  overall: number;          // 1-5
+  planModeUsed: boolean;
+  correctionRate: number;   // 0-1
+  oneShotSuccess: boolean;  // ≤2 follow-up user messages
+  errorRecovery: number;    // 0-1 (1=clean, 0.7=errors resolved, 0.3=unresolved)
+  turnsToComplete: number;
+}
+
+// Tool usage statistics (computed at finish time)
+export interface ToolUsageStats {
+  toolCounts: Record<string, number>;  // { "Bash": 15, "Read": 8 }
+  skillInvocations: string[];          // ["/commit", "/review-pr"]
+  totalToolCalls: number;
+  topTools: { name: string; count: number }[];
+}
+
+// Subagent statistics (computed at finish time)
+export interface SubagentStats {
+  totalSpawned: number;
+  subagentTypes: Record<string, number>;  // { "Explore": 2, "Plan": 1 }
+  topTypes: { type: string; count: number }[];
+}
+
+// Combined session intelligence (stored as JSON)
+export interface SessionIntelligence {
+  qualityScore: SessionQualityScore;
+  toolUsage: ToolUsageStats;
+  subagentStats: SubagentStats;
+}
+
+// Weekly digest types
+
+export interface DigestSessionInput {
+  ticketId: string;
+  startedAt: string;
+  finishedAt?: string | null;
+  status: string;
+  totalTokens: number;
+  promptTokens: number;
+  responseTokens: number;
+  messageCount: number;
+  models: string[];
+  category?: string | null;
+  gitActivity?: {
+    totalCommits: number;
+    totalInsertions: number;
+    totalDeletions: number;
+  } | null;
+  intelligence?: {
+    qualityScore?: { overall: number };
+  } | null;
+  userName?: string | null;
+  userEmail?: string;
+  costEstimate?: number;
+}
+
+export interface DigestPeriodMetrics {
+  totalSessions: number;
+  completedSessions: number;
+  totalTokens: number;
+  totalMessages: number;
+  totalCost: number;
+  avgDuration: number;
+  avgQuality: number | null;
+  totalCommits: number;
+  totalInsertions: number;
+  totalDeletions: number;
+}
+
+export interface DigestComparison {
+  current: DigestPeriodMetrics;
+  previous: DigestPeriodMetrics;
+  changes: {
+    sessions: number | null;
+    tokens: number | null;
+    cost: number | null;
+    messages: number | null;
+    quality: number | null;
+    commits: number | null;
+  };
+}
+
+export interface DigestTopProject {
+  project: string;
+  sessions: number;
+  tokens: number;
+  cost: number;
+}
+
+export interface DigestDeveloperEfficiency {
+  name: string;
+  sessions: number;
+  tokensPerSession: number;
+  costPerSession: number;
+  avgQuality: number | null;
+}
+
+export interface WeeklyDigest {
+  periodLabel: string;
+  previousLabel: string;
+  comparison: DigestComparison;
+  topProjects: DigestTopProject[];
+  developers: DigestDeveloperEfficiency[];
+  topCategories: { category: string; sessions: number; tokens: number }[];
+  highlights: string[];
 }
 
 // CLI config stored at ~/.promptly/config.json

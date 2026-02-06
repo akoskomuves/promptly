@@ -11,6 +11,7 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
   <nav class="nav">
     <a href="/" class="nav-brand">Promptly</a>
     <a href="/" class="nav-link">Sessions</a>
+    <a href="/digest" class="nav-link">Digest</a>
   </nav>
   <main class="container">
     <h1>Sessions</h1>
@@ -102,10 +103,20 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
         const statusClass = s.status === 'COMPLETED' ? 'badge-green' : 'badge-yellow';
         const tagsHtml = sTags.map(t => '<span class="tag">' + esc(t) + '</span>').join('');
         const categoryHtml = s.category ? '<span class="category-badge category-' + s.category + '">' + s.category + '</span>' : '';
+        var qualityHtml = '';
+        if (s.intelligence) {
+          try {
+            var intel = JSON.parse(s.intelligence);
+            if (intel.qualityScore) {
+              var rating = Math.round(intel.qualityScore.overall);
+              qualityHtml = '<span class="quality-stars">' + '\u2605'.repeat(rating) + '\u2606'.repeat(5 - rating) + '</span>';
+            }
+          } catch(e) {}
+        }
         return '<a href="/sessions/' + s.id + '" class="session-card">' +
           '<div class="session-header">' +
             '<strong>' + esc(s.ticket_id) + '</strong>' +
-            '<div>' + categoryHtml + tagsHtml + '<span class="badge ' + statusClass + '">' + s.status + '</span></div>' +
+            '<div>' + qualityHtml + categoryHtml + tagsHtml + '<span class="badge ' + statusClass + '">' + s.status + '</span></div>' +
           '</div>' +
           '<div class="session-meta">' +
             '<span>' + started + '</span>' +
@@ -282,6 +293,7 @@ export function sessionDetailPage(sessionJson: string): string {
   <nav class="nav">
     <a href="/" class="nav-brand">Promptly</a>
     <a href="/" class="nav-link">Sessions</a>
+    <a href="/digest" class="nav-link">Digest</a>
   </nav>
   <main class="container">
     <a href="/" class="back-link">&larr; Back to sessions</a>
@@ -299,6 +311,9 @@ export function sessionDetailPage(sessionJson: string): string {
     var gitActivity = null;
     try { if (s.git_activity) gitActivity = JSON.parse(s.git_activity); } catch(e) {}
     var hasGit = gitActivity && gitActivity.totalCommits > 0;
+
+    var intelligence = null;
+    try { if (s.intelligence) intelligence = JSON.parse(s.intelligence); } catch(e) {}
 
     const detail = document.getElementById('detail');
     detail.innerHTML =
@@ -328,6 +343,62 @@ export function sessionDetailPage(sessionJson: string): string {
           '<button id="tag-add" class="btn btn-sm">Add</button>' +
         '</div>' +
       '</div>' +
+      (intelligence ?
+        '<h2>Session Intelligence</h2>' +
+        '<div class="intel-grid">' +
+          // Quality Score Card
+          '<div class="intel-card">' +
+            '<h3>Quality Score</h3>' +
+            '<div class="quality-rating">' +
+              '<span class="quality-stars-lg">' + (function() {
+                var r = Math.round(intelligence.qualityScore.overall);
+                return '\u2605'.repeat(r) + '\u2606'.repeat(5 - r);
+              })() + '</span>' +
+              '<span class="quality-number">' + intelligence.qualityScore.overall + '/5</span>' +
+            '</div>' +
+            '<div class="intel-details">' +
+              '<div class="intel-row"><span>Plan Mode</span><span>' + (intelligence.qualityScore.planModeUsed ? 'Yes' : 'No') + '</span></div>' +
+              '<div class="intel-row"><span>One-shot</span><span>' + (intelligence.qualityScore.oneShotSuccess ? 'Yes' : 'No') + '</span></div>' +
+              '<div class="intel-row"><span>Correction Rate</span><span>' + Math.round(intelligence.qualityScore.correctionRate * 100) + '%</span></div>' +
+              '<div class="intel-row"><span>Error Recovery</span><span>' + (intelligence.qualityScore.errorRecovery === 1 ? 'Clean' : intelligence.qualityScore.errorRecovery >= 0.7 ? 'Resolved' : 'Unresolved') + '</span></div>' +
+              '<div class="intel-row"><span>Turns</span><span>' + intelligence.qualityScore.turnsToComplete + '</span></div>' +
+            '</div>' +
+          '</div>' +
+          // Tool Usage Card
+          '<div class="intel-card">' +
+            '<h3>Tool Usage</h3>' +
+            '<div class="intel-total">' + intelligence.toolUsage.totalToolCalls + ' total calls</div>' +
+            (intelligence.toolUsage.topTools.length > 0 ?
+              '<div class="tool-bars">' +
+                intelligence.toolUsage.topTools.slice(0, 8).map(function(t) {
+                  var maxCount = intelligence.toolUsage.topTools[0].count || 1;
+                  var pct = Math.round((t.count / maxCount) * 100);
+                  return '<div class="tool-bar-row">' +
+                    '<span class="tool-bar-name">' + esc(t.name) + '</span>' +
+                    '<div class="tool-bar-track"><div class="tool-bar-fill" style="width:' + pct + '%"></div></div>' +
+                    '<span class="tool-bar-count">' + t.count + '</span>' +
+                  '</div>';
+                }).join('') +
+              '</div>'
+            : '<div class="muted" style="font-size:13px">No tool data</div>') +
+            (intelligence.toolUsage.skillInvocations.length > 0 ?
+              '<div class="intel-skills"><span class="muted">Skills:</span> ' + intelligence.toolUsage.skillInvocations.map(function(sk) { return '<span class="tag">' + esc(sk) + '</span>'; }).join(' ') + '</div>'
+            : '') +
+          '</div>' +
+          // Subagent Card
+          '<div class="intel-card">' +
+            '<h3>Subagents</h3>' +
+            '<div class="intel-total">' + intelligence.subagentStats.totalSpawned + ' spawned</div>' +
+            (intelligence.subagentStats.topTypes.length > 0 ?
+              '<div class="intel-details">' +
+                intelligence.subagentStats.topTypes.map(function(t) {
+                  return '<div class="intel-row"><span>' + esc(t.type) + '</span><span>' + t.count + '</span></div>';
+                }).join('') +
+              '</div>'
+            : '<div class="muted" style="font-size:13px">No subagent data</div>') +
+          '</div>' +
+        '</div>'
+      : '') +
       (hasGit ?
         '<h2>Git Activity</h2>' +
         '<div class="git-summary">' +
@@ -505,6 +576,24 @@ function baseStyles(): string {
     .category-testing { background: #1a2a3a; color: #38bdf8; }
     .category-docs { background: #2a1a3a; color: #c084fc; }
     .category-other { background: #222; color: #888; }
+    .quality-stars { color: #facc15; font-size: 13px; margin-right: 4px; letter-spacing: 1px; }
+    .quality-stars-lg { color: #facc15; font-size: 22px; letter-spacing: 2px; }
+    .quality-number { font-size: 14px; color: #888; margin-left: 8px; }
+    .quality-rating { display: flex; align-items: center; margin-bottom: 12px; }
+    .intel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .intel-card { background: #111; border-radius: 8px; padding: 16px; }
+    .intel-card h3 { font-size: 13px; color: #888; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .intel-total { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+    .intel-details { display: flex; flex-direction: column; gap: 6px; }
+    .intel-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid #1a1a1a; }
+    .intel-row span:first-child { color: #888; }
+    .intel-skills { margin-top: 12px; font-size: 13px; }
+    .tool-bars { display: flex; flex-direction: column; gap: 6px; }
+    .tool-bar-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .tool-bar-name { width: 80px; color: #888; text-align: right; flex-shrink: 0; }
+    .tool-bar-track { flex: 1; height: 8px; background: #1a1a1a; border-radius: 4px; overflow: hidden; }
+    .tool-bar-fill { height: 100%; background: #6366f1; border-radius: 4px; }
+    .tool-bar-count { width: 30px; text-align: right; flex-shrink: 0; }
     .git-badge { color: #facc15; }
     .git-summary { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 16px; background: #111; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
     .git-stats-inline { color: #4ade80; }
@@ -516,3 +605,124 @@ function baseStyles(): string {
   `;
 }
 
+export function digestPage(digestJson: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promptly - Weekly Digest</title>
+  <style>${baseStyles()}${digestStyles()}</style>
+</head>
+<body>
+  <nav class="nav">
+    <a href="/" class="nav-brand">Promptly</a>
+    <a href="/" class="nav-link">Sessions</a>
+    <a href="/digest" class="nav-link">Digest</a>
+  </nav>
+  <main class="container">
+    <div id="digest"></div>
+  </main>
+  <script>
+    const digest = ${digestJson};
+    const el = document.getElementById('digest');
+
+    function arrow(val) {
+      if (val == null) return '';
+      if (val > 0) return '<span class="change-up">\u25B2 ' + val + '%</span>';
+      if (val < 0) return '<span class="change-down">\u25BC ' + Math.abs(val) + '%</span>';
+      return '<span class="change-flat">\u2500 same</span>';
+    }
+
+    function num(n) { return n.toLocaleString(); }
+
+    var c = digest.comparison.current;
+    var ch = digest.comparison.changes;
+
+    var html = '<h1>Weekly Digest</h1>';
+    html += '<p class="muted">' + esc(digest.periodLabel) + ' &middot; compared to ' + esc(digest.previousLabel) + '</p>';
+
+    // Metric cards
+    html += '<div class="digest-grid">';
+    html += metricCard('Sessions', c.totalSessions, arrow(ch.sessions));
+    html += metricCard('Tokens', num(c.totalTokens), arrow(ch.tokens));
+    html += metricCard('Messages', num(c.totalMessages), arrow(ch.messages));
+    html += metricCard('Avg Duration', c.avgDuration + 'm', '');
+    if (c.avgQuality != null) {
+      html += metricCard('Avg Quality', c.avgQuality + '/5', ch.quality != null ? arrow(ch.quality) : '');
+    }
+    if (c.totalCommits > 0) {
+      html += metricCard('Commits', c.totalCommits + '', arrow(ch.commits));
+    }
+    html += '</div>';
+
+    // Git summary
+    if (c.totalCommits > 0) {
+      html += '<div class="digest-section"><div class="digest-git">+' + num(c.totalInsertions) + ' / -' + num(c.totalDeletions) + ' lines</div></div>';
+    }
+
+    // Top projects
+    if (digest.topProjects.length > 0) {
+      html += '<h2>Top Projects</h2>';
+      html += '<div class="digest-table">';
+      html += '<div class="digest-table-header"><span>Project</span><span>Sessions</span><span>Tokens</span></div>';
+      digest.topProjects.forEach(function(p) {
+        html += '<div class="digest-table-row"><span class="project-name">' + esc(p.project) + '</span><span>' + p.sessions + '</span><span>' + num(p.tokens) + '</span></div>';
+      });
+      html += '</div>';
+    }
+
+    // Categories
+    if (digest.topCategories.length > 0) {
+      html += '<h2>By Category</h2>';
+      html += '<div class="digest-categories">';
+      digest.topCategories.forEach(function(c) {
+        html += '<span class="category-badge category-' + c.category + '">' + c.category + ' (' + c.sessions + ')</span> ';
+      });
+      html += '</div>';
+    }
+
+    // Highlights
+    if (digest.highlights.length > 0) {
+      html += '<h2>Highlights</h2>';
+      html += '<div class="digest-highlights">';
+      digest.highlights.forEach(function(h) {
+        html += '<div class="digest-highlight">\u2022 ' + esc(h) + '</div>';
+      });
+      html += '</div>';
+    }
+
+    el.innerHTML = html;
+
+    function metricCard(label, value, change) {
+      return '<div class="digest-card"><div class="digest-card-value">' + value + '</div><div class="digest-card-label">' + label + '</div>' + (change ? '<div class="digest-card-change">' + change + '</div>' : '') + '</div>';
+    }
+
+    function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  </script>
+</body>
+</html>`;
+}
+
+function digestStyles(): string {
+  return `
+    .digest-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin: 24px 0; }
+    .digest-card { background: #111; border-radius: 8px; padding: 20px; text-align: center; }
+    .digest-card-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .digest-card-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+    .digest-card-change { margin-top: 8px; font-size: 13px; }
+    .change-up { color: #4ade80; }
+    .change-down { color: #f87171; }
+    .change-flat { color: #888; }
+    .digest-section { margin: 16px 0; }
+    .digest-git { font-size: 14px; color: #4ade80; }
+    .digest-table { background: #111; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+    .digest-table-header { display: grid; grid-template-columns: 1fr 100px 120px; padding: 12px 16px; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #222; }
+    .digest-table-row { display: grid; grid-template-columns: 1fr 100px 120px; padding: 10px 16px; font-size: 14px; border-bottom: 1px solid #1a1a1a; }
+    .digest-table-row:last-child { border-bottom: none; }
+    .project-name { font-weight: 600; font-family: ui-monospace, monospace; }
+    .digest-categories { margin: 16px 0 24px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .digest-highlights { background: #111; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+    .digest-highlight { padding: 6px 0; font-size: 14px; color: #ccc; }
+  `;
+}

@@ -10,6 +10,7 @@ import { reportCommand } from "./commands/report.js";
 import { teamsCommand } from "./commands/teams.js";
 import { teamCommand } from "./commands/team.js";
 import { skillCommand } from "./commands/skill.js";
+import { digestCommand } from "./commands/digest.js";
 
 const program = new Command();
 
@@ -72,5 +73,12 @@ program
   .command("skill [action]")
   .description("Manage Claude Code /track skill: install | uninstall | status")
   .action(skillCommand);
+
+program
+  .command("digest")
+  .description("Weekly insights digest — session summary with trends")
+  .option("--from <date>", "Start of current period (YYYY-MM-DD)")
+  .option("--to <date>", "End of current period (YYYY-MM-DD)")
+  .action(digestCommand);
 
 program.parse();

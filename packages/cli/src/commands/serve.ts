@@ -1,7 +1,9 @@
 import http from "node:http";
 import https from "node:https";
 import { listSessions, listAllSessions, getSession, countSessions, updateSessionTags } from "../db.js";
-import { sessionsListPage, sessionDetailPage } from "../dashboard.js";
+import { sessionsListPage, sessionDetailPage, digestPage } from "../dashboard.js";
+import { computeWeeklyDigest } from "@getpromptly/shared";
+import type { DigestSessionInput } from "@getpromptly/shared";
 
 let pricingCache: { data: Record<string, { input_price_per_million: number; output_price_per_million: number }> | null; fetchedAt: number } = { data: null, fetchedAt: 0 };
 
@@ -59,15 +61,31 @@ export async function serveCommand(options: { port?: string }) {
 
     if (url.pathname === "/api/sessions/export.csv" && req.method === "GET") {
       const sessions = listAllSessions();
-      const headers = ["id","ticket_id","started_at","finished_at","status","total_tokens","prompt_tokens","response_tokens","message_count","tool_call_count","client_tool","models","category"];
+      const headers = ["id","ticket_id","started_at","finished_at","status","total_tokens","prompt_tokens","response_tokens","message_count","tool_call_count","client_tool","models","category","quality_score","plan_mode","one_shot","correction_rate","top_tools","total_tool_calls","subagent_count"];
       const csvRows = [headers.join(",")];
       for (const s of sessions) {
         const models = JSON.parse(s.models || "[]").join(";");
+        let qualityScore = "", planMode = "", oneShot = "", correctionRate = "", topToolsStr = "", totalToolCallsStr = "", subagentCount = "";
+        if (s.intelligence) {
+          try {
+            const intel = JSON.parse(s.intelligence);
+            qualityScore = String(intel.qualityScore?.overall ?? "");
+            planMode = String(intel.qualityScore?.planModeUsed ?? "");
+            oneShot = String(intel.qualityScore?.oneShotSuccess ?? "");
+            correctionRate = String(intel.qualityScore?.correctionRate ?? "");
+            topToolsStr = (intel.toolUsage?.topTools ?? []).map((t: { name: string; count: number }) => `${t.name}:${t.count}`).join(";");
+            totalToolCallsStr = String(intel.toolUsage?.totalToolCalls ?? "");
+            subagentCount = String(intel.subagentStats?.totalSpawned ?? "");
+          } catch {
+            // ignore
+          }
+        }
         csvRows.push([
           s.id, s.ticket_id, s.started_at, s.finished_at ?? "",
           s.status, s.total_tokens, s.prompt_tokens, s.response_tokens,
           s.message_count, s.tool_call_count, s.client_tool ?? "", models,
-          s.category ?? "",
+          s.category ?? "", qualityScore, planMode, oneShot, correctionRate,
+          topToolsStr, totalToolCallsStr, subagentCount,
         ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(","));
       }
       res.writeHead(200, {
@@ -127,6 +145,49 @@ export async function serveCommand(options: { port?: string }) {
       }
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(session));
+      return;
+    }
+
+    // Digest page
+    if (url.pathname === "/digest") {
+      const sessions = listAllSessions();
+      const inputs: DigestSessionInput[] = sessions.map((s) => {
+        let models: string[] = [];
+        try { models = JSON.parse(s.models || "[]"); } catch {}
+        let gitActivity: DigestSessionInput["gitActivity"] = null;
+        if (s.git_activity) {
+          try {
+            const ga = JSON.parse(s.git_activity);
+            gitActivity = { totalCommits: ga.totalCommits ?? 0, totalInsertions: ga.totalInsertions ?? 0, totalDeletions: ga.totalDeletions ?? 0 };
+          } catch {}
+        }
+        let intelligence: DigestSessionInput["intelligence"] = null;
+        if (s.intelligence) {
+          try {
+            const intel = JSON.parse(s.intelligence);
+            if (intel.qualityScore?.overall != null) {
+              intelligence = { qualityScore: { overall: intel.qualityScore.overall } };
+            }
+          } catch {}
+        }
+        return {
+          ticketId: s.ticket_id,
+          startedAt: s.started_at,
+          finishedAt: s.finished_at,
+          status: s.status,
+          totalTokens: s.total_tokens,
+          promptTokens: s.prompt_tokens,
+          responseTokens: s.response_tokens,
+          messageCount: s.message_count,
+          models,
+          category: s.category,
+          gitActivity,
+          intelligence,
+        };
+      });
+      const digest = computeWeeklyDigest(inputs);
+      res.writeHead(200, { "Content-Type": "text/html" });
+      res.end(digestPage(JSON.stringify(digest)));
       return;
     }
 

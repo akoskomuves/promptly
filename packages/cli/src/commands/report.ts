@@ -134,6 +134,54 @@ export async function reportCommand(options: {
     console.log(`  By category:      ${categories}`);
   }
 
+  // Intelligence aggregates
+  let qualitySum = 0, qualityCount = 0, planModeCount = 0, oneShotCount = 0;
+  const aggregatedToolCounts: Record<string, number> = {};
+  let totalSubagents = 0;
+  sessions.forEach((s) => {
+    if (s.intelligence) {
+      try {
+        const intel = JSON.parse(s.intelligence);
+        if (intel.qualityScore) {
+          qualitySum += intel.qualityScore.overall;
+          qualityCount++;
+          if (intel.qualityScore.planModeUsed) planModeCount++;
+          if (intel.qualityScore.oneShotSuccess) oneShotCount++;
+        }
+        if (intel.toolUsage?.toolCounts) {
+          for (const [tool, count] of Object.entries(intel.toolUsage.toolCounts)) {
+            aggregatedToolCounts[tool] = (aggregatedToolCounts[tool] || 0) + (count as number);
+          }
+        }
+        if (intel.subagentStats) {
+          totalSubagents += intel.subagentStats.totalSpawned;
+        }
+      } catch {
+        // ignore malformed intelligence
+      }
+    }
+  });
+
+  if (qualityCount > 0) {
+    const avgQuality = Math.round((qualitySum / qualityCount) * 10) / 10;
+    const planRate = Math.round((planModeCount / qualityCount) * 100);
+    const oneShotRate = Math.round((oneShotCount / qualityCount) * 100);
+    console.log(`  Avg quality:      ${avgQuality}/5 (${qualityCount} sessions scored)`);
+    console.log(`  Plan mode rate:   ${planRate}%`);
+    console.log(`  One-shot rate:    ${oneShotRate}%`);
+  }
+  if (Object.keys(aggregatedToolCounts).length > 0) {
+    const topTools = Object.entries(aggregatedToolCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([t, c]) => `${t}(${c})`)
+      .join(", ");
+    console.log(`  Top tools:        ${topTools}`);
+  }
+  if (totalSubagents > 0) {
+    console.log(`  Subagents:        ${totalSubagents} total spawned`);
+  }
+
   // By Project
   const projectStats: Record<string, { sessions: number; tokens: number }> = {};
   sessions.forEach((s) => {

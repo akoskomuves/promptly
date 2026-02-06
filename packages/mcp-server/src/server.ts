@@ -75,8 +75,14 @@ export function createServer(): McpServer {
       content: z.string(),
       model: z.string().optional(),
       tokenCount: z.number().optional(),
+      toolCalls: z.array(z.object({
+        name: z.string(),
+        input: z.unknown(),
+        output: z.unknown().optional(),
+        timestamp: z.string().optional(),
+      })).optional(),
     },
-    async ({ role, content, model, tokenCount }) => {
+    async ({ role, content, model, tokenCount, toolCalls }) => {
       const session = getActiveSession();
       const buffer = readBuffer();
       if (!session && !buffer) {
@@ -96,6 +102,7 @@ export function createServer(): McpServer {
         timestamp: new Date().toISOString(),
         model,
         tokenCount,
+        ...(toolCalls ? { toolCalls: toolCalls.map(tc => ({ name: tc.name, input: tc.input, output: tc.output, timestamp: tc.timestamp ?? new Date().toISOString() })) } : {}),
       };
 
       addTurn(turn);

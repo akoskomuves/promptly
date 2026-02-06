@@ -47,14 +47,36 @@ Use your AI coding tool as normal. The MCP server captures conversation turns in
 promptly finish
 ```
 
-This captures git activity (commits, branch, diff stats) from the session window, auto-categorizes the session (bug-fix, feature, refactor, investigation, testing, docs, or other), saves everything to SQLite, and clears the buffer. If you're in a git repo, the session detail will show which commits were made during the session.
+This captures git activity (commits, branch, diff stats) from the session window, auto-categorizes the session (bug-fix, feature, refactor, investigation, testing, docs, or other), computes session intelligence (quality score, tool usage, subagent tracking), saves everything to SQLite, and clears the buffer. If you're in a git repo, the session detail will show which commits were made during the session.
 
 Categories are determined automatically using:
 1. Ticket ID prefix (e.g., `fix/login-bug` → bug-fix, `feat/new-dashboard` → feature)
 2. Git commit messages (conventional commits like `fix:`, `feat:`, `refactor:`)
 3. First user message keywords as a fallback
 
-### 6. View Dashboard
+### Session Intelligence
+
+At finish time, the CLI analyzes conversation content to compute:
+
+- **Quality Score (1-5 stars)**: Based on plan mode usage, one-shot success, correction rate, and error recovery
+- **Tool Usage**: Which tools were used (Bash, Read, Edit, Grep, etc.) and how often, plus skill invocations
+- **Subagent Tracking**: How many Task agent spawns occurred and their types (Explore, Plan, etc.)
+
+Intelligence data appears in the session summary output, the local dashboard, reports, and CSV exports.
+
+### 6. Weekly Digest
+
+```bash
+promptly digest
+```
+
+Shows a week-over-week comparison of your sessions: total sessions, tokens, messages, quality trends, top projects, and auto-generated highlights. Also available in the local dashboard at `/digest`.
+
+Options:
+- `--from YYYY-MM-DD` — Custom period start date
+- `--to YYYY-MM-DD` — Custom period end date
+
+### 7. View Dashboard
 
 ```bash
 promptly serve

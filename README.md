@@ -12,6 +12,7 @@ promptly start           # Prompts for ticket ID interactively
 promptly finish          # Save session data
 promptly serve           # Open local dashboard at localhost:3000
 promptly report          # View stats (select time period)
+promptly digest          # Weekly insights digest with trends
 ```
 
 ### Native /track Commands
@@ -36,6 +37,7 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 - **Session tracking**: Tag conversations to tickets, track token usage and duration.
 - **Git-aware sessions**: Automatically captures commits, branches, and diff stats made during each session.
 - **Auto-categorization**: Sessions are classified as bug-fix, feature, refactor, investigation, testing, or docs based on ticket ID, git commits, and conversation content.
+- **Session intelligence**: Quality scoring (1-5 stars), tool usage analytics (Bash, Read, Edit, etc.), and subagent tracking -- computed automatically at finish time.
 - **Built-in dashboard**: View sessions in your browser at `localhost:3000`.
 - **Optional cloud sync**: For teams that want a shared dashboard.
 
@@ -61,6 +63,7 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 | `promptly status` | Show current session status |
 | `promptly serve` | Start local dashboard on localhost:3000 |
 | `promptly report` | Show stats (interactive period selector) |
+| `promptly digest` | Weekly insights digest with trends |
 | `promptly login` | Authenticate with cloud API |
 | `promptly teams` | List teams with quick actions |
 | `promptly team set` | Interactive team selector |

@@ -1,6 +1,6 @@
 {
   "name": "@getpromptly/shared",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "Shared types and utilities for Promptly",
   "type": "module",
   "main": "./dist/index.js",

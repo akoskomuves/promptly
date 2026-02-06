@@ -17,6 +17,7 @@ promptly start           # Prompts for ticket ID interactively
 promptly finish          # Save session data
 promptly serve           # Open dashboard at localhost:3000
 promptly report          # View stats (select time period)
+promptly digest          # Weekly insights digest with trends
 ```
 
 ### Native /track Commands
@@ -47,6 +48,7 @@ During setup, `promptly init` can enable **auto-prompt** — your AI tool will o
 | `promptly status` | Show current session status |
 | `promptly serve` | Start local dashboard on localhost:3000 |
 | `promptly report` | Show stats (interactive period selector) |
+| `promptly digest` | Weekly insights digest with trends |
 | `promptly login` | Authenticate with cloud API |
 | `promptly teams` | List teams with quick actions |
 | `promptly team set` | Interactive team selector |
@@ -71,7 +73,7 @@ Claude Code / Gemini CLI / Codex CLI
 1. `promptly init` auto-detects installed tools and lets you select which to configure.
 2. `promptly start` creates a session and begins logging.
 3. The MCP server captures all conversation turns, tokens, and tool calls.
-4. `promptly finish` captures git activity (commits, branch, diff stats), auto-categorizes the session (bug-fix, feature, refactor, etc.), writes data to SQLite, and clears the buffer.
+4. `promptly finish` captures git activity (commits, branch, diff stats), auto-categorizes the session (bug-fix, feature, refactor, etc.), computes session intelligence (quality score, tool usage, subagent stats), writes data to SQLite, and clears the buffer.
 5. `promptly serve` serves a dashboard reading from SQLite.
 
 ## Data Storage
