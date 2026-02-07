@@ -1,0 +1,12 @@
+{
+  "name": "promptly-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "tsx generate.ts",
+    "build": "tsx generate.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.0.0"
+  }
+}

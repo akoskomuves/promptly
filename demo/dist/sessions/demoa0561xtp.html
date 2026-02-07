@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promptly - Session Detail</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #ededed; }
+    .nav { padding: 16px 24px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 24px; }
+    .nav-brand { color: #ededed; text-decoration: none; font-weight: 700; font-size: 18px; }
+    .nav-link { color: #888; text-decoration: none; font-size: 14px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { margin-bottom: 8px; }
+    h2 { margin: 24px 0 16px; }
+    .muted { color: #888; margin-bottom: 24px; }
+    .back-link { color: #888; text-decoration: none; font-size: 14px; }
+    .badge { font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+    .badge-green { background: #1a3a1a; color: #4ade80; }
+    .badge-yellow { background: #3a3a1a; color: #facc15; }
+    .empty { padding: 40px; text-align: center; color: #666; border: 1px dashed #333; border-radius: 8px; }
+    .empty code { background: #222; padding: 2px 6px; border-radius: 4px; }
+    .filters { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 200px; padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; }
+    .search-input:focus { border-color: #555; }
+    .search-input::placeholder { color: #555; }
+    .filter-select { padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; cursor: pointer; }
+    .filter-select:focus { border-color: #555; }
+    .export-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
+    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; }
+    .btn-sm { background: #222; color: #ededed; border: 1px solid #333; }
+    .btn-sm:hover { border-color: #555; }
+    .tag { display: inline-block; padding: 2px 8px; background: #1a2a3a; color: #7dd3fc; border-radius: 4px; font-size: 12px; }
+    .tag-remove { cursor: pointer; margin-left: 4px; opacity: 0.6; }
+    .tag-remove:hover { opacity: 1; }
+    .tags-section { margin: 24px 0; }
+    .tags-container { margin: 8px 0; }
+    .tag-input-row { display: flex; gap: 8px; align-items: center; }
+    .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .chart-card { background: #111; border-radius: 8px; padding: 16px; }
+    .chart-card h3 { font-size: 14px; color: #888; margin-bottom: 12px; font-weight: 500; }
+    .chart-svg { width: 100%; height: auto; }
+    .chart-label { fill: #666; font-size: 10px; }
+    .chart-hover:hover + rect { opacity: 0.8; }
+    .chart-tooltip { display: none; position: absolute; background: #222; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; pointer-events: none; white-space: nowrap; z-index: 10; border: 1px solid #444; }
+    .session-card { display: block; padding: 16px; border: 1px solid #222; border-radius: 8px; text-decoration: none; color: #ededed; margin-bottom: 8px; transition: border-color 0.15s; }
+    .session-card:hover { border-color: #444; }
+    .session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .session-header > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .session-meta { display: flex; gap: 24px; font-size: 13px; color: #888; flex-wrap: wrap; }
+    .detail-header { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 24px 0; padding: 16px; background: #111; border-radius: 8px; }
+    .stat-label { font-size: 12px; color: #888; }
+    .stat-value { font-size: 20px; font-weight: 600; }
+    .turn { padding: 16px; border-radius: 8px; margin-bottom: 8px; }
+    .turn-user { background: #1a1a2e; border-left: 3px solid #6366f1; }
+    .turn-assistant { background: #1a2e1a; border-left: 3px solid #4ade80; }
+    .turn-system { background: #2e2a1a; border-left: 3px solid #facc15; }
+    .turn-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: #888; }
+    .turn-role { font-weight: 600; text-transform: uppercase; }
+    .turn-content { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.5; font-family: inherit; }
+    .tool-details { margin-top: 8px; }
+    .tool-details summary { cursor: pointer; font-size: 12px; color: #888; }
+    .tool-pre { margin: 4px 0; padding: 8px; background: #0a0a0a; border-radius: 4px; font-size: 12px; overflow: auto; }
+    .category-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; text-transform: uppercase; }
+    .category-bug-fix { background: #3a1a1a; color: #f87171; }
+    .category-feature { background: #1a3a1a; color: #4ade80; }
+    .category-refactor { background: #1a1a3a; color: #818cf8; }
+    .category-investigation { background: #3a2a1a; color: #fbbf24; }
+    .category-testing { background: #1a2a3a; color: #38bdf8; }
+    .category-docs { background: #2a1a3a; color: #c084fc; }
+    .category-other { background: #222; color: #888; }
+    .quality-stars { color: #facc15; font-size: 12px; letter-spacing: 1px; }
+    .quality-stars-lg { color: #facc15; font-size: 22px; letter-spacing: 2px; }
+    .quality-number { font-size: 14px; color: #888; margin-left: 8px; }
+    .quality-rating { display: flex; align-items: center; margin-bottom: 12px; }
+    .intel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .intel-card { background: #111; border-radius: 8px; padding: 16px; }
+    .intel-card h3 { font-size: 13px; color: #888; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .intel-total { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+    .intel-details { display: flex; flex-direction: column; gap: 6px; }
+    .intel-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid #1a1a1a; }
+    .intel-row span:first-child { color: #888; }
+    .intel-skills { margin-top: 12px; font-size: 13px; }
+    .tool-bars { display: flex; flex-direction: column; gap: 6px; }
+    .tool-bar-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .tool-bar-name { width: 80px; color: #888; text-align: right; flex-shrink: 0; }
+    .tool-bar-track { flex: 1; height: 8px; background: #1a1a1a; border-radius: 4px; overflow: hidden; }
+    .tool-bar-fill { height: 100%; background: #6366f1; border-radius: 4px; }
+    .tool-bar-count { width: 30px; text-align: right; flex-shrink: 0; }
+    .git-badge { color: #facc15; }
+    .git-summary { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 16px; background: #111; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
+    .git-stats-inline { color: #4ade80; }
+    .commits-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px; }
+    .commit-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #111; border-radius: 6px; font-size: 13px; }
+    .commit-hash { font-family: ui-monospace, monospace; color: #facc15; background: #2a2a1a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .commit-message { flex: 1; }
+    .commit-stats { color: #4ade80; white-space: nowrap; font-size: 12px; }
+  </style>
+</head>
+<body style="padding-top:48px;">
+<div style="position:fixed;top:0;left:0;right:0;z-index:1000;background:#1a1a2e;border-bottom:1px solid #333;padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:14px;font-family:system-ui,-apple-system,sans-serif;">
+  <span style="color:#ccc;">This is a demo with sample data.</span>
+  <a href="https://getpromptly.xyz" style="color:#818cf8;text-decoration:none;font-weight:600;">Get Started &rarr;</a>
+</div>
+  <nav class="nav">
+    <a href="/" class="nav-brand">Promptly</a>
+    <a href="/" class="nav-link">Sessions</a>
+    <a href="/digest" class="nav-link">Digest</a>
+  </nav>
+  <main class="container">
+    <a href="/" class="back-link">&larr; Back to sessions</a>
+    <div id="detail"></div>
+  </main>
+  <script>
+    const s = {"id":"demoa0561xtp","ticket_id":"UI-201","started_at":"2026-01-27T15:00:03.000Z","finished_at":"2026-01-27T15:11:03.000Z","status":"COMPLETED","total_tokens":16969,"prompt_tokens":4198,"response_tokens":12771,"message_count":19,"tool_call_count":9,"conversations":"[{\"role\":\"user\",\"content\":\"Users are reporting Form validation error states is broken. Can you investigate?\",\"timestamp\":\"2026-01-27T15:00:03.000Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":165},{\"role\":\"assistant\",\"content\":\"Let me investigate. I'll start by checking the error logs and tracing the request flow.\",\"timestamp\":\"2026-01-27T15:00:37.736Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1229},{\"role\":\"user\",\"content\":\"There's a bug with Form validation error states. It fails intermittently in production.\",\"timestamp\":\"2026-01-27T15:01:12.473Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":486},{\"role\":\"assistant\",\"content\":\"I found the issue. The race condition happens when two requests hit the endpoint simultaneously because the lock isn't properly scoped.\",\"timestamp\":\"2026-01-27T15:01:47.210Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1361},{\"role\":\"user\",\"content\":\"The QA team found a regression in Form validation error states. Let's fix it.\",\"timestamp\":\"2026-01-27T15:02:21.947Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":332},{\"role\":\"assistant\",\"content\":\"The fix is straightforward — I've added a mutex around the critical section and updated the error handling.\",\"timestamp\":\"2026-01-27T15:02:56.684Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1592},{\"role\":\"user\",\"content\":\"I'm seeing errors in the logs related to Form validation error states.\",\"timestamp\":\"2026-01-27T15:03:31.421Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":239},{\"role\":\"assistant\",\"content\":\"I've added a regression test that reproduces the exact scenario. It was failing before the fix and passes now.\",\"timestamp\":\"2026-01-27T15:04:06.157Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1491,\"toolCalls\":[{\"name\":\"Edit\",\"input\":{\"path\":\"src/api/routes.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}}]},{\"role\":\"user\",\"content\":\"Can you check why Form validation error states stopped working after the last deploy?\",\"timestamp\":\"2026-01-27T15:04:40.894Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":415},{\"role\":\"assistant\",\"content\":\"I checked all related endpoints. Two others had a similar pattern, so I fixed those preventively.\",\"timestamp\":\"2026-01-27T15:05:15.631Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1622,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"git diff --stat\"}}]},{\"role\":\"user\",\"content\":\"Hmm, I think the root cause is different. Can you check the middleware?\",\"timestamp\":\"2026-01-27T15:05:50.368Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":416},{\"role\":\"assistant\",\"content\":\"Error logging is improved. I've added structured logging with request IDs so we can correlate across services.\",\"timestamp\":\"2026-01-27T15:06:25.105Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":833},{\"role\":\"user\",\"content\":\"That fixed the immediate issue, but can you add a regression test?\",\"timestamp\":\"2026-01-27T15:06:59.842Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":468},{\"role\":\"assistant\",\"content\":\"The error message now explains what happened and suggests the user retry. Much better UX than the generic 500.\",\"timestamp\":\"2026-01-27T15:07:34.578Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1479},{\"role\":\"user\",\"content\":\"Can you also check if this affects any other endpoints?\",\"timestamp\":\"2026-01-27T15:08:09.315Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":566},{\"role\":\"assistant\",\"content\":\"All tests pass, including the new regression tests. The fix is contained to 3 files.\",\"timestamp\":\"2026-01-27T15:08:44.052Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1732,\"toolCalls\":[{\"name\":\"Glob\",\"input\":{\"pattern\":\"**/*.test.ts\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/api/routes.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}},{\"name\":\"Read\",\"input\":{\"path\":\"tsconfig.json\"}}]},{\"role\":\"user\",\"content\":\"Let's add better error logging so we catch this faster next time.\",\"timestamp\":\"2026-01-27T15:09:18.789Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":551},{\"role\":\"assistant\",\"content\":\"Let me investigate. I'll start by checking the error logs and tracing the request flow.\",\"timestamp\":\"2026-01-27T15:09:53.526Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1432},{\"role\":\"user\",\"content\":\"Please also update the error message to be more user-friendly.\",\"timestamp\":\"2026-01-27T15:10:28.263Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":560}]","models":"[\"claude-sonnet-4-5-20250929\",\"claude-opus-4-5-20250414\"]","tags":"[\"performance\",\"mobile\",\"security\"]","client_tool":"claude-code","git_activity":"{\"branch\":\"bugfix/ui-201\",\"commits\":[{\"hash\":\"demojdb\",\"message\":\"fix: add unit tests for SessionCard\",\"timestamp\":\"2026-01-27T15:03:43.000Z\",\"filesChanged\":8,\"insertions\":83,\"deletions\":71},{\"hash\":\"demoiii\",\"message\":\"test: add unit tests for DataTable\",\"timestamp\":\"2026-01-27T15:07:23.000Z\",\"filesChanged\":3,\"insertions\":96,\"deletions\":33}],\"totalCommits\":2,\"totalInsertions\":179,\"totalDeletions\":104,\"totalFilesChanged\":11}","category":"bug-fix","intelligence":"{\"qualityScore\":{\"overall\":2.5,\"planModeUsed\":true,\"oneShotSuccess\":false,\"correctionRate\":0.11,\"errorRecovery\":1,\"turnsToComplete\":19},\"toolUsage\":{\"toolCounts\":{\"Bash\":2,\"Read\":1,\"Edit\":2,\"Write\":1,\"Grep\":1,\"Glob\":2},\"skillInvocations\":[],\"totalToolCalls\":9,\"topTools\":[{\"name\":\"Bash\",\"count\":2},{\"name\":\"Edit\",\"count\":2},{\"name\":\"Glob\",\"count\":2},{\"name\":\"Read\",\"count\":1},{\"name\":\"Write\",\"count\":1},{\"name\":\"Grep\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":4,\"subagentTypes\":{\"Explore\":1,\"Plan\":1,\"Bash\":2},\"topTypes\":[{\"type\":\"Bash\",\"count\":2},{\"type\":\"Explore\",\"count\":1},{\"type\":\"Plan\",\"count\":1}]}}","created_at":"2026-01-27T15:00:03.000Z"};
+    const conversations = JSON.parse(s.conversations || '[]');
+    const models = JSON.parse(s.models || '[]');
+    const tags = JSON.parse(s.tags || '[]');
+    const duration = s.finished_at
+      ? Math.floor((new Date(s.finished_at) - new Date(s.started_at)) / 60000)
+      : null;
+
+    var gitActivity = null;
+    try { if (s.git_activity) gitActivity = JSON.parse(s.git_activity); } catch(e) {}
+    var hasGit = gitActivity && gitActivity.totalCommits > 0;
+
+    var intelligence = null;
+    try { if (s.intelligence) intelligence = JSON.parse(s.intelligence); } catch(e) {}
+
+    const detail = document.getElementById('detail');
+    detail.innerHTML =
+      '<div class="detail-header">' +
+        '<h1>' + esc(s.ticket_id) + '</h1>' +
+        '<span class="badge ' + (s.status === 'COMPLETED' ? 'badge-green' : 'badge-yellow') + '">' + s.status + '</span>' +
+      '</div>' +
+      '<div class="stats-grid">' +
+        stat('Duration', duration !== null ? duration + 'm' : 'In progress') +
+        stat('Messages', s.message_count) +
+        stat('Total Tokens', s.total_tokens.toLocaleString()) +
+        stat('Prompt Tokens', s.prompt_tokens.toLocaleString()) +
+        stat('Response Tokens', s.response_tokens.toLocaleString()) +
+        stat('Tool Calls', s.tool_call_count) +
+        '<div class="stat" id="cost-stat" style="display:none"><div class="stat-label">Est. Cost</div><div class="stat-value" id="cost-value"></div></div>' +
+        (s.category ? stat('Category', '<span class="category-badge category-' + s.category + '">' + s.category + '</span>') : '') +
+        (s.client_tool ? stat('AI Tool', s.client_tool) : '') +
+        (hasGit ? stat('Commits', gitActivity.totalCommits) : '') +
+        (hasGit ? stat('Lines Changed', '+' + gitActivity.totalInsertions + ' / -' + gitActivity.totalDeletions) : '') +
+        (hasGit ? stat('Branch', gitActivity.branch) : '') +
+      '</div>' +
+      '<div class="tags-section">' +
+        '<h2>Tags</h2>' +
+        '<div id="tags-container" class="tags-container"></div>' +
+        '<div class="tag-input-row">' +
+          '<input type="text" id="tag-input" placeholder="Add tag..." class="search-input" style="flex:1;max-width:200px;">' +
+          '<button id="tag-add" class="btn btn-sm">Add</button>' +
+        '</div>' +
+      '</div>' +
+      (intelligence ?
+        '<h2>Session Intelligence</h2>' +
+        '<div class="intel-grid">' +
+          // Quality Score Card
+          '<div class="intel-card">' +
+            '<h3>Quality Score</h3>' +
+            '<div class="quality-rating">' +
+              '<span class="quality-stars-lg">' + (function() {
+                var r = Math.round(intelligence.qualityScore.overall);
+                return '★'.repeat(r) + '☆'.repeat(5 - r);
+              })() + '</span>' +
+              '<span class="quality-number">' + intelligence.qualityScore.overall + '/5</span>' +
+            '</div>' +
+            '<div class="intel-details">' +
+              '<div class="intel-row"><span>Plan Mode</span><span>' + (intelligence.qualityScore.planModeUsed ? 'Yes' : 'No') + '</span></div>' +
+              '<div class="intel-row"><span>One-shot</span><span>' + (intelligence.qualityScore.oneShotSuccess ? 'Yes' : 'No') + '</span></div>' +
+              '<div class="intel-row"><span>Correction Rate</span><span>' + Math.round(intelligence.qualityScore.correctionRate * 100) + '%</span></div>' +
+              '<div class="intel-row"><span>Error Recovery</span><span>' + (intelligence.qualityScore.errorRecovery === 1 ? 'Clean' : intelligence.qualityScore.errorRecovery >= 0.7 ? 'Resolved' : 'Unresolved') + '</span></div>' +
+              '<div class="intel-row"><span>Turns</span><span>' + intelligence.qualityScore.turnsToComplete + '</span></div>' +
+            '</div>' +
+          '</div>' +
+          // Tool Usage Card
+          '<div class="intel-card">' +
+            '<h3>Tool Usage</h3>' +
+            '<div class="intel-total">' + intelligence.toolUsage.totalToolCalls + ' total calls</div>' +
+            (intelligence.toolUsage.topTools.length > 0 ?
+              '<div class="tool-bars">' +
+                intelligence.toolUsage.topTools.slice(0, 8).map(function(t) {
+                  var maxCount = intelligence.toolUsage.topTools[0].count || 1;
+                  var pct = Math.round((t.count / maxCount) * 100);
+                  return '<div class="tool-bar-row">' +
+                    '<span class="tool-bar-name">' + esc(t.name) + '</span>' +
+                    '<div class="tool-bar-track"><div class="tool-bar-fill" style="width:' + pct + '%"></div></div>' +
+                    '<span class="tool-bar-count">' + t.count + '</span>' +
+                  '</div>';
+                }).join('') +
+              '</div>'
+            : '<div class="muted" style="font-size:13px">No tool data</div>') +
+            (intelligence.toolUsage.skillInvocations.length > 0 ?
+              '<div class="intel-skills"><span class="muted">Skills:</span> ' + intelligence.toolUsage.skillInvocations.map(function(sk) { return '<span class="tag">' + esc(sk) + '</span>'; }).join(' ') + '</div>'
+            : '') +
+          '</div>' +
+          // Subagent Card
+          '<div class="intel-card">' +
+            '<h3>Subagents</h3>' +
+            '<div class="intel-total">' + intelligence.subagentStats.totalSpawned + ' spawned</div>' +
+            (intelligence.subagentStats.topTypes.length > 0 ?
+              '<div class="intel-details">' +
+                intelligence.subagentStats.topTypes.map(function(t) {
+                  return '<div class="intel-row"><span>' + esc(t.type) + '</span><span>' + t.count + '</span></div>';
+                }).join('') +
+              '</div>'
+            : '<div class="muted" style="font-size:13px">No subagent data</div>') +
+          '</div>' +
+        '</div>'
+      : '') +
+      (hasGit ?
+        '<h2>Git Activity</h2>' +
+        '<div class="git-summary">' +
+          '<span>' + gitActivity.totalCommits + ' commit' + (gitActivity.totalCommits !== 1 ? 's' : '') + ' on <strong>' + esc(gitActivity.branch) + '</strong></span>' +
+          '<span class="git-stats-inline">+' + gitActivity.totalInsertions + ' / -' + gitActivity.totalDeletions + ' lines</span>' +
+          '<span>' + gitActivity.totalFilesChanged + ' file' + (gitActivity.totalFilesChanged !== 1 ? 's' : '') + ' changed</span>' +
+        '</div>' +
+        '<div class="commits-list">' +
+          gitActivity.commits.map(function(c) {
+            return '<div class="commit-item">' +
+              '<span class="commit-hash">' + esc(c.hash) + '</span>' +
+              '<span class="commit-message">' + esc(c.message) + '</span>' +
+              '<span class="commit-stats">+' + c.insertions + '/-' + c.deletions + '</span>' +
+            '</div>';
+          }).join('') +
+        '</div>'
+      : '') +
+      '<h2>Conversation</h2>' +
+      (conversations.length === 0
+        ? '<p class="muted">No conversation data recorded.</p>'
+        : conversations.map(turn => {
+            const roleClass = 'turn-' + turn.role;
+            const time = new Date(turn.timestamp).toLocaleTimeString();
+            const meta = [time, turn.model, turn.tokenCount ? turn.tokenCount + ' tokens' : ''].filter(Boolean).join(' | ');
+            let toolHtml = '';
+            if (turn.toolCalls && turn.toolCalls.length) {
+              toolHtml = '<details class="tool-details"><summary>' + turn.toolCalls.length + ' tool call(s)</summary>' +
+                turn.toolCalls.map(tc => '<pre class="tool-pre">' + esc(tc.name) + ': ' + esc(JSON.stringify(tc.input, null, 2)) + '</pre>').join('') +
+                '</details>';
+            }
+            return '<div class="turn ' + roleClass + '">' +
+              '<div class="turn-header"><span class="turn-role">' + turn.role.toUpperCase() + '</span><span class="muted">' + meta + '</span></div>' +
+              '<pre class="turn-content">' + esc(turn.content) + '</pre>' +
+              toolHtml +
+            '</div>';
+          }).join(''));
+
+    function stat(label, value) {
+      return '<div class="stat"><div class="stat-label">' + label + '</div><div class="stat-value">' + value + '</div></div>';
+    }
+    function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // Fetch live pricing
+    if (models.length && (s.prompt_tokens || s.response_tokens)) {
+      Promise.resolve({"claude-sonnet-4-5-20250929":{"input_price_per_million":3,"output_price_per_million":15},"claude-opus-4-5-20250414":{"input_price_per_million":15,"output_price_per_million":75},"gpt-4o":{"input_price_per_million":2.5,"output_price_per_million":10},"gemini-2.0-flash":{"input_price_per_million":0.1,"output_price_per_million":0.4},"gemini-2.5-pro":{"input_price_per_million":1.25,"output_price_per_million":10},"o3-mini":{"input_price_per_million":1.1,"output_price_per_million":4.4}}).then(pricing => {
+        const model = models[0].toLowerCase();
+        let p = pricing[model];
+        if (!p) {
+          for (const [key, val] of Object.entries(pricing)) {
+            if (model.includes(key) || key.includes(model)) { p = val; break; }
+          }
+        }
+        if (p) {
+          const cost = (s.prompt_tokens / 1e6) * p.input_price_per_million + (s.response_tokens / 1e6) * p.output_price_per_million;
+          const costEl = document.getElementById('cost-stat');
+          const valEl = document.getElementById('cost-value');
+          costEl.style.display = '';
+          valEl.textContent = cost < 0.01 ? '<$0.01' : '$' + cost.toFixed(2);
+        }
+      }).catch(() => {});
+    }
+
+    // Tag management
+    const currentTags = tags.slice();
+    const tagsContainer = document.getElementById('tags-container');
+    const tagInput = document.getElementById('tag-input');
+    const tagAdd = document.getElementById('tag-add');
+
+    function renderTags() {
+      tagsContainer.innerHTML = currentTags.length === 0
+        ? '<span class="muted" style="font-size:13px">No tags</span>'
+        : currentTags.map((t, i) =>
+            '<span class="tag">' + esc(t) + ' <span class="tag-remove" data-idx="' + i + '">&times;</span></span>'
+          ).join('');
+    }
+
+    function saveTags() { window.__demoToast('Install Promptly to edit tags'); }
+
+    tagsContainer.addEventListener('click', function(e) {
+      const idx = e.target.dataset?.idx;
+      if (idx !== undefined) {
+        currentTags.splice(parseInt(idx), 1);
+        saveTags();
+        renderTags();
+      }
+    });
+
+    function addTag() {
+      const val = tagInput.value.trim();
+      if (val && !currentTags.includes(val)) {
+        currentTags.push(val);
+        saveTags();
+        renderTags();
+        tagInput.value = '';
+      }
+    }
+
+    tagAdd.addEventListener('click', addTag);
+    tagInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') addTag(); });
+    renderTags();
+  </script>
+
+<script>
+  window.__demoToast = function(msg) {
+    var existing = document.getElementById('demo-toast');
+    if (existing) existing.remove();
+    var t = document.createElement('div');
+    t.id = 'demo-toast';
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#ededed;padding:10px 20px;border-radius:8px;font-size:14px;z-index:10000;transition:opacity 0.3s;';
+    document.body.appendChild(t);
+    setTimeout(function() { t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, 2500);
+  };
+</script>
+</body>
+</html>
