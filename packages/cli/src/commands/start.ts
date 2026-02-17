@@ -1,4 +1,3 @@
-import { input } from "@inquirer/prompts";
 import {
   loadConfig,
   saveConfig,
@@ -39,12 +38,8 @@ function maybeShowSkillHint(config: ReturnType<typeof loadConfig>): void {
 }
 
 export async function startCommand(ticketId?: string) {
-  // Prompt for ticket ID if not provided
   if (!ticketId) {
-    ticketId = await input({
-      message: "Ticket ID:",
-      validate: (value) => value.trim().length > 0 || "Ticket ID is required",
-    });
+    ticketId = "untitled";
   }
   const existing = getActiveSession();
   if (existing) {

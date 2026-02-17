@@ -27,7 +27,7 @@ program
 
 program
   .command("start [ticket-id]")
-  .description("Start logging AI conversations for a ticket")
+  .description("Start logging AI conversations (ticket ID optional)")
   .action(startCommand);
 
 program

@@ -32,8 +32,9 @@ export function createServer(): McpServer {
   server.tool(
     "promptly_start",
     "Start logging AI conversations for a ticket",
-    { ticketId: z.string().describe("The ticket ID to log against") },
-    async ({ ticketId }) => {
+    { ticketId: z.string().optional().describe("The ticket ID to log against (optional)") },
+    async ({ ticketId: rawTicketId }) => {
+      const ticketId = rawTicketId || "untitled";
       const existing = getActiveSession();
       if (existing) {
         return {
