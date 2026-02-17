@@ -4,6 +4,15 @@ import type { GitActivity, GitCommit } from "@getpromptly/shared";
 const SEPARATOR = "---PROMPTLY_SEP---";
 const EXEC_OPTS = { timeout: 10000, stdio: "pipe" as const };
 
+const INSTRUCTION_FILES = [
+  "CLAUDE.md",
+  ".cursorrules",
+  ".codex/instructions.md",
+  "GEMINI.md",
+  ".windsurfrules",
+  ".github/copilot-instructions.md",
+];
+
 /**
  * Capture git activity (commits, branch, diff stats) that occurred
  * during the session window (from startedAt to now).
@@ -84,6 +93,29 @@ export function captureGitActivity(startedAt: string): GitActivity | null {
     const totalDeletions = commits.reduce((s, c) => s + c.deletions, 0);
     const totalFilesChanged = commits.reduce((s, c) => s + c.filesChanged, 0);
 
+    // Detect instruction file changes in commits
+    const instructionFileChanges: string[] = [];
+    for (const commit of commits) {
+      try {
+        const filesOutput = execSync(
+          `git diff-tree --no-commit-id --name-only -r ${commit.hash}`,
+          EXEC_OPTS
+        )
+          .toString()
+          .trim();
+        if (filesOutput) {
+          const changedFiles = filesOutput.split("\n").map((f) => f.trim());
+          for (const file of changedFiles) {
+            if (INSTRUCTION_FILES.some((inf) => file.endsWith(inf)) && !instructionFileChanges.includes(file)) {
+              instructionFileChanges.push(file);
+            }
+          }
+        }
+      } catch {
+        // ignore individual commit failures
+      }
+    }
+
     return {
       branch,
       commits,
@@ -91,6 +123,7 @@ export function captureGitActivity(startedAt: string): GitActivity | null {
       totalInsertions,
       totalDeletions,
       totalFilesChanged,
+      ...(instructionFileChanges.length > 0 ? { instructionFileChanges } : {}),
     };
   } catch {
     return null;

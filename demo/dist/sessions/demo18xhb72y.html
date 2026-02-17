@@ -27,7 +27,7 @@
     .filter-select { padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; cursor: pointer; }
     .filter-select:focus { border-color: #555; }
     .export-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
-    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; }
+    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; cursor: pointer; }
     .btn-sm { background: #222; color: #ededed; border: 1px solid #333; }
     .btn-sm:hover { border-color: #555; }
     .tag { display: inline-block; padding: 2px 8px; background: #1a2a3a; color: #7dd3fc; border-radius: 4px; font-size: 12px; }
@@ -96,6 +96,19 @@
     .commit-hash { font-family: ui-monospace, monospace; color: #facc15; background: #2a2a1a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     .commit-message { flex: 1; }
     .commit-stats { color: #4ade80; white-space: nowrap; font-size: 12px; }
+    .context-bar { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; }
+    .context-bar-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #facc15, #f87171); border-radius: 3px; }
+    .quality-gauge { text-align: center; margin-bottom: 12px; }
+    .gauge-value { font-size: 32px; font-weight: 700; color: #4ade80; }
+    .gauge-label { font-size: 12px; color: #888; text-transform: uppercase; }
+    .pq-insights { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .pq-insight { padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .pq-critical { background: #3a1a1a; border-left: 3px solid #f87171; }
+    .pq-warning { background: #3a2a1a; border-left: 3px solid #fbbf24; }
+    .pq-info { background: #1a2a3a; border-left: 3px solid #38bdf8; }
+    .pq-insight-type { font-weight: 600; text-transform: capitalize; margin-bottom: 4px; }
+    .pq-insight-desc { color: #ccc; margin-bottom: 4px; }
+    .pq-insight-suggestion { color: #888; font-style: italic; }
   </style>
 </head>
 <body style="padding-top:48px;">
@@ -106,6 +119,7 @@
   <nav class="nav">
     <a href="/" class="nav-brand">Promptly</a>
     <a href="/" class="nav-link">Sessions</a>
+    <a href="/analytics" class="nav-link">Analytics</a>
     <a href="/digest" class="nav-link">Digest</a>
   </nav>
   <main class="container">
@@ -113,7 +127,7 @@
     <div id="detail"></div>
   </main>
   <script>
-    const s = {"id":"demo18xhb72y","ticket_id":"PERF-67","started_at":"2026-02-02T13:09:47.000Z","finished_at":"2026-02-02T14:00:47.000Z","status":"COMPLETED","total_tokens":4818,"prompt_tokens":1267,"response_tokens":3551,"message_count":7,"tool_call_count":4,"conversations":"[{\"role\":\"user\",\"content\":\"Users are reporting Image lazy loading and WebP conversion is broken. Can you investigate?\",\"timestamp\":\"2026-02-02T13:09:47.000Z\",\"model\":\"gpt-4o\",\"tokenCount\":189},{\"role\":\"assistant\",\"content\":\"Let me investigate. I'll start by checking the error logs and tracing the request flow.\",\"timestamp\":\"2026-02-02T13:17:04.142Z\",\"model\":\"gpt-4o\",\"tokenCount\":1794,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"curl -s http://localhost:3000/health\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}}]},{\"role\":\"user\",\"content\":\"There's a bug with Image lazy loading and WebP conversion. It fails intermittently in production.\",\"timestamp\":\"2026-02-02T13:24:21.285Z\",\"model\":\"gpt-4o\",\"tokenCount\":291},{\"role\":\"assistant\",\"content\":\"I found the issue. The race condition happens when two requests hit the endpoint simultaneously because the lock isn't properly scoped.\",\"timestamp\":\"2026-02-02T13:31:38.428Z\",\"model\":\"gpt-4o\",\"tokenCount\":741,\"toolCalls\":[{\"name\":\"Grep\",\"input\":{\"pattern\":\"handleAuth\",\"path\":\"src/\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"curl -s http://localhost:3000/health\"}}]},{\"role\":\"user\",\"content\":\"The QA team found a regression in Image lazy loading and WebP conversion. Let's fix it.\",\"timestamp\":\"2026-02-02T13:38:55.571Z\",\"model\":\"gpt-4o\",\"tokenCount\":357},{\"role\":\"assistant\",\"content\":\"The fix is straightforward — I've added a mutex around the critical section and updated the error handling.\",\"timestamp\":\"2026-02-02T13:46:12.714Z\",\"model\":\"gpt-4o\",\"tokenCount\":1016},{\"role\":\"user\",\"content\":\"I'm seeing errors in the logs related to Image lazy loading and WebP conversion.\",\"timestamp\":\"2026-02-02T13:53:29.857Z\",\"model\":\"gpt-4o\",\"tokenCount\":430}]","models":"[\"gpt-4o\",\"o3-mini\"]","tags":"[\"security\",\"documentation\",\"frontend\"]","client_tool":"codex-cli","git_activity":"{\"branch\":\"fix/perf-67\",\"commits\":[{\"hash\":\"demojor\",\"message\":\"test: add unit tests for SessionCard\",\"timestamp\":\"2026-02-02T13:26:47.000Z\",\"filesChanged\":11,\"insertions\":31,\"deletions\":74},{\"hash\":\"demoity\",\"message\":\"fix: extract shared AuthForm utils\",\"timestamp\":\"2026-02-02T13:43:47.000Z\",\"filesChanged\":3,\"insertions\":78,\"deletions\":74}],\"totalCommits\":2,\"totalInsertions\":109,\"totalDeletions\":148,\"totalFilesChanged\":14}","category":"bug-fix","intelligence":"{\"qualityScore\":{\"overall\":4.5,\"planModeUsed\":true,\"oneShotSuccess\":false,\"correctionRate\":0.22,\"errorRecovery\":1,\"turnsToComplete\":7},\"toolUsage\":{\"toolCounts\":{\"Bash\":2,\"Read\":2},\"skillInvocations\":[],\"totalToolCalls\":4,\"topTools\":[{\"name\":\"Bash\",\"count\":2},{\"name\":\"Read\",\"count\":2}]},\"subagentStats\":{\"totalSpawned\":1,\"subagentTypes\":{\"Explore\":1},\"topTypes\":[{\"type\":\"Explore\",\"count\":1}]}}","created_at":"2026-02-02T13:09:47.000Z"};
+    const s = {"id":"demo18xhb72y","ticket_id":"PERF-67","started_at":"2026-02-11T11:30:58.000Z","finished_at":"2026-02-11T12:29:58.000Z","status":"COMPLETED","total_tokens":9238,"prompt_tokens":2370,"response_tokens":6868,"message_count":12,"tool_call_count":6,"conversations":"[{\"role\":\"user\",\"content\":\"We need better test coverage for Image lazy loading and WebP conversion.\",\"timestamp\":\"2026-02-11T11:30:58.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":218},{\"role\":\"assistant\",\"content\":\"Let me audit the current test coverage. I'll run the coverage report and identify the gaps.\",\"timestamp\":\"2026-02-11T11:35:53.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":713,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"npm test -- --coverage\"}},{\"name\":\"Read\",\"input\":{\"path\":\"src/middleware/auth.ts\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"curl -s http://localhost:3000/health\"}}]},{\"role\":\"user\",\"content\":\"Can you write integration tests for Image lazy loading and WebP conversion?\",\"timestamp\":\"2026-02-11T11:40:48.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":483},{\"role\":\"assistant\",\"content\":\"Current coverage for this module is 42%. The main gaps are error handling paths and edge cases.\",\"timestamp\":\"2026-02-11T11:45:43.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1163,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"git log --oneline -5\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}},{\"name\":\"Read\",\"input\":{\"path\":\"src/middleware/auth.ts\"}}]},{\"role\":\"user\",\"content\":\"The tests for Image lazy loading and WebP conversion are flaky. Can you investigate why?\",\"timestamp\":\"2026-02-11T11:50:38.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":344},{\"role\":\"assistant\",\"content\":\"I've written 12 new integration tests covering the full request-response cycle with realistic test data.\",\"timestamp\":\"2026-02-11T11:55:33.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1214,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}},{\"name\":\"Write\",\"input\":{\"path\":\"src/utils/validate.ts\"}},{\"name\":\"Read\",\"input\":{\"path\":\"package.json\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}}]},{\"role\":\"user\",\"content\":\"Let's add end-to-end tests for the Image lazy loading and WebP conversion flow.\",\"timestamp\":\"2026-02-11T12:00:28.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":548},{\"role\":\"assistant\",\"content\":\"The flaky test was caused by a shared database state between test runs. I've isolated each test with a fresh DB transaction.\",\"timestamp\":\"2026-02-11T12:05:23.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1748,\"toolCalls\":[{\"name\":\"Grep\",\"input\":{\"pattern\":\"handleAuth\",\"path\":\"src/\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"curl -s http://localhost:3000/health\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npx prisma migrate dev\"}}]},{\"role\":\"user\",\"content\":\"Can you set up test fixtures for Image lazy loading and WebP conversion?\",\"timestamp\":\"2026-02-11T12:10:18.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":194},{\"role\":\"assistant\",\"content\":\"Test fixtures are set up in `tests/fixtures/PERF-67.ts`. They generate realistic test data using a factory pattern.\",\"timestamp\":\"2026-02-11T12:15:13.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":789,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"tsconfig.json\"}}]},{\"role\":\"user\",\"content\":\"Good. Can you also add tests for the error cases?\",\"timestamp\":\"2026-02-11T12:20:08.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":583},{\"role\":\"assistant\",\"content\":\"Error cases covered: invalid input, auth failure, rate limit exceeded, network timeout, and concurrent access.\",\"timestamp\":\"2026-02-11T12:25:03.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1241}]","models":"[\"claude-sonnet-4-5-20250929\"]","tags":"[\"mobile\",\"database\"]","client_tool":"claude-code","git_activity":"{\"branch\":\"test/add-coverage-image-lazy-loading-and-webp-co\",\"commits\":[{\"hash\":\"demojor\",\"message\":\"test: refactor AuthForm to use hooks\",\"timestamp\":\"2026-02-11T11:42:46.000Z\",\"filesChanged\":1,\"insertions\":142,\"deletions\":75},{\"hash\":\"demoity\",\"message\":\"test: extract shared Modal utils\",\"timestamp\":\"2026-02-11T11:54:34.000Z\",\"filesChanged\":3,\"insertions\":144,\"deletions\":61},{\"hash\":\"demohy5\",\"message\":\"test: add validation for email input\",\"timestamp\":\"2026-02-11T12:06:22.000Z\",\"filesChanged\":3,\"insertions\":58,\"deletions\":10},{\"hash\":\"demog3c\",\"message\":\"test: refactor Toast to use hooks\",\"timestamp\":\"2026-02-11T12:18:10.000Z\",\"filesChanged\":7,\"insertions\":35,\"deletions\":72}],\"totalCommits\":4,\"totalInsertions\":379,\"totalDeletions\":218,\"totalFilesChanged\":14}","category":"testing","intelligence":"{\"qualityScore\":{\"overall\":2.8,\"planModeUsed\":true,\"oneShotSuccess\":false,\"correctionRate\":0.15,\"errorRecovery\":1,\"turnsToComplete\":12},\"toolUsage\":{\"toolCounts\":{\"Bash\":2,\"Read\":2,\"Edit\":1,\"Write\":1},\"skillInvocations\":[\"/review-pr\"],\"totalToolCalls\":6,\"topTools\":[{\"name\":\"Bash\",\"count\":2},{\"name\":\"Read\",\"count\":2},{\"name\":\"Edit\",\"count\":1},{\"name\":\"Write\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":2,\"subagentTypes\":{\"Explore\":2},\"topTypes\":[{\"type\":\"Explore\",\"count\":2}]},\"contextMetrics\":{\"peakTokenCount\":47140,\"summarizationEvents\":0,\"tokenGrowthRate\":1127,\"turnsBeforeSummarization\":null,\"contextUtilization\":0.24},\"promptQuality\":{\"insights\":[{\"type\":\"excessive-back-and-forth\",\"severity\":\"warning\",\"description\":\"4 rounds of conversation without clear resolution\",\"turnIndex\":1,\"suggestion\":\"Consider providing complete requirements in a single message to reduce iterations.\"},{\"type\":\"scope-creep\",\"severity\":\"warning\",\"description\":\"Later prompts introduce significantly different topics from the initial request\",\"turnIndex\":5,\"suggestion\":\"Consider starting a new session when the task scope changes significantly.\"}],\"promptEfficiency\":59,\"avgPromptLength\":107,\"backAndForthScore\":29}}","created_at":"2026-02-11T11:30:58.000Z"};
     const conversations = JSON.parse(s.conversations || '[]');
     const models = JSON.parse(s.models || '[]');
     const tags = JSON.parse(s.tags || '[]');
@@ -133,6 +147,7 @@
       '<div class="detail-header">' +
         '<h1>' + esc(s.ticket_id) + '</h1>' +
         '<span class="badge ' + (s.status === 'COMPLETED' ? 'badge-green' : 'badge-yellow') + '">' + s.status + '</span>' +
+        (conversations.length > 0 ? '<a href="/sessions/' + s.id + '/replay" class="btn btn-sm" style="margin-left:auto">Replay</a>' : '') +
       '</div>' +
       '<div class="stats-grid">' +
         stat('Duration', duration !== null ? duration + 'm' : 'In progress') +
@@ -210,6 +225,47 @@
               '</div>'
             : '<div class="muted" style="font-size:13px">No subagent data</div>') +
           '</div>' +
+          // Context Window Card
+          (intelligence.contextMetrics ?
+            '<div class="intel-card">' +
+              '<h3>Context Window</h3>' +
+              '<div class="intel-total">' + intelligence.contextMetrics.peakTokenCount.toLocaleString() + ' peak tokens</div>' +
+              '<div class="intel-details">' +
+                '<div class="intel-row"><span>Summarizations</span><span>' + intelligence.contextMetrics.summarizationEvents + '</span></div>' +
+                '<div class="intel-row"><span>Growth Rate</span><span>' + intelligence.contextMetrics.tokenGrowthRate.toLocaleString() + ' tokens/turn</span></div>' +
+                (intelligence.contextMetrics.turnsBeforeSummarization != null ?
+                  '<div class="intel-row"><span>Turns Before Summary</span><span>' + intelligence.contextMetrics.turnsBeforeSummarization + '</span></div>' : '') +
+                '<div class="intel-row"><span>Utilization</span><span>' + Math.round(intelligence.contextMetrics.contextUtilization * 100) + '%</span></div>' +
+              '</div>' +
+              '<div class="context-bar" style="margin-top:12px"><div class="context-bar-fill" style="width:' + Math.round(intelligence.contextMetrics.contextUtilization * 100) + '%"></div></div>' +
+            '</div>'
+          : '') +
+          // Prompt Quality Card
+          (intelligence.promptQuality ?
+            '<div class="intel-card">' +
+              '<h3>Prompt Quality</h3>' +
+              '<div class="quality-gauge">' +
+                '<div class="gauge-value">' + intelligence.promptQuality.promptEfficiency + '</div>' +
+                '<div class="gauge-label">Efficiency</div>' +
+              '</div>' +
+              '<div class="intel-details">' +
+                '<div class="intel-row"><span>Avg Prompt Length</span><span>' + intelligence.promptQuality.avgPromptLength + ' words</span></div>' +
+                '<div class="intel-row"><span>Back-and-forth</span><span>' + intelligence.promptQuality.backAndForthScore + '%</span></div>' +
+              '</div>' +
+              (intelligence.promptQuality.insights.length > 0 ?
+                '<div class="pq-insights">' +
+                  intelligence.promptQuality.insights.map(function(ins) {
+                    var severityClass = ins.severity === 'critical' ? 'pq-critical' : ins.severity === 'warning' ? 'pq-warning' : 'pq-info';
+                    return '<div class="pq-insight ' + severityClass + '">' +
+                      '<div class="pq-insight-type">' + ins.type.replace(/-/g, ' ') + '</div>' +
+                      '<div class="pq-insight-desc">' + esc(ins.description) + '</div>' +
+                      '<div class="pq-insight-suggestion">' + esc(ins.suggestion) + '</div>' +
+                    '</div>';
+                  }).join('') +
+                '</div>'
+              : '<div class="muted" style="font-size:13px;margin-top:8px">No issues detected</div>') +
+            '</div>'
+          : '') +
         '</div>'
       : '') +
       (hasGit ?

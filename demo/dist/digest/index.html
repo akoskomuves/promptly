@@ -27,7 +27,7 @@
     .filter-select { padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; cursor: pointer; }
     .filter-select:focus { border-color: #555; }
     .export-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
-    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; }
+    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; cursor: pointer; }
     .btn-sm { background: #222; color: #ededed; border: 1px solid #333; }
     .btn-sm:hover { border-color: #555; }
     .tag { display: inline-block; padding: 2px 8px; background: #1a2a3a; color: #7dd3fc; border-radius: 4px; font-size: 12px; }
@@ -96,6 +96,19 @@
     .commit-hash { font-family: ui-monospace, monospace; color: #facc15; background: #2a2a1a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     .commit-message { flex: 1; }
     .commit-stats { color: #4ade80; white-space: nowrap; font-size: 12px; }
+    .context-bar { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; }
+    .context-bar-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #facc15, #f87171); border-radius: 3px; }
+    .quality-gauge { text-align: center; margin-bottom: 12px; }
+    .gauge-value { font-size: 32px; font-weight: 700; color: #4ade80; }
+    .gauge-label { font-size: 12px; color: #888; text-transform: uppercase; }
+    .pq-insights { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .pq-insight { padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .pq-critical { background: #3a1a1a; border-left: 3px solid #f87171; }
+    .pq-warning { background: #3a2a1a; border-left: 3px solid #fbbf24; }
+    .pq-info { background: #1a2a3a; border-left: 3px solid #38bdf8; }
+    .pq-insight-type { font-weight: 600; text-transform: capitalize; margin-bottom: 4px; }
+    .pq-insight-desc { color: #ccc; margin-bottom: 4px; }
+    .pq-insight-suggestion { color: #888; font-style: italic; }
   
     .digest-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin: 24px 0; }
     .digest-card { background: #111; border-radius: 8px; padding: 20px; text-align: center; }
@@ -125,13 +138,14 @@
   <nav class="nav">
     <a href="/" class="nav-brand">Promptly</a>
     <a href="/" class="nav-link">Sessions</a>
+    <a href="/analytics" class="nav-link">Analytics</a>
     <a href="/digest" class="nav-link">Digest</a>
   </nav>
   <main class="container">
     <div id="digest"></div>
   </main>
   <script>
-    const digest = {"periodLabel":"Feb 2 – Feb 8, 2026","previousLabel":"Jan 26 – Feb 1, 2026","comparison":{"current":{"totalSessions":11,"completedSessions":11,"totalTokens":108924,"totalMessages":145,"totalCost":0,"avgDuration":37,"avgQuality":4,"totalCommits":20,"totalInsertions":1683,"totalDeletions":895},"previous":{"totalSessions":12,"completedSessions":12,"totalTokens":142629,"totalMessages":183,"totalCost":0,"avgDuration":40,"avgQuality":3.5,"totalCommits":31,"totalInsertions":2360,"totalDeletions":1205},"changes":{"sessions":-8,"tokens":-24,"cost":null,"messages":-21,"quality":14,"commits":-35}},"topProjects":[{"project":"PERF","sessions":4,"tokens":28987,"cost":0},{"project":"API","sessions":2,"tokens":24904,"cost":0},{"project":"AUTH","sessions":2,"tokens":24508,"cost":0},{"project":"UI","sessions":2,"tokens":16920,"cost":0},{"project":"DB","sessions":1,"tokens":13605,"cost":0}],"developers":[{"name":"local","sessions":11,"tokensPerSession":9902,"costPerSession":0,"avgQuality":4}],"topCategories":[{"category":"feature","sessions":5,"tokens":58082},{"category":"bug-fix","sessions":4,"tokens":33831},{"category":"investigation","sessions":1,"tokens":9577},{"category":"refactor","sessions":1,"tokens":7434}],"highlights":["Sessions down 8% from last period","PERF was the busiest project (4 sessions)","Quality improved from 3.5 to 4","20 commits (+1683/-895 lines)","Token usage down 24%"]};
+    const digest = {"periodLabel":"Feb 16 – Feb 22, 2026","previousLabel":"Feb 9 – Feb 15, 2026","comparison":{"current":{"totalSessions":6,"completedSessions":5,"totalTokens":79419,"totalMessages":99,"totalCost":0,"avgDuration":47,"avgQuality":3.4,"totalCommits":2,"totalInsertions":93,"totalDeletions":34},"previous":{"totalSessions":13,"completedSessions":13,"totalTokens":130170,"totalMessages":169,"totalCost":0,"avgDuration":40,"avgQuality":3.9,"totalCommits":25,"totalInsertions":2081,"totalDeletions":1166},"changes":{"sessions":-54,"tokens":-39,"cost":null,"messages":-41,"quality":-13,"commits":-92}},"topProjects":[{"project":"API","sessions":2,"tokens":21780,"cost":0},{"project":"UI","sessions":1,"tokens":16483,"cost":0},{"project":"DB","sessions":1,"tokens":14911,"cost":0},{"project":"PERF","sessions":1,"tokens":14763,"cost":0},{"project":"AUTH","sessions":1,"tokens":11482,"cost":0}],"developers":[{"name":"local","sessions":6,"tokensPerSession":13237,"costPerSession":0,"avgQuality":3.4}],"topCategories":[{"category":"refactor","sessions":2,"tokens":19120},{"category":"bug-fix","sessions":2,"tokens":31394},{"category":"investigation","sessions":1,"tokens":14142},{"category":"feature","sessions":1,"tokens":14763}],"highlights":["Sessions down 54% from last period","API was the busiest project (2 sessions)","Quality declined from 3.9 to 3.4","2 commits (+93/-34 lines)","Token usage down 39%"]};
     const el = document.getElementById('digest');
 
     function arrow(val) {

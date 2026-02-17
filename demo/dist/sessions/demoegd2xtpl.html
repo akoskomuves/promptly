@@ -27,7 +27,7 @@
     .filter-select { padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; cursor: pointer; }
     .filter-select:focus { border-color: #555; }
     .export-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
-    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; }
+    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; cursor: pointer; }
     .btn-sm { background: #222; color: #ededed; border: 1px solid #333; }
     .btn-sm:hover { border-color: #555; }
     .tag { display: inline-block; padding: 2px 8px; background: #1a2a3a; color: #7dd3fc; border-radius: 4px; font-size: 12px; }
@@ -96,6 +96,19 @@
     .commit-hash { font-family: ui-monospace, monospace; color: #facc15; background: #2a2a1a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     .commit-message { flex: 1; }
     .commit-stats { color: #4ade80; white-space: nowrap; font-size: 12px; }
+    .context-bar { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; }
+    .context-bar-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #facc15, #f87171); border-radius: 3px; }
+    .quality-gauge { text-align: center; margin-bottom: 12px; }
+    .gauge-value { font-size: 32px; font-weight: 700; color: #4ade80; }
+    .gauge-label { font-size: 12px; color: #888; text-transform: uppercase; }
+    .pq-insights { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .pq-insight { padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .pq-critical { background: #3a1a1a; border-left: 3px solid #f87171; }
+    .pq-warning { background: #3a2a1a; border-left: 3px solid #fbbf24; }
+    .pq-info { background: #1a2a3a; border-left: 3px solid #38bdf8; }
+    .pq-insight-type { font-weight: 600; text-transform: capitalize; margin-bottom: 4px; }
+    .pq-insight-desc { color: #ccc; margin-bottom: 4px; }
+    .pq-insight-suggestion { color: #888; font-style: italic; }
   </style>
 </head>
 <body style="padding-top:48px;">
@@ -106,6 +119,7 @@
   <nav class="nav">
     <a href="/" class="nav-brand">Promptly</a>
     <a href="/" class="nav-link">Sessions</a>
+    <a href="/analytics" class="nav-link">Analytics</a>
     <a href="/digest" class="nav-link">Digest</a>
   </nav>
   <main class="container">
@@ -113,7 +127,7 @@
     <div id="detail"></div>
   </main>
   <script>
-    const s = {"id":"demoegd2xtpl","ticket_id":"AUTH-215","started_at":"2026-01-26T10:20:01.000Z","finished_at":"2026-01-26T10:40:01.000Z","status":"COMPLETED","total_tokens":14674,"prompt_tokens":4041,"response_tokens":10633,"message_count":20,"tool_call_count":27,"conversations":"[{\"role\":\"user\",\"content\":\"I need to implement JWT token refresh race condition. Where should I start?\",\"timestamp\":\"2026-01-26T10:20:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":595},{\"role\":\"assistant\",\"content\":\"I'll start by examining the existing codebase to understand the current architecture. Let me read the relevant files.\",\"timestamp\":\"2026-01-26T10:21:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":796},{\"role\":\"user\",\"content\":\"Let's add JWT token refresh race condition. Can you scaffold the basic structure?\",\"timestamp\":\"2026-01-26T10:22:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":402},{\"role\":\"assistant\",\"content\":\"Here's my plan: First I'll create the data model, then the API endpoint, then the UI component. Let me start with the types.\",\"timestamp\":\"2026-01-26T10:23:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":951},{\"role\":\"user\",\"content\":\"The PM wants JWT token refresh race condition shipped this sprint. Let's break it down.\",\"timestamp\":\"2026-01-26T10:24:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":345},{\"role\":\"assistant\",\"content\":\"I've scaffolded the basic structure. The new component is at `src/components/AUTH-215.tsx` with the API handler at `src/api/{ticket}.ts`.\",\"timestamp\":\"2026-01-26T10:25:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":1102,\"toolCalls\":[{\"name\":\"Glob\",\"input\":{\"pattern\":\"**/*.test.ts\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"git log --oneline -5\"}}]},{\"role\":\"user\",\"content\":\"Can you implement JWT token refresh race condition? Here's the spec from the ticket.\",\"timestamp\":\"2026-01-26T10:26:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":297},{\"role\":\"assistant\",\"content\":\"I've added comprehensive error handling with proper HTTP status codes and user-facing error messages.\",\"timestamp\":\"2026-01-26T10:27:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":1194,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}},{\"name\":\"Write\",\"input\":{\"path\":\"src/utils/validate.ts\"}},{\"name\":\"Glob\",\"input\":{\"pattern\":\"**/*.test.ts\"}}]},{\"role\":\"user\",\"content\":\"We need to add JWT token refresh race condition to the existing codebase.\",\"timestamp\":\"2026-01-26T10:28:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":284},{\"role\":\"assistant\",\"content\":\"Tests are written. 8 test cases covering the happy path, validation errors, auth failures, and edge cases. All passing.\",\"timestamp\":\"2026-01-26T10:29:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":984,\"toolCalls\":[{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}}]},{\"role\":\"user\",\"content\":\"Looks good. Can you add error handling and input validation?\",\"timestamp\":\"2026-01-26T10:30:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":463},{\"role\":\"assistant\",\"content\":\"Loading state is implemented using a custom `useAsync` hook. The UI shows a skeleton while the request is in flight.\",\"timestamp\":\"2026-01-26T10:31:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":977},{\"role\":\"user\",\"content\":\"Can you also add tests for the happy path and edge cases?\",\"timestamp\":\"2026-01-26T10:32:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":291},{\"role\":\"assistant\",\"content\":\"Done! The success notification uses our existing toast system. I also added a dismiss timeout of 5 seconds.\",\"timestamp\":\"2026-01-26T10:33:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":650,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"package.json\"}}]},{\"role\":\"user\",\"content\":\"One more thing — we need a loading state while the API call is in progress.\",\"timestamp\":\"2026-01-26T10:34:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":321},{\"role\":\"assistant\",\"content\":\"Types are updated in `src/types.ts`. I've also updated the API client to include the new fields.\",\"timestamp\":\"2026-01-26T10:35:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":1455,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"package.json\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}},{\"name\":\"Grep\",\"input\":{\"pattern\":\"TODO|FIXME\",\"path\":\"src/\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npx prisma migrate dev\"}}]},{\"role\":\"user\",\"content\":\"That's working. Let's also add a success notification.\",\"timestamp\":\"2026-01-26T10:36:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":529},{\"role\":\"assistant\",\"content\":\"Everything is wired up and working. Here's a summary of all the changes I made across 6 files.\",\"timestamp\":\"2026-01-26T10:37:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":1674,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}}]},{\"role\":\"user\",\"content\":\"Can you update the types to include the new fields?\",\"timestamp\":\"2026-01-26T10:38:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":514},{\"role\":\"assistant\",\"content\":\"I'll start by examining the existing codebase to understand the current architecture. Let me read the relevant files.\",\"timestamp\":\"2026-01-26T10:39:01.000Z\",\"model\":\"o3-mini\",\"tokenCount\":850}]","models":"[\"o3-mini\"]","tags":"[\"backend\",\"urgent\",\"frontend\"]","client_tool":"codex-cli","git_activity":"{\"branch\":\"feat/auth-215\",\"commits\":[{\"hash\":\"demon4z\",\"message\":\"chore: update error handling for auth\",\"timestamp\":\"2026-01-26T10:24:01.000Z\",\"filesChanged\":11,\"insertions\":111,\"deletions\":77},{\"hash\":\"demom96\",\"message\":\"feat: add loading states to SessionCard\",\"timestamp\":\"2026-01-26T10:28:01.000Z\",\"filesChanged\":7,\"insertions\":47,\"deletions\":35},{\"hash\":\"demolee\",\"message\":\"feat: fix null check in upload handler\",\"timestamp\":\"2026-01-26T10:32:01.000Z\",\"filesChanged\":6,\"insertions\":69,\"deletions\":37},{\"hash\":\"demokjl\",\"message\":\"feat: add validation for password input\",\"timestamp\":\"2026-01-26T10:36:01.000Z\",\"filesChanged\":8,\"insertions\":82,\"deletions\":44}],\"totalCommits\":4,\"totalInsertions\":309,\"totalDeletions\":193,\"totalFilesChanged\":32}","category":"feature","intelligence":"{\"qualityScore\":{\"overall\":3.5,\"planModeUsed\":false,\"oneShotSuccess\":false,\"correctionRate\":0,\"errorRecovery\":1,\"turnsToComplete\":20},\"toolUsage\":{\"toolCounts\":{\"Bash\":9,\"Read\":1,\"Edit\":8,\"Write\":4,\"Grep\":5},\"skillInvocations\":[],\"totalToolCalls\":27,\"topTools\":[{\"name\":\"Bash\",\"count\":9},{\"name\":\"Edit\",\"count\":8},{\"name\":\"Grep\",\"count\":5},{\"name\":\"Write\",\"count\":4},{\"name\":\"Read\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":0,\"subagentTypes\":{},\"topTypes\":[]}}","created_at":"2026-01-26T10:20:01.000Z"};
+    const s = {"id":"demoegd2xtpl","ticket_id":"AUTH-215","started_at":"2026-02-04T17:09:10.000Z","finished_at":"2026-02-04T17:34:10.000Z","status":"COMPLETED","total_tokens":9007,"prompt_tokens":1738,"response_tokens":7269,"message_count":11,"tool_call_count":12,"conversations":"[{\"role\":\"user\",\"content\":\"I need to implement JWT token refresh race condition. Where should I start?\",\"timestamp\":\"2026-02-04T17:09:10.000Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":338},{\"role\":\"assistant\",\"content\":\"I'll start by examining the existing codebase to understand the current architecture. Let me read the relevant files.\",\"timestamp\":\"2026-02-04T17:11:26.363Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1424},{\"role\":\"user\",\"content\":\"Let's add JWT token refresh race condition. Can you scaffold the basic structure?\",\"timestamp\":\"2026-02-04T17:13:42.727Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":301},{\"role\":\"assistant\",\"content\":\"Here's my plan: First I'll create the data model, then the API endpoint, then the UI component. Let me start with the types.\",\"timestamp\":\"2026-02-04T17:15:59.090Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1675},{\"role\":\"user\",\"content\":\"The PM wants JWT token refresh race condition shipped this sprint. Let's break it down.\",\"timestamp\":\"2026-02-04T17:18:15.454Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":373},{\"role\":\"assistant\",\"content\":\"I've scaffolded the basic structure. The new component is at `src/components/AUTH-215.tsx` with the API handler at `src/api/{ticket}.ts`.\",\"timestamp\":\"2026-02-04T17:20:31.818Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1333,\"toolCalls\":[{\"name\":\"Write\",\"input\":{\"path\":\"src/utils/validate.ts\"}},{\"name\":\"Glob\",\"input\":{\"pattern\":\"**/*.test.ts\"}},{\"name\":\"Grep\",\"input\":{\"pattern\":\"handleAuth\",\"path\":\"src/\"}}]},{\"role\":\"user\",\"content\":\"Can you implement JWT token refresh race condition? Here's the spec from the ticket.\",\"timestamp\":\"2026-02-04T17:22:48.181Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":294},{\"role\":\"assistant\",\"content\":\"I've added comprehensive error handling with proper HTTP status codes and user-facing error messages.\",\"timestamp\":\"2026-02-04T17:25:04.545Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1403},{\"role\":\"user\",\"content\":\"We need to add JWT token refresh race condition to the existing codebase.\",\"timestamp\":\"2026-02-04T17:27:20.909Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":226},{\"role\":\"assistant\",\"content\":\"Tests are written. 8 test cases covering the happy path, validation errors, auth failures, and edge cases. All passing.\",\"timestamp\":\"2026-02-04T17:29:37.272Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1434},{\"role\":\"user\",\"content\":\"Looks good. Can you add error handling and input validation?\",\"timestamp\":\"2026-02-04T17:31:53.636Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":206}]","models":"[\"claude-opus-4-5-20250414\"]","tags":"[]","client_tool":"claude-code","git_activity":null,"category":"feature","intelligence":"{\"qualityScore\":{\"overall\":3.8,\"planModeUsed\":false,\"oneShotSuccess\":false,\"correctionRate\":0.14,\"errorRecovery\":1,\"turnsToComplete\":11},\"toolUsage\":{\"toolCounts\":{\"Bash\":3,\"Read\":4,\"Edit\":4,\"Write\":1},\"skillInvocations\":[\"/review-pr\"],\"totalToolCalls\":12,\"topTools\":[{\"name\":\"Read\",\"count\":4},{\"name\":\"Edit\",\"count\":4},{\"name\":\"Bash\",\"count\":3},{\"name\":\"Write\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":5,\"subagentTypes\":{\"Explore\":5},\"topTypes\":[{\"type\":\"Explore\",\"count\":5}]},\"contextMetrics\":{\"peakTokenCount\":92016,\"summarizationEvents\":0,\"tokenGrowthRate\":793,\"turnsBeforeSummarization\":null,\"contextUtilization\":0.46},\"promptQuality\":{\"insights\":[],\"promptEfficiency\":92,\"avgPromptLength\":37,\"backAndForthScore\":20}}","created_at":"2026-02-04T17:09:10.000Z"};
     const conversations = JSON.parse(s.conversations || '[]');
     const models = JSON.parse(s.models || '[]');
     const tags = JSON.parse(s.tags || '[]');
@@ -133,6 +147,7 @@
       '<div class="detail-header">' +
         '<h1>' + esc(s.ticket_id) + '</h1>' +
         '<span class="badge ' + (s.status === 'COMPLETED' ? 'badge-green' : 'badge-yellow') + '">' + s.status + '</span>' +
+        (conversations.length > 0 ? '<a href="/sessions/' + s.id + '/replay" class="btn btn-sm" style="margin-left:auto">Replay</a>' : '') +
       '</div>' +
       '<div class="stats-grid">' +
         stat('Duration', duration !== null ? duration + 'm' : 'In progress') +
@@ -210,6 +225,47 @@
               '</div>'
             : '<div class="muted" style="font-size:13px">No subagent data</div>') +
           '</div>' +
+          // Context Window Card
+          (intelligence.contextMetrics ?
+            '<div class="intel-card">' +
+              '<h3>Context Window</h3>' +
+              '<div class="intel-total">' + intelligence.contextMetrics.peakTokenCount.toLocaleString() + ' peak tokens</div>' +
+              '<div class="intel-details">' +
+                '<div class="intel-row"><span>Summarizations</span><span>' + intelligence.contextMetrics.summarizationEvents + '</span></div>' +
+                '<div class="intel-row"><span>Growth Rate</span><span>' + intelligence.contextMetrics.tokenGrowthRate.toLocaleString() + ' tokens/turn</span></div>' +
+                (intelligence.contextMetrics.turnsBeforeSummarization != null ?
+                  '<div class="intel-row"><span>Turns Before Summary</span><span>' + intelligence.contextMetrics.turnsBeforeSummarization + '</span></div>' : '') +
+                '<div class="intel-row"><span>Utilization</span><span>' + Math.round(intelligence.contextMetrics.contextUtilization * 100) + '%</span></div>' +
+              '</div>' +
+              '<div class="context-bar" style="margin-top:12px"><div class="context-bar-fill" style="width:' + Math.round(intelligence.contextMetrics.contextUtilization * 100) + '%"></div></div>' +
+            '</div>'
+          : '') +
+          // Prompt Quality Card
+          (intelligence.promptQuality ?
+            '<div class="intel-card">' +
+              '<h3>Prompt Quality</h3>' +
+              '<div class="quality-gauge">' +
+                '<div class="gauge-value">' + intelligence.promptQuality.promptEfficiency + '</div>' +
+                '<div class="gauge-label">Efficiency</div>' +
+              '</div>' +
+              '<div class="intel-details">' +
+                '<div class="intel-row"><span>Avg Prompt Length</span><span>' + intelligence.promptQuality.avgPromptLength + ' words</span></div>' +
+                '<div class="intel-row"><span>Back-and-forth</span><span>' + intelligence.promptQuality.backAndForthScore + '%</span></div>' +
+              '</div>' +
+              (intelligence.promptQuality.insights.length > 0 ?
+                '<div class="pq-insights">' +
+                  intelligence.promptQuality.insights.map(function(ins) {
+                    var severityClass = ins.severity === 'critical' ? 'pq-critical' : ins.severity === 'warning' ? 'pq-warning' : 'pq-info';
+                    return '<div class="pq-insight ' + severityClass + '">' +
+                      '<div class="pq-insight-type">' + ins.type.replace(/-/g, ' ') + '</div>' +
+                      '<div class="pq-insight-desc">' + esc(ins.description) + '</div>' +
+                      '<div class="pq-insight-suggestion">' + esc(ins.suggestion) + '</div>' +
+                    '</div>';
+                  }).join('') +
+                '</div>'
+              : '<div class="muted" style="font-size:13px;margin-top:8px">No issues detected</div>') +
+            '</div>'
+          : '') +
         '</div>'
       : '') +
       (hasGit ?

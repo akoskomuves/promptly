@@ -27,7 +27,7 @@
     .filter-select { padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; cursor: pointer; }
     .filter-select:focus { border-color: #555; }
     .export-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
-    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; }
+    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; cursor: pointer; }
     .btn-sm { background: #222; color: #ededed; border: 1px solid #333; }
     .btn-sm:hover { border-color: #555; }
     .tag { display: inline-block; padding: 2px 8px; background: #1a2a3a; color: #7dd3fc; border-radius: 4px; font-size: 12px; }
@@ -96,6 +96,19 @@
     .commit-hash { font-family: ui-monospace, monospace; color: #facc15; background: #2a2a1a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     .commit-message { flex: 1; }
     .commit-stats { color: #4ade80; white-space: nowrap; font-size: 12px; }
+    .context-bar { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; }
+    .context-bar-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #facc15, #f87171); border-radius: 3px; }
+    .quality-gauge { text-align: center; margin-bottom: 12px; }
+    .gauge-value { font-size: 32px; font-weight: 700; color: #4ade80; }
+    .gauge-label { font-size: 12px; color: #888; text-transform: uppercase; }
+    .pq-insights { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .pq-insight { padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .pq-critical { background: #3a1a1a; border-left: 3px solid #f87171; }
+    .pq-warning { background: #3a2a1a; border-left: 3px solid #fbbf24; }
+    .pq-info { background: #1a2a3a; border-left: 3px solid #38bdf8; }
+    .pq-insight-type { font-weight: 600; text-transform: capitalize; margin-bottom: 4px; }
+    .pq-insight-desc { color: #ccc; margin-bottom: 4px; }
+    .pq-insight-suggestion { color: #888; font-style: italic; }
   </style>
 </head>
 <body style="padding-top:48px;">
@@ -106,6 +119,7 @@
   <nav class="nav">
     <a href="/" class="nav-brand">Promptly</a>
     <a href="/" class="nav-link">Sessions</a>
+    <a href="/analytics" class="nav-link">Analytics</a>
     <a href="/digest" class="nav-link">Digest</a>
   </nav>
   <main class="container">
@@ -113,7 +127,7 @@
     <div id="detail"></div>
   </main>
   <script>
-    const s = {"id":"demo23qga61x","ticket_id":"PERF-33","started_at":"2026-02-02T12:44:32.000Z","finished_at":"2026-02-02T13:20:32.000Z","status":"COMPLETED","total_tokens":4109,"prompt_tokens":943,"response_tokens":3166,"message_count":6,"tool_call_count":5,"conversations":"[{\"role\":\"user\",\"content\":\"Users are reporting Bundle size reduction with tree shaking is broken. Can you investigate?\",\"timestamp\":\"2026-02-02T12:44:32.000Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":203},{\"role\":\"assistant\",\"content\":\"Let me investigate. I'll start by checking the error logs and tracing the request flow.\",\"timestamp\":\"2026-02-02T12:50:32.000Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1707,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"npx prisma migrate dev\"}},{\"name\":\"Grep\",\"input\":{\"pattern\":\"handleAuth\",\"path\":\"src/\"}},{\"name\":\"Grep\",\"input\":{\"pattern\":\"handleAuth\",\"path\":\"src/\"}},{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}}]},{\"role\":\"user\",\"content\":\"There's a bug with Bundle size reduction with tree shaking. It fails intermittently in production.\",\"timestamp\":\"2026-02-02T12:56:32.000Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":488},{\"role\":\"assistant\",\"content\":\"I found the issue. The race condition happens when two requests hit the endpoint simultaneously because the lock isn't properly scoped.\",\"timestamp\":\"2026-02-02T13:02:32.000Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":821,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"npm test -- --coverage\"}},{\"name\":\"Glob\",\"input\":{\"pattern\":\"**/*.test.ts\"}},{\"name\":\"Grep\",\"input\":{\"pattern\":\"TODO|FIXME\",\"path\":\"src/\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npx prisma migrate dev\"}}]},{\"role\":\"user\",\"content\":\"The QA team found a regression in Bundle size reduction with tree shaking. Let's fix it.\",\"timestamp\":\"2026-02-02T13:08:32.000Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":252},{\"role\":\"assistant\",\"content\":\"The fix is straightforward — I've added a mutex around the critical section and updated the error handling.\",\"timestamp\":\"2026-02-02T13:14:32.000Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":638,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"src/middleware/auth.ts\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}},{\"name\":\"Grep\",\"input\":{\"pattern\":\"handleAuth\",\"path\":\"src/\"}},{\"name\":\"Glob\",\"input\":{\"pattern\":\"**/*.test.ts\"}}]}]","models":"[\"claude-sonnet-4-5-20250929\",\"claude-opus-4-5-20250414\"]","tags":"[]","client_tool":"claude-code","git_activity":null,"category":"bug-fix","intelligence":"{\"qualityScore\":{\"overall\":4.8,\"planModeUsed\":false,\"oneShotSuccess\":false,\"correctionRate\":0.11,\"errorRecovery\":1,\"turnsToComplete\":6},\"toolUsage\":{\"toolCounts\":{\"Bash\":1,\"Read\":1,\"Edit\":1,\"Write\":2},\"skillInvocations\":[],\"totalToolCalls\":5,\"topTools\":[{\"name\":\"Write\",\"count\":2},{\"name\":\"Bash\",\"count\":1},{\"name\":\"Read\",\"count\":1},{\"name\":\"Edit\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":4,\"subagentTypes\":{\"Explore\":1,\"Plan\":3},\"topTypes\":[{\"type\":\"Plan\",\"count\":3},{\"type\":\"Explore\",\"count\":1}]}}","created_at":"2026-02-02T12:44:32.000Z"};
+    const s = {"id":"demo23qga61x","ticket_id":"PERF-33","started_at":"2026-02-10T12:59:52.000Z","finished_at":"2026-02-10T13:04:52.000Z","status":"COMPLETED","total_tokens":7817,"prompt_tokens":2074,"response_tokens":5743,"message_count":13,"tool_call_count":25,"conversations":"[{\"role\":\"user\",\"content\":\"I need to implement Bundle size reduction with tree shaking. Where should I start?\",\"timestamp\":\"2026-02-10T12:59:52.000Z\",\"model\":\"o3-mini\",\"tokenCount\":255},{\"role\":\"assistant\",\"content\":\"I'll start by examining the existing codebase to understand the current architecture. Let me read the relevant files.\",\"timestamp\":\"2026-02-10T13:00:15.076Z\",\"model\":\"o3-mini\",\"tokenCount\":728},{\"role\":\"user\",\"content\":\"Let's add Bundle size reduction with tree shaking. Can you scaffold the basic structure?\",\"timestamp\":\"2026-02-10T13:00:38.153Z\",\"model\":\"o3-mini\",\"tokenCount\":342},{\"role\":\"assistant\",\"content\":\"Here's my plan: First I'll create the data model, then the API endpoint, then the UI component. Let me start with the types.\",\"timestamp\":\"2026-02-10T13:01:01.230Z\",\"model\":\"o3-mini\",\"tokenCount\":937,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npm test -- --coverage\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"git log --oneline -5\"}},{\"name\":\"Glob\",\"input\":{\"pattern\":\"**/*.test.ts\"}}]},{\"role\":\"user\",\"content\":\"The PM wants Bundle size reduction with tree shaking shipped this sprint. Let's break it down.\",\"timestamp\":\"2026-02-10T13:01:24.307Z\",\"model\":\"o3-mini\",\"tokenCount\":424},{\"role\":\"assistant\",\"content\":\"I've scaffolded the basic structure. The new component is at `src/components/PERF-33.tsx` with the API handler at `src/api/{ticket}.ts`.\",\"timestamp\":\"2026-02-10T13:01:47.384Z\",\"model\":\"o3-mini\",\"tokenCount\":998,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"curl -s http://localhost:3000/health\"}},{\"name\":\"Grep\",\"input\":{\"pattern\":\"TODO|FIXME\",\"path\":\"src/\"}},{\"name\":\"Glob\",\"input\":{\"pattern\":\"**/*.test.ts\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}}]},{\"role\":\"user\",\"content\":\"Can you implement Bundle size reduction with tree shaking? Here's the spec from the ticket.\",\"timestamp\":\"2026-02-10T13:02:10.461Z\",\"model\":\"o3-mini\",\"tokenCount\":196},{\"role\":\"assistant\",\"content\":\"I've added comprehensive error handling with proper HTTP status codes and user-facing error messages.\",\"timestamp\":\"2026-02-10T13:02:33.538Z\",\"model\":\"o3-mini\",\"tokenCount\":1192},{\"role\":\"user\",\"content\":\"We need to add Bundle size reduction with tree shaking to the existing codebase.\",\"timestamp\":\"2026-02-10T13:02:56.615Z\",\"model\":\"o3-mini\",\"tokenCount\":499},{\"role\":\"assistant\",\"content\":\"Tests are written. 8 test cases covering the happy path, validation errors, auth failures, and edge cases. All passing.\",\"timestamp\":\"2026-02-10T13:03:19.692Z\",\"model\":\"o3-mini\",\"tokenCount\":1264,\"toolCalls\":[{\"name\":\"Edit\",\"input\":{\"path\":\"src/api/routes.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"curl -s http://localhost:3000/health\"}},{\"name\":\"Grep\",\"input\":{\"pattern\":\"handleAuth\",\"path\":\"src/\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}}]},{\"role\":\"user\",\"content\":\"Looks good. Can you add error handling and input validation?\",\"timestamp\":\"2026-02-10T13:03:42.769Z\",\"model\":\"o3-mini\",\"tokenCount\":174},{\"role\":\"assistant\",\"content\":\"Loading state is implemented using a custom `useAsync` hook. The UI shows a skeleton while the request is in flight.\",\"timestamp\":\"2026-02-10T13:04:05.846Z\",\"model\":\"o3-mini\",\"tokenCount\":624,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"npm test -- --coverage\"}}]},{\"role\":\"user\",\"content\":\"Can you also add tests for the happy path and edge cases?\",\"timestamp\":\"2026-02-10T13:04:28.923Z\",\"model\":\"o3-mini\",\"tokenCount\":184}]","models":"[\"o3-mini\"]","tags":"[]","client_tool":"codex-cli","git_activity":"{\"branch\":\"feat/perf-33\",\"commits\":[{\"hash\":\"demobvx\",\"message\":\"feat: update search migration\",\"timestamp\":\"2026-02-10T13:01:07.000Z\",\"filesChanged\":2,\"insertions\":149,\"deletions\":46},{\"hash\":\"demoa04\",\"message\":\"feat: implement update endpoint\",\"timestamp\":\"2026-02-10T13:02:22.000Z\",\"filesChanged\":5,\"insertions\":60,\"deletions\":17},{\"hash\":\"demo94b\",\"message\":\"chore: implement validate endpoint\",\"timestamp\":\"2026-02-10T13:03:37.000Z\",\"filesChanged\":12,\"insertions\":14,\"deletions\":8}],\"totalCommits\":3,\"totalInsertions\":223,\"totalDeletions\":71,\"totalFilesChanged\":19}","category":"feature","intelligence":"{\"qualityScore\":{\"overall\":4.8,\"planModeUsed\":false,\"oneShotSuccess\":false,\"correctionRate\":0.13,\"errorRecovery\":1,\"turnsToComplete\":13},\"toolUsage\":{\"toolCounts\":{\"Bash\":1,\"Read\":8,\"Edit\":7,\"Write\":2,\"Grep\":7},\"skillInvocations\":[\"/commit\"],\"totalToolCalls\":25,\"topTools\":[{\"name\":\"Read\",\"count\":8},{\"name\":\"Edit\",\"count\":7},{\"name\":\"Grep\",\"count\":7},{\"name\":\"Write\",\"count\":2},{\"name\":\"Bash\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":1,\"subagentTypes\":{\"Explore\":1},\"topTypes\":[{\"type\":\"Explore\",\"count\":1}]},\"contextMetrics\":{\"peakTokenCount\":54061,\"summarizationEvents\":0,\"tokenGrowthRate\":870,\"turnsBeforeSummarization\":null,\"contextUtilization\":0.27},\"promptQuality\":{\"insights\":[],\"promptEfficiency\":97,\"avgPromptLength\":55,\"backAndForthScore\":43}}","created_at":"2026-02-10T12:59:52.000Z"};
     const conversations = JSON.parse(s.conversations || '[]');
     const models = JSON.parse(s.models || '[]');
     const tags = JSON.parse(s.tags || '[]');
@@ -133,6 +147,7 @@
       '<div class="detail-header">' +
         '<h1>' + esc(s.ticket_id) + '</h1>' +
         '<span class="badge ' + (s.status === 'COMPLETED' ? 'badge-green' : 'badge-yellow') + '">' + s.status + '</span>' +
+        (conversations.length > 0 ? '<a href="/sessions/' + s.id + '/replay" class="btn btn-sm" style="margin-left:auto">Replay</a>' : '') +
       '</div>' +
       '<div class="stats-grid">' +
         stat('Duration', duration !== null ? duration + 'm' : 'In progress') +
@@ -210,6 +225,47 @@
               '</div>'
             : '<div class="muted" style="font-size:13px">No subagent data</div>') +
           '</div>' +
+          // Context Window Card
+          (intelligence.contextMetrics ?
+            '<div class="intel-card">' +
+              '<h3>Context Window</h3>' +
+              '<div class="intel-total">' + intelligence.contextMetrics.peakTokenCount.toLocaleString() + ' peak tokens</div>' +
+              '<div class="intel-details">' +
+                '<div class="intel-row"><span>Summarizations</span><span>' + intelligence.contextMetrics.summarizationEvents + '</span></div>' +
+                '<div class="intel-row"><span>Growth Rate</span><span>' + intelligence.contextMetrics.tokenGrowthRate.toLocaleString() + ' tokens/turn</span></div>' +
+                (intelligence.contextMetrics.turnsBeforeSummarization != null ?
+                  '<div class="intel-row"><span>Turns Before Summary</span><span>' + intelligence.contextMetrics.turnsBeforeSummarization + '</span></div>' : '') +
+                '<div class="intel-row"><span>Utilization</span><span>' + Math.round(intelligence.contextMetrics.contextUtilization * 100) + '%</span></div>' +
+              '</div>' +
+              '<div class="context-bar" style="margin-top:12px"><div class="context-bar-fill" style="width:' + Math.round(intelligence.contextMetrics.contextUtilization * 100) + '%"></div></div>' +
+            '</div>'
+          : '') +
+          // Prompt Quality Card
+          (intelligence.promptQuality ?
+            '<div class="intel-card">' +
+              '<h3>Prompt Quality</h3>' +
+              '<div class="quality-gauge">' +
+                '<div class="gauge-value">' + intelligence.promptQuality.promptEfficiency + '</div>' +
+                '<div class="gauge-label">Efficiency</div>' +
+              '</div>' +
+              '<div class="intel-details">' +
+                '<div class="intel-row"><span>Avg Prompt Length</span><span>' + intelligence.promptQuality.avgPromptLength + ' words</span></div>' +
+                '<div class="intel-row"><span>Back-and-forth</span><span>' + intelligence.promptQuality.backAndForthScore + '%</span></div>' +
+              '</div>' +
+              (intelligence.promptQuality.insights.length > 0 ?
+                '<div class="pq-insights">' +
+                  intelligence.promptQuality.insights.map(function(ins) {
+                    var severityClass = ins.severity === 'critical' ? 'pq-critical' : ins.severity === 'warning' ? 'pq-warning' : 'pq-info';
+                    return '<div class="pq-insight ' + severityClass + '">' +
+                      '<div class="pq-insight-type">' + ins.type.replace(/-/g, ' ') + '</div>' +
+                      '<div class="pq-insight-desc">' + esc(ins.description) + '</div>' +
+                      '<div class="pq-insight-suggestion">' + esc(ins.suggestion) + '</div>' +
+                    '</div>';
+                  }).join('') +
+                '</div>'
+              : '<div class="muted" style="font-size:13px;margin-top:8px">No issues detected</div>') +
+            '</div>'
+          : '') +
         '</div>'
       : '') +
       (hasGit ?

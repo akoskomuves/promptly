@@ -37,8 +37,10 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 - **Session tracking**: Tag conversations to tickets, track token usage and duration.
 - **Git-aware sessions**: Automatically captures commits, branches, and diff stats made during each session.
 - **Auto-categorization**: Sessions are classified as bug-fix, feature, refactor, investigation, testing, or docs based on ticket ID, git commits, and conversation content.
-- **Session intelligence**: Quality scoring (1-5 stars), tool usage analytics (Bash, Read, Edit, etc.), and subagent tracking -- computed automatically at finish time.
-- **Built-in dashboard**: View sessions in your browser at `localhost:3000`.
+- **Session intelligence**: Quality scoring (1-5 stars), tool usage analytics (Bash, Read, Edit, etc.), subagent tracking, context window metrics, and prompt quality analysis -- computed automatically at finish time.
+- **Session replay**: Step through conversation turns with timing, playback controls, and cumulative stats to see how a session unfolded.
+- **Analytics dashboard**: Cost-per-project trends, parallel session detection, skill usage analytics, instruction file effectiveness tracking, and aggregate prompt quality.
+- **Built-in dashboard**: View sessions, analytics, digest, and session replay in your browser at `localhost:3000`.
 - **Optional cloud sync**: For teams that want a shared dashboard.
 
 ## Deployment Tiers
@@ -85,8 +87,8 @@ Claude Code / Gemini CLI / Codex CLI
 1. `promptly init` auto-detects installed AI coding tools and registers the MCP server with each.
 2. `promptly start TICKET-123` creates a session and signals the MCP server to begin logging.
 3. As you work with your AI coding tool, the MCP server captures all conversation turns to a local buffer.
-4. `promptly finish` writes the buffered data into SQLite and clears the buffer.
-5. `promptly serve` starts a local HTTP server that reads from SQLite and serves a dashboard.
+4. `promptly finish` captures git activity (commits, branch, diff stats, instruction file changes), auto-categorizes the session, computes session intelligence (quality score, tool usage, subagent stats, context window metrics, prompt quality analysis), writes data to SQLite, and clears the buffer.
+5. `promptly serve` serves a dashboard with sessions, analytics, digest, and session replay.
 
 ## Data Storage
 

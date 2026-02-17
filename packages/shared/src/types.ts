@@ -55,6 +55,7 @@ export interface GitActivity {
   totalInsertions: number;
   totalDeletions: number;
   totalFilesChanged: number;
+  instructionFileChanges?: string[];
 }
 
 // Session data as stored locally by MCP server before upload
@@ -204,11 +205,76 @@ export interface SubagentStats {
   topTypes: { type: string; count: number }[];
 }
 
+// Context window tracking metrics
+export interface ContextWindowMetrics {
+  peakTokenCount: number;
+  summarizationEvents: number;
+  tokenGrowthRate: number;          // avg tokens per turn
+  turnsBeforeSummarization: number | null;
+  contextUtilization: number;       // 0-1 ratio vs estimated window
+}
+
+// Prompt quality insight
+export interface PromptQualityInsight {
+  type: "vague-prompt" | "excessive-back-and-forth" | "missing-context" | "scope-creep" | "long-prompt";
+  severity: "info" | "warning" | "critical";
+  description: string;
+  turnIndex?: number;
+  suggestion: string;
+}
+
+// Prompt quality analysis
+export interface PromptQualityAnalysis {
+  insights: PromptQualityInsight[];
+  promptEfficiency: number;   // 0-100
+  avgPromptLength: number;
+  backAndForthScore: number;
+}
+
 // Combined session intelligence (stored as JSON)
 export interface SessionIntelligence {
   qualityScore: SessionQualityScore;
   toolUsage: ToolUsageStats;
   subagentStats: SubagentStats;
+  contextMetrics?: ContextWindowMetrics;
+  promptQuality?: PromptQualityAnalysis;
+}
+
+// Project cost trend (query-time aggregation)
+export interface ProjectCostTrend {
+  project: string;
+  periods: { label: string; startDate: string; cost: number; tokens: number; sessions: number }[];
+  totalCost: number;
+  trendDirection: "rising" | "falling" | "stable";
+  changePercent: number | null;
+}
+
+// Parallel session group (query-time detection)
+export interface ParallelSessionGroup {
+  sessions: { id: string; ticketId: string }[];
+  overlapStart: string;
+  overlapEnd: string;
+  overlapMinutes: number;
+  combinedTokens: number;
+}
+
+// Skill/command usage analytics (query-time aggregation)
+export interface SkillUsageAnalytics {
+  skills: {
+    name: string;
+    totalInvocations: number;
+    sessionsUsed: number;
+    avgQualityWhenUsed: number | null;
+    avgQualityWhenNotUsed: number | null;
+  }[];
+}
+
+// Instruction file effectiveness tracking
+export interface InstructionEffectiveness {
+  changes: { sessionId: string; ticketId: string; date: string; files: string[] }[];
+  beforeAvgQuality: number | null;
+  afterAvgQuality: number | null;
+  verdict: string;
 }
 
 // Weekly digest types

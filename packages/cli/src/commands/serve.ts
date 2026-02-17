@@ -1,8 +1,14 @@
 import http from "node:http";
 import https from "node:https";
 import { listSessions, listAllSessions, getSession, countSessions, updateSessionTags } from "../db.js";
-import { sessionsListPage, sessionDetailPage, digestPage } from "../dashboard.js";
-import { computeWeeklyDigest } from "@getpromptly/shared";
+import { sessionsListPage, sessionDetailPage, digestPage, analyticsPage, sessionReplayPage } from "../dashboard.js";
+import {
+  computeWeeklyDigest,
+  computeProjectCostTrends,
+  detectParallelSessions,
+  computeSkillUsageAnalytics,
+  computeInstructionEffectiveness,
+} from "@getpromptly/shared";
 import type { DigestSessionInput } from "@getpromptly/shared";
 
 let pricingCache: { data: Record<string, { input_price_per_million: number; output_price_per_million: number }> | null; fetchedAt: number } = { data: null, fetchedAt: 0 };
@@ -30,6 +36,44 @@ function fetchPricing(): Promise<Record<string, { input_price_per_million: numbe
     });
     req.on("error", () => resolve(pricingCache.data));
     req.on("timeout", () => { req.destroy(); resolve(pricingCache.data); });
+  });
+}
+
+/** Parse session rows into DigestSessionInput format */
+function toDigestInputs(sessions: ReturnType<typeof listAllSessions>): DigestSessionInput[] {
+  return sessions.map((s) => {
+    let models: string[] = [];
+    try { models = JSON.parse(s.models || "[]"); } catch {}
+    let gitActivity: DigestSessionInput["gitActivity"] = null;
+    if (s.git_activity) {
+      try {
+        const ga = JSON.parse(s.git_activity);
+        gitActivity = { totalCommits: ga.totalCommits ?? 0, totalInsertions: ga.totalInsertions ?? 0, totalDeletions: ga.totalDeletions ?? 0 };
+      } catch {}
+    }
+    let intelligence: DigestSessionInput["intelligence"] = null;
+    if (s.intelligence) {
+      try {
+        const intel = JSON.parse(s.intelligence);
+        if (intel.qualityScore?.overall != null) {
+          intelligence = { qualityScore: { overall: intel.qualityScore.overall } };
+        }
+      } catch {}
+    }
+    return {
+      ticketId: s.ticket_id,
+      startedAt: s.started_at,
+      finishedAt: s.finished_at,
+      status: s.status,
+      totalTokens: s.total_tokens,
+      promptTokens: s.prompt_tokens,
+      responseTokens: s.response_tokens,
+      messageCount: s.message_count,
+      models,
+      category: s.category,
+      gitActivity,
+      intelligence,
+    };
   });
 }
 
@@ -148,50 +192,122 @@ export async function serveCommand(options: { port?: string }) {
       return;
     }
 
-    // Digest page
-    if (url.pathname === "/digest") {
+    // Analytics page
+    if (url.pathname === "/analytics") {
       const sessions = listAllSessions();
-      const inputs: DigestSessionInput[] = sessions.map((s) => {
-        let models: string[] = [];
-        try { models = JSON.parse(s.models || "[]"); } catch {}
-        let gitActivity: DigestSessionInput["gitActivity"] = null;
-        if (s.git_activity) {
-          try {
-            const ga = JSON.parse(s.git_activity);
-            gitActivity = { totalCommits: ga.totalCommits ?? 0, totalInsertions: ga.totalInsertions ?? 0, totalDeletions: ga.totalDeletions ?? 0 };
-          } catch {}
-        }
-        let intelligence: DigestSessionInput["intelligence"] = null;
-        if (s.intelligence) {
-          try {
-            const intel = JSON.parse(s.intelligence);
-            if (intel.qualityScore?.overall != null) {
-              intelligence = { qualityScore: { overall: intel.qualityScore.overall } };
-            }
-          } catch {}
-        }
-        return {
+      const inputs = toDigestInputs(sessions);
+
+      // Project cost trends
+      const projectTrends = computeProjectCostTrends(
+        inputs.map((s) => ({
+          ticketId: s.ticketId,
+          startedAt: s.startedAt,
+          totalTokens: s.totalTokens,
+          promptTokens: s.promptTokens,
+          responseTokens: s.responseTokens,
+          costEstimate: s.costEstimate,
+        }))
+      );
+
+      // Parallel sessions
+      const parallelSessions = detectParallelSessions(
+        sessions.map((s) => ({
+          id: s.id,
           ticketId: s.ticket_id,
           startedAt: s.started_at,
           finishedAt: s.finished_at,
-          status: s.status,
           totalTokens: s.total_tokens,
-          promptTokens: s.prompt_tokens,
-          responseTokens: s.response_tokens,
-          messageCount: s.message_count,
-          models,
-          category: s.category,
+        }))
+      );
+
+      // Skill usage analytics
+      const skillInputs = sessions.map((s) => {
+        let intelligence = null;
+        if (s.intelligence) {
+          try { intelligence = JSON.parse(s.intelligence); } catch {}
+        }
+        return { intelligence };
+      });
+      const skillUsage = computeSkillUsageAnalytics(skillInputs);
+
+      // Instruction effectiveness
+      const instrInputs = sessions.map((s) => {
+        let gitActivity = null;
+        if (s.git_activity) {
+          try { gitActivity = JSON.parse(s.git_activity); } catch {}
+        }
+        let intelligence = null;
+        if (s.intelligence) {
+          try { intelligence = JSON.parse(s.intelligence); } catch {}
+        }
+        return {
+          id: s.id,
+          ticketId: s.ticket_id,
+          startedAt: s.started_at,
           gitActivity,
           intelligence,
         };
       });
+      const instructionEffectiveness = computeInstructionEffectiveness(instrInputs);
+
+      // Aggregate prompt quality stats
+      let totalEfficiency = 0;
+      let totalPromptLength = 0;
+      let sessionsWithIntelligence = 0;
+      let sessionsWithInsights = 0;
+      for (const s of sessions) {
+        if (!s.intelligence) continue;
+        try {
+          const intel = JSON.parse(s.intelligence);
+          if (intel.promptQuality) {
+            totalEfficiency += intel.promptQuality.promptEfficiency;
+            totalPromptLength += intel.promptQuality.avgPromptLength;
+            sessionsWithIntelligence++;
+            if (intel.promptQuality.insights?.length > 0) sessionsWithInsights++;
+          }
+        } catch {}
+      }
+
+      const analyticsData = {
+        projectTrends,
+        parallelSessions,
+        skillUsage,
+        instructionEffectiveness,
+        avgPromptEfficiency: sessionsWithIntelligence > 0 ? Math.round(totalEfficiency / sessionsWithIntelligence) : null,
+        avgPromptLength: sessionsWithIntelligence > 0 ? Math.round(totalPromptLength / sessionsWithIntelligence) : null,
+        sessionsWithInsights,
+      };
+
+      res.writeHead(200, { "Content-Type": "text/html" });
+      res.end(analyticsPage(JSON.stringify(analyticsData)));
+      return;
+    }
+
+    // Digest page
+    if (url.pathname === "/digest") {
+      const sessions = listAllSessions();
+      const inputs = toDigestInputs(sessions);
       const digest = computeWeeklyDigest(inputs);
       res.writeHead(200, { "Content-Type": "text/html" });
       res.end(digestPage(JSON.stringify(digest)));
       return;
     }
 
-    // HTML pages
+    // Session replay page
+    const replayMatch = url.pathname.match(/^\/sessions\/(.+)\/replay$/);
+    if (replayMatch) {
+      const session = getSession(replayMatch[1]);
+      if (!session) {
+        res.writeHead(404, { "Content-Type": "text/plain" });
+        res.end("Session not found");
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "text/html" });
+      res.end(sessionReplayPage(JSON.stringify(session)));
+      return;
+    }
+
+    // HTML pages — session detail
     const detailMatch = url.pathname.match(/^\/sessions\/(.+)$/);
     if (detailMatch) {
       const session = getSession(detailMatch[1]);

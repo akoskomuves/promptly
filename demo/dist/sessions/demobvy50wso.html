@@ -27,7 +27,7 @@
     .filter-select { padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; cursor: pointer; }
     .filter-select:focus { border-color: #555; }
     .export-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
-    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; }
+    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; cursor: pointer; }
     .btn-sm { background: #222; color: #ededed; border: 1px solid #333; }
     .btn-sm:hover { border-color: #555; }
     .tag { display: inline-block; padding: 2px 8px; background: #1a2a3a; color: #7dd3fc; border-radius: 4px; font-size: 12px; }
@@ -96,6 +96,19 @@
     .commit-hash { font-family: ui-monospace, monospace; color: #facc15; background: #2a2a1a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     .commit-message { flex: 1; }
     .commit-stats { color: #4ade80; white-space: nowrap; font-size: 12px; }
+    .context-bar { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; }
+    .context-bar-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #facc15, #f87171); border-radius: 3px; }
+    .quality-gauge { text-align: center; margin-bottom: 12px; }
+    .gauge-value { font-size: 32px; font-weight: 700; color: #4ade80; }
+    .gauge-label { font-size: 12px; color: #888; text-transform: uppercase; }
+    .pq-insights { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .pq-insight { padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .pq-critical { background: #3a1a1a; border-left: 3px solid #f87171; }
+    .pq-warning { background: #3a2a1a; border-left: 3px solid #fbbf24; }
+    .pq-info { background: #1a2a3a; border-left: 3px solid #38bdf8; }
+    .pq-insight-type { font-weight: 600; text-transform: capitalize; margin-bottom: 4px; }
+    .pq-insight-desc { color: #ccc; margin-bottom: 4px; }
+    .pq-insight-suggestion { color: #888; font-style: italic; }
   </style>
 </head>
 <body style="padding-top:48px;">
@@ -106,6 +119,7 @@
   <nav class="nav">
     <a href="/" class="nav-brand">Promptly</a>
     <a href="/" class="nav-link">Sessions</a>
+    <a href="/analytics" class="nav-link">Analytics</a>
     <a href="/digest" class="nav-link">Digest</a>
   </nav>
   <main class="container">
@@ -113,7 +127,7 @@
     <div id="detail"></div>
   </main>
   <script>
-    const s = {"id":"demobvy50wso","ticket_id":"UI-134","started_at":"2026-01-27T15:26:29.000Z","finished_at":"2026-01-27T15:48:29.000Z","status":"COMPLETED","total_tokens":9787,"prompt_tokens":2908,"response_tokens":6879,"message_count":13,"tool_call_count":6,"conversations":"[{\"role\":\"user\",\"content\":\"I need to understand how Dark mode toggle persistence currently works before we change it.\",\"timestamp\":\"2026-01-27T15:26:29.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":538},{\"role\":\"assistant\",\"content\":\"Let me trace through the code. The entry point is `src/routes/UI-134.ts`, which calls into the service layer.\",\"timestamp\":\"2026-01-27T15:28:10.538Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1036,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"npx prisma migrate dev\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npm test -- --coverage\"}}]},{\"role\":\"user\",\"content\":\"Can you trace through Dark mode toggle persistence and explain the data flow?\",\"timestamp\":\"2026-01-27T15:29:52.076Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":450},{\"role\":\"assistant\",\"content\":\"Here's the data flow: Request -> Middleware -> Controller -> Service -> Repository -> Database. The bottleneck is in the service layer.\",\"timestamp\":\"2026-01-27T15:31:33.615Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":677,\"toolCalls\":[{\"name\":\"Edit\",\"input\":{\"path\":\"src/api/routes.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}},{\"name\":\"Read\",\"input\":{\"path\":\"src/middleware/auth.ts\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npm test -- --coverage\"}},{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}}]},{\"role\":\"user\",\"content\":\"What's the performance profile of Dark mode toggle persistence? Any bottlenecks?\",\"timestamp\":\"2026-01-27T15:33:15.153Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":397},{\"role\":\"assistant\",\"content\":\"I ran a quick benchmark. The current implementation takes 450ms on average. 80% of that time is spent in the database query.\",\"timestamp\":\"2026-01-27T15:34:56.692Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1178,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"package.json\"}},{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}}]},{\"role\":\"user\",\"content\":\"I want to explore different approaches for Dark mode toggle persistence.\",\"timestamp\":\"2026-01-27T15:36:38.230Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":157},{\"role\":\"assistant\",\"content\":\"I've identified three approaches: 1) Add caching, 2) Optimize the query, 3) Denormalize the data. Let me outline the trade-offs.\",\"timestamp\":\"2026-01-27T15:38:19.769Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1450},{\"role\":\"user\",\"content\":\"Can you research best practices for implementing Dark mode toggle persistence?\",\"timestamp\":\"2026-01-27T15:40:01.307Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":461},{\"role\":\"assistant\",\"content\":\"Approach 2 is the winner — I can add a composite index that brings the query from 360ms to 12ms with no architectural changes.\",\"timestamp\":\"2026-01-27T15:41:42.846Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":820},{\"role\":\"user\",\"content\":\"Interesting. What are the trade-offs between those approaches?\",\"timestamp\":\"2026-01-27T15:43:24.384Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":477},{\"role\":\"assistant\",\"content\":\"Here's the proof of concept. The index is defined in a migration file and the query plan confirms it's being used.\",\"timestamp\":\"2026-01-27T15:45:05.923Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1718},{\"role\":\"user\",\"content\":\"Can you create a quick proof of concept?\",\"timestamp\":\"2026-01-27T15:46:47.461Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":428}]","models":"[\"claude-sonnet-4-5-20250929\"]","tags":"[\"security\",\"performance\"]","client_tool":"claude-code","git_activity":"{\"branch\":\"explore/dark-mode-toggle-persistence\",\"commits\":[{\"hash\":\"demobkh\",\"message\":\"docs: update auth migration\",\"timestamp\":\"2026-01-27T15:30:09.000Z\",\"filesChanged\":11,\"insertions\":10,\"deletions\":39},{\"hash\":\"demoapo\",\"message\":\"docs: fix null check in search handler\",\"timestamp\":\"2026-01-27T15:33:49.000Z\",\"filesChanged\":2,\"insertions\":100,\"deletions\":20},{\"hash\":\"demo9tv\",\"message\":\"chore: add loading states to UserList\",\"timestamp\":\"2026-01-27T15:37:29.000Z\",\"filesChanged\":12,\"insertions\":59,\"deletions\":51},{\"hash\":\"demo8y2\",\"message\":\"chore: fix null check in upload handler\",\"timestamp\":\"2026-01-27T15:41:09.000Z\",\"filesChanged\":11,\"insertions\":42,\"deletions\":47},{\"hash\":\"demo739\",\"message\":\"chore: fix race condition in billing\",\"timestamp\":\"2026-01-27T15:44:49.000Z\",\"filesChanged\":3,\"insertions\":82,\"deletions\":80}],\"totalCommits\":5,\"totalInsertions\":293,\"totalDeletions\":237,\"totalFilesChanged\":39}","category":"investigation","intelligence":"{\"qualityScore\":{\"overall\":3.9,\"planModeUsed\":false,\"oneShotSuccess\":false,\"correctionRate\":0.19,\"errorRecovery\":0.7,\"turnsToComplete\":13},\"toolUsage\":{\"toolCounts\":{\"Bash\":1,\"Read\":2,\"Edit\":2,\"Write\":1},\"skillInvocations\":[],\"totalToolCalls\":6,\"topTools\":[{\"name\":\"Read\",\"count\":2},{\"name\":\"Edit\",\"count\":2},{\"name\":\"Bash\",\"count\":1},{\"name\":\"Write\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":5,\"subagentTypes\":{\"Explore\":1,\"Plan\":3,\"Bash\":1},\"topTypes\":[{\"type\":\"Plan\",\"count\":3},{\"type\":\"Explore\",\"count\":1},{\"type\":\"Bash\",\"count\":1}]}}","created_at":"2026-01-27T15:26:29.000Z"};
+    const s = {"id":"demobvy50wso","ticket_id":"UI-134","started_at":"2026-02-05T16:30:04.000Z","finished_at":"2026-02-05T16:40:04.000Z","status":"COMPLETED","total_tokens":13762,"prompt_tokens":4062,"response_tokens":9700,"message_count":17,"tool_call_count":19,"conversations":"[{\"role\":\"user\",\"content\":\"I need to implement Dark mode toggle persistence. Where should I start?\",\"timestamp\":\"2026-02-05T16:30:04.000Z\",\"model\":\"o3-mini\",\"tokenCount\":542},{\"role\":\"assistant\",\"content\":\"I'll start by examining the existing codebase to understand the current architecture. Let me read the relevant files.\",\"timestamp\":\"2026-02-05T16:30:39.294Z\",\"model\":\"o3-mini\",\"tokenCount\":1551,\"toolCalls\":[{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npx prisma migrate dev\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/api/routes.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}}]},{\"role\":\"user\",\"content\":\"Let's add Dark mode toggle persistence. Can you scaffold the basic structure?\",\"timestamp\":\"2026-02-05T16:31:14.588Z\",\"model\":\"o3-mini\",\"tokenCount\":243},{\"role\":\"assistant\",\"content\":\"Here's my plan: First I'll create the data model, then the API endpoint, then the UI component. Let me start with the types.\",\"timestamp\":\"2026-02-05T16:31:49.882Z\",\"model\":\"o3-mini\",\"tokenCount\":1524},{\"role\":\"user\",\"content\":\"The PM wants Dark mode toggle persistence shipped this sprint. Let's break it down.\",\"timestamp\":\"2026-02-05T16:32:25.176Z\",\"model\":\"o3-mini\",\"tokenCount\":210},{\"role\":\"assistant\",\"content\":\"I've scaffolded the basic structure. The new component is at `src/components/UI-134.tsx` with the API handler at `src/api/{ticket}.ts`.\",\"timestamp\":\"2026-02-05T16:33:00.470Z\",\"model\":\"o3-mini\",\"tokenCount\":1392,\"toolCalls\":[{\"name\":\"Write\",\"input\":{\"path\":\"src/utils/validate.ts\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"git log --oneline -5\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npx prisma migrate dev\"}}]},{\"role\":\"user\",\"content\":\"Can you implement Dark mode toggle persistence? Here's the spec from the ticket.\",\"timestamp\":\"2026-02-05T16:33:35.764Z\",\"model\":\"o3-mini\",\"tokenCount\":486},{\"role\":\"assistant\",\"content\":\"I've added comprehensive error handling with proper HTTP status codes and user-facing error messages.\",\"timestamp\":\"2026-02-05T16:34:11.058Z\",\"model\":\"o3-mini\",\"tokenCount\":659,\"toolCalls\":[{\"name\":\"Grep\",\"input\":{\"pattern\":\"handleAuth\",\"path\":\"src/\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npm test -- --coverage\"}},{\"name\":\"Glob\",\"input\":{\"pattern\":\"**/*.test.ts\"}}]},{\"role\":\"user\",\"content\":\"We need to add Dark mode toggle persistence to the existing codebase.\",\"timestamp\":\"2026-02-05T16:34:46.352Z\",\"model\":\"o3-mini\",\"tokenCount\":471},{\"role\":\"assistant\",\"content\":\"Tests are written. 8 test cases covering the happy path, validation errors, auth failures, and edge cases. All passing.\",\"timestamp\":\"2026-02-05T16:35:21.647Z\",\"model\":\"o3-mini\",\"tokenCount\":1513},{\"role\":\"user\",\"content\":\"Looks good. Can you add error handling and input validation?\",\"timestamp\":\"2026-02-05T16:35:56.941Z\",\"model\":\"o3-mini\",\"tokenCount\":539},{\"role\":\"assistant\",\"content\":\"Loading state is implemented using a custom `useAsync` hook. The UI shows a skeleton while the request is in flight.\",\"timestamp\":\"2026-02-05T16:36:32.235Z\",\"model\":\"o3-mini\",\"tokenCount\":1147},{\"role\":\"user\",\"content\":\"Can you also add tests for the happy path and edge cases?\",\"timestamp\":\"2026-02-05T16:37:07.529Z\",\"model\":\"o3-mini\",\"tokenCount\":439},{\"role\":\"assistant\",\"content\":\"Done! The success notification uses our existing toast system. I also added a dismiss timeout of 5 seconds.\",\"timestamp\":\"2026-02-05T16:37:42.823Z\",\"model\":\"o3-mini\",\"tokenCount\":1209},{\"role\":\"user\",\"content\":\"One more thing — we need a loading state while the API call is in progress.\",\"timestamp\":\"2026-02-05T16:38:18.117Z\",\"model\":\"o3-mini\",\"tokenCount\":534},{\"role\":\"assistant\",\"content\":\"Types are updated in `src/types.ts`. I've also updated the API client to include the new fields.\",\"timestamp\":\"2026-02-05T16:38:53.411Z\",\"model\":\"o3-mini\",\"tokenCount\":705},{\"role\":\"user\",\"content\":\"That's working. Let's also add a success notification.\",\"timestamp\":\"2026-02-05T16:39:28.705Z\",\"model\":\"o3-mini\",\"tokenCount\":598}]","models":"[\"o3-mini\"]","tags":"[]","client_tool":"codex-cli","git_activity":"{\"branch\":\"feature/ui-134-dark-mode-toggle-persistence\",\"commits\":[{\"hash\":\"demobkh\",\"message\":\"feat: add loading states to SessionCard\",\"timestamp\":\"2026-02-05T16:32:34.000Z\",\"filesChanged\":10,\"insertions\":34,\"deletions\":41},{\"hash\":\"demoapo\",\"message\":\"feat: update types for auth\",\"timestamp\":\"2026-02-05T16:35:04.000Z\",\"filesChanged\":4,\"insertions\":58,\"deletions\":34},{\"hash\":\"demo9tv\",\"message\":\"feat: add DataTable component\",\"timestamp\":\"2026-02-05T16:37:34.000Z\",\"filesChanged\":1,\"insertions\":101,\"deletions\":65}],\"totalCommits\":3,\"totalInsertions\":193,\"totalDeletions\":140,\"totalFilesChanged\":15}","category":"feature","intelligence":"{\"qualityScore\":{\"overall\":3.8,\"planModeUsed\":false,\"oneShotSuccess\":false,\"correctionRate\":0.15,\"errorRecovery\":1,\"turnsToComplete\":17},\"toolUsage\":{\"toolCounts\":{\"Bash\":4,\"Read\":5,\"Edit\":1,\"Write\":5,\"Grep\":1,\"Glob\":3},\"skillInvocations\":[],\"totalToolCalls\":19,\"topTools\":[{\"name\":\"Read\",\"count\":5},{\"name\":\"Write\",\"count\":5},{\"name\":\"Bash\",\"count\":4},{\"name\":\"Glob\",\"count\":3},{\"name\":\"Edit\",\"count\":1},{\"name\":\"Grep\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":5,\"subagentTypes\":{\"Explore\":2,\"Plan\":2,\"Bash\":1},\"topTypes\":[{\"type\":\"Explore\",\"count\":2},{\"type\":\"Plan\",\"count\":2},{\"type\":\"Bash\",\"count\":1}]},\"contextMetrics\":{\"peakTokenCount\":93939,\"summarizationEvents\":0,\"tokenGrowthRate\":591,\"turnsBeforeSummarization\":null,\"contextUtilization\":0.47},\"promptQuality\":{\"insights\":[],\"promptEfficiency\":77,\"avgPromptLength\":61,\"backAndForthScore\":24}}","created_at":"2026-02-05T16:30:04.000Z"};
     const conversations = JSON.parse(s.conversations || '[]');
     const models = JSON.parse(s.models || '[]');
     const tags = JSON.parse(s.tags || '[]');
@@ -133,6 +147,7 @@
       '<div class="detail-header">' +
         '<h1>' + esc(s.ticket_id) + '</h1>' +
         '<span class="badge ' + (s.status === 'COMPLETED' ? 'badge-green' : 'badge-yellow') + '">' + s.status + '</span>' +
+        (conversations.length > 0 ? '<a href="/sessions/' + s.id + '/replay" class="btn btn-sm" style="margin-left:auto">Replay</a>' : '') +
       '</div>' +
       '<div class="stats-grid">' +
         stat('Duration', duration !== null ? duration + 'm' : 'In progress') +
@@ -210,6 +225,47 @@
               '</div>'
             : '<div class="muted" style="font-size:13px">No subagent data</div>') +
           '</div>' +
+          // Context Window Card
+          (intelligence.contextMetrics ?
+            '<div class="intel-card">' +
+              '<h3>Context Window</h3>' +
+              '<div class="intel-total">' + intelligence.contextMetrics.peakTokenCount.toLocaleString() + ' peak tokens</div>' +
+              '<div class="intel-details">' +
+                '<div class="intel-row"><span>Summarizations</span><span>' + intelligence.contextMetrics.summarizationEvents + '</span></div>' +
+                '<div class="intel-row"><span>Growth Rate</span><span>' + intelligence.contextMetrics.tokenGrowthRate.toLocaleString() + ' tokens/turn</span></div>' +
+                (intelligence.contextMetrics.turnsBeforeSummarization != null ?
+                  '<div class="intel-row"><span>Turns Before Summary</span><span>' + intelligence.contextMetrics.turnsBeforeSummarization + '</span></div>' : '') +
+                '<div class="intel-row"><span>Utilization</span><span>' + Math.round(intelligence.contextMetrics.contextUtilization * 100) + '%</span></div>' +
+              '</div>' +
+              '<div class="context-bar" style="margin-top:12px"><div class="context-bar-fill" style="width:' + Math.round(intelligence.contextMetrics.contextUtilization * 100) + '%"></div></div>' +
+            '</div>'
+          : '') +
+          // Prompt Quality Card
+          (intelligence.promptQuality ?
+            '<div class="intel-card">' +
+              '<h3>Prompt Quality</h3>' +
+              '<div class="quality-gauge">' +
+                '<div class="gauge-value">' + intelligence.promptQuality.promptEfficiency + '</div>' +
+                '<div class="gauge-label">Efficiency</div>' +
+              '</div>' +
+              '<div class="intel-details">' +
+                '<div class="intel-row"><span>Avg Prompt Length</span><span>' + intelligence.promptQuality.avgPromptLength + ' words</span></div>' +
+                '<div class="intel-row"><span>Back-and-forth</span><span>' + intelligence.promptQuality.backAndForthScore + '%</span></div>' +
+              '</div>' +
+              (intelligence.promptQuality.insights.length > 0 ?
+                '<div class="pq-insights">' +
+                  intelligence.promptQuality.insights.map(function(ins) {
+                    var severityClass = ins.severity === 'critical' ? 'pq-critical' : ins.severity === 'warning' ? 'pq-warning' : 'pq-info';
+                    return '<div class="pq-insight ' + severityClass + '">' +
+                      '<div class="pq-insight-type">' + ins.type.replace(/-/g, ' ') + '</div>' +
+                      '<div class="pq-insight-desc">' + esc(ins.description) + '</div>' +
+                      '<div class="pq-insight-suggestion">' + esc(ins.suggestion) + '</div>' +
+                    '</div>';
+                  }).join('') +
+                '</div>'
+              : '<div class="muted" style="font-size:13px;margin-top:8px">No issues detected</div>') +
+            '</div>'
+          : '') +
         '</div>'
       : '') +
       (hasGit ?

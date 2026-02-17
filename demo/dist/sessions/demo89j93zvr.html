@@ -27,7 +27,7 @@
     .filter-select { padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; cursor: pointer; }
     .filter-select:focus { border-color: #555; }
     .export-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
-    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; }
+    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; cursor: pointer; }
     .btn-sm { background: #222; color: #ededed; border: 1px solid #333; }
     .btn-sm:hover { border-color: #555; }
     .tag { display: inline-block; padding: 2px 8px; background: #1a2a3a; color: #7dd3fc; border-radius: 4px; font-size: 12px; }
@@ -96,6 +96,19 @@
     .commit-hash { font-family: ui-monospace, monospace; color: #facc15; background: #2a2a1a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     .commit-message { flex: 1; }
     .commit-stats { color: #4ade80; white-space: nowrap; font-size: 12px; }
+    .context-bar { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; }
+    .context-bar-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #facc15, #f87171); border-radius: 3px; }
+    .quality-gauge { text-align: center; margin-bottom: 12px; }
+    .gauge-value { font-size: 32px; font-weight: 700; color: #4ade80; }
+    .gauge-label { font-size: 12px; color: #888; text-transform: uppercase; }
+    .pq-insights { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .pq-insight { padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .pq-critical { background: #3a1a1a; border-left: 3px solid #f87171; }
+    .pq-warning { background: #3a2a1a; border-left: 3px solid #fbbf24; }
+    .pq-info { background: #1a2a3a; border-left: 3px solid #38bdf8; }
+    .pq-insight-type { font-weight: 600; text-transform: capitalize; margin-bottom: 4px; }
+    .pq-insight-desc { color: #ccc; margin-bottom: 4px; }
+    .pq-insight-suggestion { color: #888; font-style: italic; }
   </style>
 </head>
 <body style="padding-top:48px;">
@@ -106,6 +119,7 @@
   <nav class="nav">
     <a href="/" class="nav-brand">Promptly</a>
     <a href="/" class="nav-link">Sessions</a>
+    <a href="/analytics" class="nav-link">Analytics</a>
     <a href="/digest" class="nav-link">Digest</a>
   </nav>
   <main class="container">
@@ -113,7 +127,7 @@
     <div id="detail"></div>
   </main>
   <script>
-    const s = {"id":"demo89j93zvr","ticket_id":"API-201","started_at":"2026-01-28T16:12:00.000Z","finished_at":"2026-01-28T17:16:00.000Z","status":"COMPLETED","total_tokens":14333,"prompt_tokens":4186,"response_tokens":10147,"message_count":19,"tool_call_count":36,"conversations":"[{\"role\":\"user\",\"content\":\"We need better test coverage for Rate limiting middleware.\",\"timestamp\":\"2026-01-28T16:12:00.000Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":252},{\"role\":\"assistant\",\"content\":\"Let me audit the current test coverage. I'll run the coverage report and identify the gaps.\",\"timestamp\":\"2026-01-28T16:15:22.105Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":762},{\"role\":\"user\",\"content\":\"Can you write integration tests for Rate limiting middleware?\",\"timestamp\":\"2026-01-28T16:18:44.210Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":580},{\"role\":\"assistant\",\"content\":\"Current coverage for this module is 42%. The main gaps are error handling paths and edge cases.\",\"timestamp\":\"2026-01-28T16:22:06.315Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1406,\"toolCalls\":[{\"name\":\"Edit\",\"input\":{\"path\":\"src/api/routes.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}}]},{\"role\":\"user\",\"content\":\"The tests for Rate limiting middleware are flaky. Can you investigate why?\",\"timestamp\":\"2026-01-28T16:25:28.421Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":460},{\"role\":\"assistant\",\"content\":\"I've written 12 new integration tests covering the full request-response cycle with realistic test data.\",\"timestamp\":\"2026-01-28T16:28:50.526Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1553},{\"role\":\"user\",\"content\":\"Let's add end-to-end tests for the Rate limiting middleware flow.\",\"timestamp\":\"2026-01-28T16:32:12.631Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":532},{\"role\":\"assistant\",\"content\":\"The flaky test was caused by a shared database state between test runs. I've isolated each test with a fresh DB transaction.\",\"timestamp\":\"2026-01-28T16:35:34.736Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":871,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"src/index.ts\"}},{\"name\":\"Grep\",\"input\":{\"pattern\":\"handleAuth\",\"path\":\"src/\"}}]},{\"role\":\"user\",\"content\":\"Can you set up test fixtures for Rate limiting middleware?\",\"timestamp\":\"2026-01-28T16:38:56.842Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":555},{\"role\":\"assistant\",\"content\":\"Test fixtures are set up in `tests/fixtures/API-201.ts`. They generate realistic test data using a factory pattern.\",\"timestamp\":\"2026-01-28T16:42:18.947Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1791,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"npm test -- --coverage\"}}]},{\"role\":\"user\",\"content\":\"Good. Can you also add tests for the error cases?\",\"timestamp\":\"2026-01-28T16:45:41.052Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":515},{\"role\":\"assistant\",\"content\":\"Error cases covered: invalid input, auth failure, rate limit exceeded, network timeout, and concurrent access.\",\"timestamp\":\"2026-01-28T16:49:03.157Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":647,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"tsconfig.json\"}},{\"name\":\"Read\",\"input\":{\"path\":\"tsconfig.json\"}}]},{\"role\":\"user\",\"content\":\"Let's add a test for the race condition we found earlier.\",\"timestamp\":\"2026-01-28T16:52:25.263Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":496},{\"role\":\"assistant\",\"content\":\"The race condition test uses a controlled clock and explicit promise ordering to reproduce deterministically.\",\"timestamp\":\"2026-01-28T16:55:47.368Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":776},{\"role\":\"user\",\"content\":\"Can you verify the tests run in both local and CI environments?\",\"timestamp\":\"2026-01-28T16:59:09.473Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":277},{\"role\":\"assistant\",\"content\":\"All tests pass locally and in CI. Coverage for this module is now 94%.\",\"timestamp\":\"2026-01-28T17:02:31.578Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":682,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/api/routes.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}},{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}}]},{\"role\":\"user\",\"content\":\"We need better test coverage for Rate limiting middleware.\",\"timestamp\":\"2026-01-28T17:05:53.684Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":178},{\"role\":\"assistant\",\"content\":\"Let me audit the current test coverage. I'll run the coverage report and identify the gaps.\",\"timestamp\":\"2026-01-28T17:09:15.789Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":1659,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"git diff --stat\"}},{\"name\":\"Read\",\"input\":{\"path\":\"src/middleware/auth.ts\"}},{\"name\":\"Write\",\"input\":{\"path\":\"src/utils/validate.ts\"}}]},{\"role\":\"user\",\"content\":\"Can you write integration tests for Rate limiting middleware?\",\"timestamp\":\"2026-01-28T17:12:37.894Z\",\"model\":\"claude-opus-4-5-20250414\",\"tokenCount\":341}]","models":"[\"claude-opus-4-5-20250414\"]","tags":"[]","client_tool":"claude-code","git_activity":"{\"branch\":\"test/api-201\",\"commits\":[{\"hash\":\"demozzy\",\"message\":\"test: optimize search query performance\",\"timestamp\":\"2026-01-28T16:44:00.000Z\",\"filesChanged\":1,\"insertions\":67,\"deletions\":58}],\"totalCommits\":1,\"totalInsertions\":67,\"totalDeletions\":58,\"totalFilesChanged\":1}","category":"testing","intelligence":"{\"qualityScore\":{\"overall\":3.9,\"planModeUsed\":true,\"oneShotSuccess\":false,\"correctionRate\":0.19,\"errorRecovery\":0.3,\"turnsToComplete\":19},\"toolUsage\":{\"toolCounts\":{\"Bash\":11,\"Read\":6,\"Edit\":10,\"Write\":2,\"Grep\":6,\"Glob\":1},\"skillInvocations\":[],\"totalToolCalls\":36,\"topTools\":[{\"name\":\"Bash\",\"count\":11},{\"name\":\"Edit\",\"count\":10},{\"name\":\"Read\",\"count\":6},{\"name\":\"Grep\",\"count\":6},{\"name\":\"Write\",\"count\":2},{\"name\":\"Glob\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":5,\"subagentTypes\":{\"Explore\":5},\"topTypes\":[{\"type\":\"Explore\",\"count\":5}]}}","created_at":"2026-01-28T16:12:00.000Z"};
+    const s = {"id":"demo89j93zvr","ticket_id":"API-201","started_at":"2026-02-06T13:10:02.000Z","finished_at":"2026-02-06T13:21:02.000Z","status":"COMPLETED","total_tokens":10669,"prompt_tokens":2401,"response_tokens":8268,"message_count":14,"tool_call_count":18,"conversations":"[{\"role\":\"user\",\"content\":\"Users are reporting Rate limiting middleware is broken. Can you investigate?\",\"timestamp\":\"2026-02-06T13:10:02.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":419},{\"role\":\"assistant\",\"content\":\"Let me investigate. I'll start by checking the error logs and tracing the request flow.\",\"timestamp\":\"2026-02-06T13:10:49.142Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1772,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"npx prisma migrate dev\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"git log --oneline -5\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"git log --oneline -5\"}}]},{\"role\":\"user\",\"content\":\"There's a bug with Rate limiting middleware. It fails intermittently in production.\",\"timestamp\":\"2026-02-06T13:11:36.285Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":189},{\"role\":\"assistant\",\"content\":\"I found the issue. The race condition happens when two requests hit the endpoint simultaneously because the lock isn't properly scoped.\",\"timestamp\":\"2026-02-06T13:12:23.428Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":870,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"curl -s http://localhost:3000/health\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npx prisma migrate dev\"}}]},{\"role\":\"user\",\"content\":\"The QA team found a regression in Rate limiting middleware. Let's fix it.\",\"timestamp\":\"2026-02-06T13:13:10.571Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":348},{\"role\":\"assistant\",\"content\":\"The fix is straightforward — I've added a mutex around the critical section and updated the error handling.\",\"timestamp\":\"2026-02-06T13:13:57.714Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":989},{\"role\":\"user\",\"content\":\"I'm seeing errors in the logs related to Rate limiting middleware.\",\"timestamp\":\"2026-02-06T13:14:44.857Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":301},{\"role\":\"assistant\",\"content\":\"I've added a regression test that reproduces the exact scenario. It was failing before the fix and passes now.\",\"timestamp\":\"2026-02-06T13:15:32.000Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1374,\"toolCalls\":[{\"name\":\"Write\",\"input\":{\"path\":\"src/utils/validate.ts\"}},{\"name\":\"Read\",\"input\":{\"path\":\"src/db.ts\"}},{\"name\":\"Read\",\"input\":{\"path\":\"package.json\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npx prisma migrate dev\"}}]},{\"role\":\"user\",\"content\":\"Can you check why Rate limiting middleware stopped working after the last deploy?\",\"timestamp\":\"2026-02-06T13:16:19.142Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":478},{\"role\":\"assistant\",\"content\":\"I checked all related endpoints. Two others had a similar pattern, so I fixed those preventively.\",\"timestamp\":\"2026-02-06T13:17:06.285Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1286,\"toolCalls\":[{\"name\":\"Write\",\"input\":{\"path\":\"src/utils/validate.ts\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"git diff --stat\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"npm test -- --coverage\"}},{\"name\":\"Edit\",\"input\":{\"path\":\"src/auth.ts\",\"old_string\":\"...\",\"new_string\":\"...\"}}]},{\"role\":\"user\",\"content\":\"Hmm, I think the root cause is different. Can you check the middleware?\",\"timestamp\":\"2026-02-06T13:17:53.428Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":171},{\"role\":\"assistant\",\"content\":\"Error logging is improved. I've added structured logging with request IDs so we can correlate across services.\",\"timestamp\":\"2026-02-06T13:18:40.571Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":745},{\"role\":\"user\",\"content\":\"That fixed the immediate issue, but can you add a regression test?\",\"timestamp\":\"2026-02-06T13:19:27.714Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":495},{\"role\":\"assistant\",\"content\":\"The error message now explains what happened and suggests the user retry. Much better UX than the generic 500.\",\"timestamp\":\"2026-02-06T13:20:14.857Z\",\"model\":\"claude-sonnet-4-5-20250929\",\"tokenCount\":1232,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"tsconfig.json\"}},{\"name\":\"Bash\",\"input\":{\"command\":\"curl -s http://localhost:3000/health\"}}]}]","models":"[\"claude-sonnet-4-5-20250929\",\"claude-opus-4-5-20250414\"]","tags":"[\"performance\",\"frontend\"]","client_tool":"claude-code","git_activity":null,"category":"bug-fix","intelligence":"{\"qualityScore\":{\"overall\":2.6,\"planModeUsed\":false,\"oneShotSuccess\":false,\"correctionRate\":0.14,\"errorRecovery\":1,\"turnsToComplete\":14},\"toolUsage\":{\"toolCounts\":{\"Bash\":2,\"Read\":6,\"Edit\":5,\"Write\":2,\"Grep\":1,\"Glob\":2},\"skillInvocations\":[\"/commit\",\"/review-pr\",\"/status\"],\"totalToolCalls\":18,\"topTools\":[{\"name\":\"Read\",\"count\":6},{\"name\":\"Edit\",\"count\":5},{\"name\":\"Bash\",\"count\":2},{\"name\":\"Write\",\"count\":2},{\"name\":\"Glob\",\"count\":2},{\"name\":\"Grep\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":5,\"subagentTypes\":{\"Explore\":2,\"Plan\":3},\"topTypes\":[{\"type\":\"Plan\",\"count\":3},{\"type\":\"Explore\",\"count\":2}]},\"contextMetrics\":{\"peakTokenCount\":101446,\"summarizationEvents\":3,\"tokenGrowthRate\":922,\"turnsBeforeSummarization\":8,\"contextUtilization\":0.51},\"promptQuality\":{\"insights\":[],\"promptEfficiency\":96,\"avgPromptLength\":113,\"backAndForthScore\":14}}","created_at":"2026-02-06T13:10:02.000Z"};
     const conversations = JSON.parse(s.conversations || '[]');
     const models = JSON.parse(s.models || '[]');
     const tags = JSON.parse(s.tags || '[]');
@@ -133,6 +147,7 @@
       '<div class="detail-header">' +
         '<h1>' + esc(s.ticket_id) + '</h1>' +
         '<span class="badge ' + (s.status === 'COMPLETED' ? 'badge-green' : 'badge-yellow') + '">' + s.status + '</span>' +
+        (conversations.length > 0 ? '<a href="/sessions/' + s.id + '/replay" class="btn btn-sm" style="margin-left:auto">Replay</a>' : '') +
       '</div>' +
       '<div class="stats-grid">' +
         stat('Duration', duration !== null ? duration + 'm' : 'In progress') +
@@ -210,6 +225,47 @@
               '</div>'
             : '<div class="muted" style="font-size:13px">No subagent data</div>') +
           '</div>' +
+          // Context Window Card
+          (intelligence.contextMetrics ?
+            '<div class="intel-card">' +
+              '<h3>Context Window</h3>' +
+              '<div class="intel-total">' + intelligence.contextMetrics.peakTokenCount.toLocaleString() + ' peak tokens</div>' +
+              '<div class="intel-details">' +
+                '<div class="intel-row"><span>Summarizations</span><span>' + intelligence.contextMetrics.summarizationEvents + '</span></div>' +
+                '<div class="intel-row"><span>Growth Rate</span><span>' + intelligence.contextMetrics.tokenGrowthRate.toLocaleString() + ' tokens/turn</span></div>' +
+                (intelligence.contextMetrics.turnsBeforeSummarization != null ?
+                  '<div class="intel-row"><span>Turns Before Summary</span><span>' + intelligence.contextMetrics.turnsBeforeSummarization + '</span></div>' : '') +
+                '<div class="intel-row"><span>Utilization</span><span>' + Math.round(intelligence.contextMetrics.contextUtilization * 100) + '%</span></div>' +
+              '</div>' +
+              '<div class="context-bar" style="margin-top:12px"><div class="context-bar-fill" style="width:' + Math.round(intelligence.contextMetrics.contextUtilization * 100) + '%"></div></div>' +
+            '</div>'
+          : '') +
+          // Prompt Quality Card
+          (intelligence.promptQuality ?
+            '<div class="intel-card">' +
+              '<h3>Prompt Quality</h3>' +
+              '<div class="quality-gauge">' +
+                '<div class="gauge-value">' + intelligence.promptQuality.promptEfficiency + '</div>' +
+                '<div class="gauge-label">Efficiency</div>' +
+              '</div>' +
+              '<div class="intel-details">' +
+                '<div class="intel-row"><span>Avg Prompt Length</span><span>' + intelligence.promptQuality.avgPromptLength + ' words</span></div>' +
+                '<div class="intel-row"><span>Back-and-forth</span><span>' + intelligence.promptQuality.backAndForthScore + '%</span></div>' +
+              '</div>' +
+              (intelligence.promptQuality.insights.length > 0 ?
+                '<div class="pq-insights">' +
+                  intelligence.promptQuality.insights.map(function(ins) {
+                    var severityClass = ins.severity === 'critical' ? 'pq-critical' : ins.severity === 'warning' ? 'pq-warning' : 'pq-info';
+                    return '<div class="pq-insight ' + severityClass + '">' +
+                      '<div class="pq-insight-type">' + ins.type.replace(/-/g, ' ') + '</div>' +
+                      '<div class="pq-insight-desc">' + esc(ins.description) + '</div>' +
+                      '<div class="pq-insight-suggestion">' + esc(ins.suggestion) + '</div>' +
+                    '</div>';
+                  }).join('') +
+                '</div>'
+              : '<div class="muted" style="font-size:13px;margin-top:8px">No issues detected</div>') +
+            '</div>'
+          : '') +
         '</div>'
       : '') +
       (hasGit ?

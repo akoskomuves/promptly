@@ -47,7 +47,7 @@ Use your AI coding tool as normal. The MCP server captures conversation turns in
 promptly finish
 ```
 
-This captures git activity (commits, branch, diff stats) from the session window, auto-categorizes the session (bug-fix, feature, refactor, investigation, testing, docs, or other), computes session intelligence (quality score, tool usage, subagent tracking), saves everything to SQLite, and clears the buffer. If you're in a git repo, the session detail will show which commits were made during the session.
+This captures git activity (commits, branch, diff stats, instruction file changes) from the session window, auto-categorizes the session (bug-fix, feature, refactor, investigation, testing, docs, or other), computes session intelligence (quality score, tool usage, subagent tracking, context window metrics, prompt quality analysis), saves everything to SQLite, and clears the buffer. If you're in a git repo, the session detail will show which commits were made during the session.
 
 Categories are determined automatically using:
 1. Ticket ID prefix (e.g., `fix/login-bug` → bug-fix, `feat/new-dashboard` → feature)
@@ -61,8 +61,10 @@ At finish time, the CLI analyzes conversation content to compute:
 - **Quality Score (1-5 stars)**: Based on plan mode usage, one-shot success, correction rate, and error recovery
 - **Tool Usage**: Which tools were used (Bash, Read, Edit, Grep, etc.) and how often, plus skill invocations
 - **Subagent Tracking**: How many Task agent spawns occurred and their types (Explore, Plan, etc.)
+- **Context Window Metrics**: Peak token count, summarization/compaction events, token growth rate, and context utilization ratio
+- **Prompt Quality Analysis**: Efficiency score (0-100), average prompt length, back-and-forth score, and actionable insights (vague prompts, excessive back-and-forth, missing context, scope creep, long prompts)
 
-Intelligence data appears in the session summary output, the local dashboard, reports, and CSV exports.
+Intelligence data appears in the session summary output, the local dashboard, analytics page, reports, and CSV exports.
 
 ### 6. Weekly Digest
 
@@ -82,6 +84,12 @@ Options:
 promptly serve
 # Open http://localhost:3000
 ```
+
+The dashboard includes:
+- **Sessions**: List and detail views with quality scores, tool usage, context window metrics, and prompt quality insights
+- **Analytics**: Cost-per-project trends, parallel session detection, skill usage analytics, instruction file effectiveness, and aggregate prompt quality
+- **Digest**: Weekly insights with week-over-week trends
+- **Session Replay**: Step through conversation turns with timing, playback controls (play/pause, speed, keyboard shortcuts), and cumulative stats
 
 ## Native /track Commands
 

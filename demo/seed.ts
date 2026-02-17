@@ -394,6 +394,27 @@ const BRANCH_NAMES: Record<Category, string[]> = {
   docs: ["docs/{project}-{num}", "docs/{slug}", "docs/update-{slug}"],
 };
 
+const INSTRUCTION_FILES_POOL = [
+  "CLAUDE.md",
+  ".cursorrules",
+  ".github/copilot-instructions.md",
+  "GEMINI.md",
+];
+
+const ALL_SKILLS = [
+  "/commit",
+  "/review-pr",
+  "/track",
+  "/help",
+  "/init",
+  "/clear",
+  "/compact",
+  "/doctor",
+  "/memory",
+  "/model",
+  "/status",
+];
+
 // ─── Generator ────────────────────────────────────────────────────────────
 
 function generateCommitMessage(category: Category): string {
@@ -478,6 +499,69 @@ function generateConversation(
   return { conversations, totalPromptTokens, totalResponseTokens };
 }
 
+function generateContextMetrics(turnCount: number): object {
+  const peakTokenCount = rand(20000, 180000);
+  const summarizationEvents = peakTokenCount > 100000 ? rand(1, 3) : 0;
+  const tokenGrowthRate = rand(500, 2500);
+  const turnsBeforeSummarization = summarizationEvents > 0 ? rand(8, 25) : null;
+  const contextUtilization = Math.round((peakTokenCount / 200000) * 100) / 100;
+
+  return {
+    peakTokenCount,
+    summarizationEvents,
+    tokenGrowthRate,
+    turnsBeforeSummarization,
+    contextUtilization: Math.min(1, contextUtilization),
+  };
+}
+
+function generatePromptQuality(turnCount: number): object {
+  const insights: object[] = [];
+  const types = ["vague-prompt", "excessive-back-and-forth", "missing-context", "scope-creep", "long-prompt"];
+  const severities = ["info", "warning", "critical"];
+
+  // ~40% chance of having insights
+  if (rng() < 0.4) {
+    const numInsights = rand(1, 3);
+    const usedTypes = new Set<string>();
+    for (let i = 0; i < numInsights; i++) {
+      const type = pick(types);
+      if (usedTypes.has(type)) continue;
+      usedTypes.add(type);
+      const severity = type === "excessive-back-and-forth" ? "warning" :
+                       type === "vague-prompt" ? pick(["warning", "critical"]) :
+                       pick(severities);
+      const descriptions: Record<string, string> = {
+        "vague-prompt": "Short prompt (" + rand(5, 25) + " words) followed by " + rand(3, 5) + " follow-up messages",
+        "excessive-back-and-forth": rand(3, 6) + " rounds of conversation without clear resolution",
+        "missing-context": "First prompt lacks specific code references (file paths, function names, error strings)",
+        "scope-creep": "Later prompts introduce significantly different topics from the initial request",
+        "long-prompt": "Prompt with " + rand(500, 1200) + " words — may include unnecessary context",
+      };
+      const suggestions: Record<string, string> = {
+        "vague-prompt": "Include more context upfront — file paths, expected behavior, and constraints reduce back-and-forth.",
+        "excessive-back-and-forth": "Consider providing complete requirements in a single message to reduce iterations.",
+        "missing-context": "Including file paths, function names, or error messages helps the AI locate relevant code faster.",
+        "scope-creep": "Consider starting a new session when the task scope changes significantly.",
+        "long-prompt": "Long prompts aren't always bad, but ensure key requirements are clearly stated at the start.",
+      };
+      insights.push({
+        type,
+        severity,
+        description: descriptions[type],
+        turnIndex: rand(0, turnCount - 1),
+        suggestion: suggestions[type],
+      });
+    }
+  }
+
+  const promptEfficiency = rand(55, 100);
+  const avgPromptLength = rand(15, 120);
+  const backAndForthScore = rand(5, 45);
+
+  return { insights, promptEfficiency, avgPromptLength, backAndForthScore };
+}
+
 function generateIntelligence(
   category: Category,
   turnCount: number,
@@ -505,9 +589,11 @@ function generateIntelligence(
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count);
 
+  // Skills — more variety now
   const skills: string[] = [];
-  if (rng() > 0.7) skills.push("/commit");
-  if (rng() > 0.85) skills.push("/review-pr");
+  if (rng() > 0.5) skills.push("/commit");
+  if (rng() > 0.7) skills.push("/review-pr");
+  if (rng() > 0.85) skills.push(pick(["/track", "/init", "/doctor", "/memory", "/model", "/status"]));
 
   // Subagent stats
   const totalSpawned = rand(0, 5);
@@ -543,6 +629,8 @@ function generateIntelligence(
         .map(([type, count]) => ({ type, count }))
         .sort((a, b) => b.count - a.count),
     },
+    contextMetrics: generateContextMetrics(turnCount),
+    promptQuality: generatePromptQuality(turnCount),
   };
 }
 
@@ -578,11 +666,23 @@ export function generateDemoSessions(referenceDate?: Date): DbSession[] {
       const sessionModels =
         rng() > 0.75 ? modelPool : [model];
 
-      // Session timing
+      // Session timing — create overlapping sessions ~15% of the time
       const hour = rand(9, 18);
       const minute = rand(0, 59);
       const startDate = new Date(date);
       startDate.setHours(hour, minute, rand(0, 59));
+
+      // For overlapping sessions, start within 10 minutes of previous session
+      if (i > 0 && sessions.length > 0 && rng() < 0.15) {
+        const prevSession = sessions[sessions.length - 1];
+        if (prevSession.finished_at) {
+          const prevStart = new Date(prevSession.started_at).getTime();
+          const prevEnd = new Date(prevSession.finished_at).getTime();
+          const overlapStart = new Date(prevStart + (prevEnd - prevStart) * 0.3);
+          startDate.setTime(overlapStart.getTime());
+        }
+      }
+
       const durationMin = rand(5, 75);
       const endDate = new Date(startDate.getTime() + durationMin * 60000);
 
@@ -642,6 +742,18 @@ export function generateDemoSessions(referenceDate?: Date): DbSession[] {
           };
         });
 
+        // ~15% of git sessions include instruction file changes
+        const instructionFileChanges: string[] = [];
+        if (rng() < 0.15) {
+          const numFiles = rand(1, 2);
+          for (let f = 0; f < numFiles; f++) {
+            const file = pick(INSTRUCTION_FILES_POOL);
+            if (!instructionFileChanges.includes(file)) {
+              instructionFileChanges.push(file);
+            }
+          }
+        }
+
         gitActivity = {
           branch,
           commits,
@@ -649,6 +761,7 @@ export function generateDemoSessions(referenceDate?: Date): DbSession[] {
           totalInsertions: commits.reduce((s, c) => s + c.insertions, 0),
           totalDeletions: commits.reduce((s, c) => s + c.deletions, 0),
           totalFilesChanged: commits.reduce((s, c) => s + c.filesChanged, 0),
+          ...(instructionFileChanges.length > 0 ? { instructionFileChanges } : {}),
         };
       }
 

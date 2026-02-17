@@ -31,7 +31,14 @@ Cloud/Self-Hosted (optional)
 
 Shared TypeScript types used by all packages. No runtime dependencies.
 
-Key types: `SessionStatus`, `ConversationTurn`, `LocalSession`, `CliConfig`, `ActiveSessionState`, `GitCommit`, `GitActivity`.
+Key types: `SessionStatus`, `ConversationTurn`, `LocalSession`, `CliConfig`, `ActiveSessionState`, `GitCommit`, `GitActivity`, `SessionIntelligence`, `QualityScore`, `ToolUsageStats`, `ContextWindowMetrics`, `PromptQualityAnalysis`, `PromptQualityInsight`, `ProjectCostTrend`, `ParallelSessionGroup`, `SkillUsageAnalytics`, `InstructionEffectiveness`.
+
+Key shared modules:
+- `analyze.ts` — Session intelligence computation (quality scoring, tool usage, context metrics, prompt quality, skill analytics, instruction effectiveness)
+- `trends.ts` — Cost-per-project trend computation
+- `parallel.ts` — Parallel/overlapping session detection
+- `digest.ts` — Weekly digest computation
+- `categorize.ts` — Session auto-categorization
 
 ### @getpromptly/mcp-server
 
@@ -86,6 +93,16 @@ Pages:
 - `/sessions` -- Session list
 - `/sessions/:id` -- Session detail with conversation view
 
+#### Local Dashboard Pages (promptly serve)
+
+| Route | Description |
+|-------|-------------|
+| `/` | Sessions list with search/filter |
+| `/sessions/:id` | Session detail with quality score, tool usage, context window, prompt quality |
+| `/sessions/:id/replay` | Session replay with timeline, playback controls, turn-by-turn view |
+| `/digest` | Weekly insights digest with trends |
+| `/analytics` | Cost-per-project trends, parallel sessions, skill usage, instruction effectiveness |
+
 ## Data Flow
 
 ### Local Mode
@@ -100,8 +117,10 @@ Pages:
 
 3. promptly finish
    -> Read buffer.json
-   -> Capture git activity (commits since startedAt, branch, diff stats)
-   -> Update SQLite row (conversations, tokens, git_activity, status: COMPLETED)
+   -> Capture git activity (commits since startedAt, branch, diff stats, instruction file changes)
+   -> Auto-categorize session (bug-fix, feature, refactor, etc.)
+   -> Compute session intelligence (quality score, tool usage, context metrics, prompt quality)
+   -> Update SQLite row (conversations, tokens, git_activity, category, intelligence, status: COMPLETED)
    -> Delete session.json and buffer.json
 ```
 
@@ -118,9 +137,10 @@ Pages:
 
 3. promptly finish
    -> Read buffer.json
-   -> Capture git activity (commits since startedAt, branch, diff stats)
-   -> Update SQLite row
-   -> POST /api/sessions/:id/upload (updates PostgreSQL, includes gitActivity)
+   -> Capture git activity (commits since startedAt, branch, diff stats, instruction file changes)
+   -> Auto-categorize session, compute session intelligence
+   -> Update SQLite row (category, intelligence, git_activity)
+   -> POST /api/sessions/:id/upload (updates PostgreSQL, includes gitActivity, category, intelligence)
    -> Delete session.json and buffer.json
 ```
 
@@ -142,7 +162,9 @@ CREATE TABLE sessions (
   models TEXT DEFAULT '[]',          -- JSON array
   tags TEXT DEFAULT '[]',            -- JSON array
   client_tool TEXT,
-  git_activity TEXT,                 -- JSON: { branch, commits[], totals }
+  git_activity TEXT,                 -- JSON: { branch, commits[], totals, instructionFileChanges? }
+  category TEXT,                     -- auto-categorized: bug-fix, feature, refactor, etc.
+  intelligence TEXT,                 -- JSON: SessionIntelligence (quality, tools, context, prompt quality)
   created_at TEXT DEFAULT (datetime('now'))
 );
 ```

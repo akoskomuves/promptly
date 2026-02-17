@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promptly - Session Replay</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #ededed; }
+    .nav { padding: 16px 24px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 24px; }
+    .nav-brand { color: #ededed; text-decoration: none; font-weight: 700; font-size: 18px; }
+    .nav-link { color: #888; text-decoration: none; font-size: 14px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { margin-bottom: 8px; }
+    h2 { margin: 24px 0 16px; }
+    .muted { color: #888; margin-bottom: 24px; }
+    .back-link { color: #888; text-decoration: none; font-size: 14px; }
+    .badge { font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+    .badge-green { background: #1a3a1a; color: #4ade80; }
+    .badge-yellow { background: #3a3a1a; color: #facc15; }
+    .empty { padding: 40px; text-align: center; color: #666; border: 1px dashed #333; border-radius: 8px; }
+    .empty code { background: #222; padding: 2px 6px; border-radius: 4px; }
+    .filters { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 200px; padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; }
+    .search-input:focus { border-color: #555; }
+    .search-input::placeholder { color: #555; }
+    .filter-select { padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; cursor: pointer; }
+    .filter-select:focus { border-color: #555; }
+    .export-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
+    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; cursor: pointer; }
+    .btn-sm { background: #222; color: #ededed; border: 1px solid #333; }
+    .btn-sm:hover { border-color: #555; }
+    .tag { display: inline-block; padding: 2px 8px; background: #1a2a3a; color: #7dd3fc; border-radius: 4px; font-size: 12px; }
+    .tag-remove { cursor: pointer; margin-left: 4px; opacity: 0.6; }
+    .tag-remove:hover { opacity: 1; }
+    .tags-section { margin: 24px 0; }
+    .tags-container { margin: 8px 0; }
+    .tag-input-row { display: flex; gap: 8px; align-items: center; }
+    .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .chart-card { background: #111; border-radius: 8px; padding: 16px; }
+    .chart-card h3 { font-size: 14px; color: #888; margin-bottom: 12px; font-weight: 500; }
+    .chart-svg { width: 100%; height: auto; }
+    .chart-label { fill: #666; font-size: 10px; }
+    .chart-hover:hover + rect { opacity: 0.8; }
+    .chart-tooltip { display: none; position: absolute; background: #222; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; pointer-events: none; white-space: nowrap; z-index: 10; border: 1px solid #444; }
+    .session-card { display: block; padding: 16px; border: 1px solid #222; border-radius: 8px; text-decoration: none; color: #ededed; margin-bottom: 8px; transition: border-color 0.15s; }
+    .session-card:hover { border-color: #444; }
+    .session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .session-header > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .session-meta { display: flex; gap: 24px; font-size: 13px; color: #888; flex-wrap: wrap; }
+    .detail-header { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 24px 0; padding: 16px; background: #111; border-radius: 8px; }
+    .stat-label { font-size: 12px; color: #888; }
+    .stat-value { font-size: 20px; font-weight: 600; }
+    .turn { padding: 16px; border-radius: 8px; margin-bottom: 8px; }
+    .turn-user { background: #1a1a2e; border-left: 3px solid #6366f1; }
+    .turn-assistant { background: #1a2e1a; border-left: 3px solid #4ade80; }
+    .turn-system { background: #2e2a1a; border-left: 3px solid #facc15; }
+    .turn-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: #888; }
+    .turn-role { font-weight: 600; text-transform: uppercase; }
+    .turn-content { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.5; font-family: inherit; }
+    .tool-details { margin-top: 8px; }
+    .tool-details summary { cursor: pointer; font-size: 12px; color: #888; }
+    .tool-pre { margin: 4px 0; padding: 8px; background: #0a0a0a; border-radius: 4px; font-size: 12px; overflow: auto; }
+    .category-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; text-transform: uppercase; }
+    .category-bug-fix { background: #3a1a1a; color: #f87171; }
+    .category-feature { background: #1a3a1a; color: #4ade80; }
+    .category-refactor { background: #1a1a3a; color: #818cf8; }
+    .category-investigation { background: #3a2a1a; color: #fbbf24; }
+    .category-testing { background: #1a2a3a; color: #38bdf8; }
+    .category-docs { background: #2a1a3a; color: #c084fc; }
+    .category-other { background: #222; color: #888; }
+    .quality-stars { color: #facc15; font-size: 12px; letter-spacing: 1px; }
+    .quality-stars-lg { color: #facc15; font-size: 22px; letter-spacing: 2px; }
+    .quality-number { font-size: 14px; color: #888; margin-left: 8px; }
+    .quality-rating { display: flex; align-items: center; margin-bottom: 12px; }
+    .intel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .intel-card { background: #111; border-radius: 8px; padding: 16px; }
+    .intel-card h3 { font-size: 13px; color: #888; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .intel-total { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+    .intel-details { display: flex; flex-direction: column; gap: 6px; }
+    .intel-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid #1a1a1a; }
+    .intel-row span:first-child { color: #888; }
+    .intel-skills { margin-top: 12px; font-size: 13px; }
+    .tool-bars { display: flex; flex-direction: column; gap: 6px; }
+    .tool-bar-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .tool-bar-name { width: 80px; color: #888; text-align: right; flex-shrink: 0; }
+    .tool-bar-track { flex: 1; height: 8px; background: #1a1a1a; border-radius: 4px; overflow: hidden; }
+    .tool-bar-fill { height: 100%; background: #6366f1; border-radius: 4px; }
+    .tool-bar-count { width: 30px; text-align: right; flex-shrink: 0; }
+    .git-badge { color: #facc15; }
+    .git-summary { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 16px; background: #111; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
+    .git-stats-inline { color: #4ade80; }
+    .commits-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px; }
+    .commit-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #111; border-radius: 6px; font-size: 13px; }
+    .commit-hash { font-family: ui-monospace, monospace; color: #facc15; background: #2a2a1a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .commit-message { flex: 1; }
+    .commit-stats { color: #4ade80; white-space: nowrap; font-size: 12px; }
+    .context-bar { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; }
+    .context-bar-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #facc15, #f87171); border-radius: 3px; }
+    .quality-gauge { text-align: center; margin-bottom: 12px; }
+    .gauge-value { font-size: 32px; font-weight: 700; color: #4ade80; }
+    .gauge-label { font-size: 12px; color: #888; text-transform: uppercase; }
+    .pq-insights { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .pq-insight { padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .pq-critical { background: #3a1a1a; border-left: 3px solid #f87171; }
+    .pq-warning { background: #3a2a1a; border-left: 3px solid #fbbf24; }
+    .pq-info { background: #1a2a3a; border-left: 3px solid #38bdf8; }
+    .pq-insight-type { font-weight: 600; text-transform: capitalize; margin-bottom: 4px; }
+    .pq-insight-desc { color: #ccc; margin-bottom: 4px; }
+    .pq-insight-suggestion { color: #888; font-style: italic; }
+  
+    .replay-controls { display: flex; align-items: center; gap: 8px; margin: 16px 0; padding: 12px 16px; background: #111; border-radius: 8px; }
+    .timeline-bar { position: relative; height: 24px; background: #111; border-radius: 12px; margin-bottom: 16px; overflow: visible; cursor: pointer; }
+    .timeline-progress { position: absolute; left: 0; top: 0; height: 100%; background: #1a1a2e; border-radius: 12px; transition: width 0.3s; }
+    .timeline-marker { position: absolute; top: 4px; width: 8px; height: 16px; border-radius: 4px; transform: translateX(-50%); cursor: pointer; opacity: 0.6; transition: opacity 0.2s, transform 0.2s; z-index: 1; }
+    .timeline-marker:hover, .timeline-marker.active { opacity: 1; transform: translateX(-50%) scaleY(1.2); }
+    .replay-stats { display: flex; gap: 24px; font-size: 13px; color: #888; margin-bottom: 16px; }
+    .turn-timing { text-align: center; color: #666; font-size: 12px; margin: 8px 0; padding: 4px; }
+    .replay-turn-active { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body style="padding-top:48px;">
+<div style="position:fixed;top:0;left:0;right:0;z-index:1000;background:#1a1a2e;border-bottom:1px solid #333;padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:14px;font-family:system-ui,-apple-system,sans-serif;">
+  <span style="color:#ccc;">This is a demo with sample data.</span>
+  <a href="https://getpromptly.xyz" style="color:#818cf8;text-decoration:none;font-weight:600;">Get Started &rarr;</a>
+</div>
+  <nav class="nav">
+    <a href="/" class="nav-brand">Promptly</a>
+    <a href="/" class="nav-link">Sessions</a>
+    <a href="/analytics" class="nav-link">Analytics</a>
+    <a href="/digest" class="nav-link">Digest</a>
+  </nav>
+  <main class="container">
+    <a href="javascript:history.back()" class="back-link">&larr; Back to session</a>
+    <div id="replay"></div>
+  </main>
+  <script>
+    const s = {"id":"demo7era50ws","ticket_id":"API-156","started_at":"2026-02-09T14:47:00.000Z","finished_at":"2026-02-09T15:52:00.000Z","status":"COMPLETED","total_tokens":6066,"prompt_tokens":2159,"response_tokens":3907,"message_count":9,"tool_call_count":11,"conversations":"[{\"role\":\"user\",\"content\":\"This module handling Pagination cursor implementation is getting messy. Let's clean it up.\",\"timestamp\":\"2026-02-09T14:47:00.000Z\",\"model\":\"gpt-4o\",\"tokenCount\":316},{\"role\":\"assistant\",\"content\":\"Let me analyze the current implementation first. I'll map out the dependencies and identify the cleanest refactoring path.\",\"timestamp\":\"2026-02-09T14:54:13.333Z\",\"model\":\"gpt-4o\",\"tokenCount\":693},{\"role\":\"user\",\"content\":\"I want to refactor Pagination cursor implementation to use the new patterns we agreed on.\",\"timestamp\":\"2026-02-09T15:01:26.666Z\",\"model\":\"gpt-4o\",\"tokenCount\":555},{\"role\":\"assistant\",\"content\":\"I've extracted the shared logic into a utility module at `src/utils/API-156.ts`. The duplication is eliminated.\",\"timestamp\":\"2026-02-09T15:08:40.000Z\",\"model\":\"gpt-4o\",\"tokenCount\":1791,\"toolCalls\":[{\"name\":\"Bash\",\"input\":{\"command\":\"npm test -- --coverage\"}}]},{\"role\":\"user\",\"content\":\"The Pagination cursor implementation code has too much duplication. Can you extract shared logic?\",\"timestamp\":\"2026-02-09T15:15:53.333Z\",\"model\":\"gpt-4o\",\"tokenCount\":515},{\"role\":\"assistant\",\"content\":\"The refactored code is more testable now — all dependencies are injected rather than imported directly.\",\"timestamp\":\"2026-02-09T15:23:06.666Z\",\"model\":\"gpt-4o\",\"tokenCount\":647,\"toolCalls\":[{\"name\":\"Read\",\"input\":{\"path\":\"tsconfig.json\"}},{\"name\":\"Read\",\"input\":{\"path\":\"tsconfig.json\"}}]},{\"role\":\"user\",\"content\":\"Let's refactor Pagination cursor implementation to be more testable.\",\"timestamp\":\"2026-02-09T15:30:20.000Z\",\"model\":\"gpt-4o\",\"tokenCount\":496},{\"role\":\"assistant\",\"content\":\"I've split the monolithic function into 4 focused helpers. Each has a single responsibility and is independently testable.\",\"timestamp\":\"2026-02-09T15:37:33.333Z\",\"model\":\"gpt-4o\",\"tokenCount\":776},{\"role\":\"user\",\"content\":\"Can you split this into smaller, focused functions?\",\"timestamp\":\"2026-02-09T15:44:46.666Z\",\"model\":\"gpt-4o\",\"tokenCount\":277}]","models":"[\"gpt-4o\"]","tags":"[]","client_tool":"codex-cli","git_activity":"{\"branch\":\"cleanup/api-156\",\"commits\":[{\"hash\":\"demo7ss\",\"message\":\"refactor: remove deprecated UserList code\",\"timestamp\":\"2026-02-09T15:03:15.000Z\",\"filesChanged\":3,\"insertions\":65,\"deletions\":65},{\"hash\":\"demo6xz\",\"message\":\"refactor: implement update endpoint\",\"timestamp\":\"2026-02-09T15:19:30.000Z\",\"filesChanged\":6,\"insertions\":93,\"deletions\":45},{\"hash\":\"demo526\",\"message\":\"refactor: fix race condition in auth\",\"timestamp\":\"2026-02-09T15:35:45.000Z\",\"filesChanged\":11,\"insertions\":99,\"deletions\":52}],\"totalCommits\":3,\"totalInsertions\":257,\"totalDeletions\":162,\"totalFilesChanged\":20}","category":"refactor","intelligence":"{\"qualityScore\":{\"overall\":3.6,\"planModeUsed\":true,\"oneShotSuccess\":false,\"correctionRate\":0.04,\"errorRecovery\":1,\"turnsToComplete\":9},\"toolUsage\":{\"toolCounts\":{\"Bash\":3,\"Read\":2,\"Edit\":1,\"Write\":4,\"Grep\":1},\"skillInvocations\":[\"/review-pr\",\"/track\"],\"totalToolCalls\":11,\"topTools\":[{\"name\":\"Write\",\"count\":4},{\"name\":\"Bash\",\"count\":3},{\"name\":\"Read\",\"count\":2},{\"name\":\"Edit\",\"count\":1},{\"name\":\"Grep\",\"count\":1}]},\"subagentStats\":{\"totalSpawned\":2,\"subagentTypes\":{\"Explore\":2},\"topTypes\":[{\"type\":\"Explore\",\"count\":2}]},\"contextMetrics\":{\"peakTokenCount\":63343,\"summarizationEvents\":0,\"tokenGrowthRate\":1486,\"turnsBeforeSummarization\":null,\"contextUtilization\":0.32},\"promptQuality\":{\"insights\":[],\"promptEfficiency\":70,\"avgPromptLength\":91,\"backAndForthScore\":19}}","created_at":"2026-02-09T14:47:00.000Z"};
+    const conversations = JSON.parse(s.conversations || '[]');
+    const el = document.getElementById('replay');
+
+    if (conversations.length === 0) {
+      el.innerHTML = '<div class="empty"><p>No conversation data to replay.</p></div>';
+    } else {
+      var currentTurn = 0;
+      var playing = false;
+      var playTimer = null;
+      var speed = 1;
+      var sessionStart = new Date(conversations[0].timestamp).getTime();
+      var sessionEnd = new Date(conversations[conversations.length - 1].timestamp).getTime();
+      var totalDurationMs = sessionEnd - sessionStart;
+
+      // Build timeline markers
+      var timelineMarkers = conversations.map(function(t, i) {
+        var pos = totalDurationMs > 0 ? ((new Date(t.timestamp).getTime() - sessionStart) / totalDurationMs * 100) : (i / conversations.length * 100);
+        var color = t.role === 'user' ? '#6366f1' : t.role === 'assistant' ? '#4ade80' : '#facc15';
+        return '<div class="timeline-marker" data-turn="' + i + '" style="left:' + pos + '%;background:' + color + '" title="Turn ' + (i + 1) + ' (' + t.role + ')"></div>';
+      }).join('');
+
+      el.innerHTML =
+        '<h1>Session Replay: ' + esc(s.ticket_id) + '</h1>' +
+        '<div class="replay-controls">' +
+          '<button id="btn-prev" class="btn btn-sm" title="Previous">&larr;</button>' +
+          '<button id="btn-play" class="btn btn-sm" title="Play/Pause">Play</button>' +
+          '<button id="btn-next" class="btn btn-sm" title="Next">&rarr;</button>' +
+          '<select id="speed-select" class="filter-select" style="padding:6px 10px">' +
+            '<option value="1"' + (speed === 1 ? ' selected' : '') + '>1x</option>' +
+            '<option value="2">2x</option>' +
+            '<option value="5">5x</option>' +
+          '</select>' +
+          '<span id="turn-counter" class="muted" style="margin-left:auto">Turn 1 of ' + conversations.length + '</span>' +
+        '</div>' +
+        '<div class="timeline-bar">' +
+          '<div id="timeline-progress" class="timeline-progress"></div>' +
+          timelineMarkers +
+        '</div>' +
+        '<div id="cumulative-stats" class="replay-stats"></div>' +
+        '<div id="turn-display"></div>';
+
+      var btnPrev = document.getElementById('btn-prev');
+      var btnPlay = document.getElementById('btn-play');
+      var btnNext = document.getElementById('btn-next');
+      var speedSelect = document.getElementById('speed-select');
+      var turnCounter = document.getElementById('turn-counter');
+      var turnDisplay = document.getElementById('turn-display');
+      var timelineProgress = document.getElementById('timeline-progress');
+      var cumulativeStats = document.getElementById('cumulative-stats');
+
+      function renderTurn(idx) {
+        currentTurn = Math.max(0, Math.min(idx, conversations.length - 1));
+        var t = conversations[currentTurn];
+        turnCounter.textContent = 'Turn ' + (currentTurn + 1) + ' of ' + conversations.length;
+
+        // Timeline progress
+        var pos = totalDurationMs > 0 ? ((new Date(t.timestamp).getTime() - sessionStart) / totalDurationMs * 100) : (currentTurn / conversations.length * 100);
+        timelineProgress.style.width = pos + '%';
+
+        // Timing since previous turn
+        var timingHtml = '';
+        if (currentTurn > 0) {
+          var prev = conversations[currentTurn - 1];
+          var gap = (new Date(t.timestamp).getTime() - new Date(prev.timestamp).getTime()) / 1000;
+          if (gap >= 60) {
+            timingHtml = '<div class="turn-timing">' + Math.floor(gap / 60) + 'm ' + Math.round(gap % 60) + 's later</div>';
+          } else {
+            timingHtml = '<div class="turn-timing">' + Math.round(gap) + 's later</div>';
+          }
+        }
+
+        // Tool calls
+        var toolHtml = '';
+        if (t.toolCalls && t.toolCalls.length) {
+          toolHtml = '<details class="tool-details" open><summary>' + t.toolCalls.length + ' tool call(s)</summary>' +
+            t.toolCalls.map(function(tc) { return '<pre class="tool-pre">' + esc(tc.name) + ': ' + esc(JSON.stringify(tc.input, null, 2)) + '</pre>'; }).join('') +
+            '</details>';
+        }
+
+        var roleClass = 'turn-' + t.role;
+        var time = new Date(t.timestamp).toLocaleTimeString();
+        var meta = [time, t.model, t.tokenCount ? t.tokenCount + ' tokens' : ''].filter(Boolean).join(' | ');
+
+        turnDisplay.innerHTML = timingHtml +
+          '<div class="turn ' + roleClass + ' replay-turn-active">' +
+            '<div class="turn-header"><span class="turn-role">' + t.role.toUpperCase() + '</span><span class="muted">' + meta + '</span></div>' +
+            '<pre class="turn-content">' + esc(t.content) + '</pre>' +
+            toolHtml +
+          '</div>';
+
+        // Cumulative stats
+        var cumTokens = 0, cumTools = 0, userMsgs = 0, assistantMsgs = 0;
+        for (var i = 0; i <= currentTurn; i++) {
+          cumTokens += conversations[i].tokenCount || 0;
+          if (conversations[i].toolCalls) cumTools += conversations[i].toolCalls.length;
+          if (conversations[i].role === 'user') userMsgs++;
+          if (conversations[i].role === 'assistant') assistantMsgs++;
+        }
+        cumulativeStats.innerHTML =
+          '<span>Tokens so far: ' + cumTokens.toLocaleString() + '</span>' +
+          '<span>Tool calls: ' + cumTools + '</span>' +
+          '<span>User: ' + userMsgs + ' | Assistant: ' + assistantMsgs + '</span>';
+
+        // Highlight active marker
+        document.querySelectorAll('.timeline-marker').forEach(function(m, i) {
+          m.classList.toggle('active', i === currentTurn);
+        });
+      }
+
+      function getDelay() {
+        if (currentTurn >= conversations.length - 1) return 1000;
+        var curr = new Date(conversations[currentTurn].timestamp).getTime();
+        var next = new Date(conversations[currentTurn + 1].timestamp).getTime();
+        var realGap = next - curr;
+        // Cap at 5 seconds real time, minimum 300ms
+        return Math.max(300, Math.min(5000, realGap / speed));
+      }
+
+      function play() {
+        if (playing) return;
+        playing = true;
+        btnPlay.textContent = 'Pause';
+        advance();
+      }
+
+      function pause() {
+        playing = false;
+        btnPlay.textContent = 'Play';
+        if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+      }
+
+      function advance() {
+        if (!playing) return;
+        if (currentTurn >= conversations.length - 1) { pause(); return; }
+        var delay = getDelay();
+        playTimer = setTimeout(function() {
+          renderTurn(currentTurn + 1);
+          advance();
+        }, delay);
+      }
+
+      btnPlay.addEventListener('click', function() { playing ? pause() : play(); });
+      btnPrev.addEventListener('click', function() { pause(); renderTurn(currentTurn - 1); });
+      btnNext.addEventListener('click', function() { pause(); renderTurn(currentTurn + 1); });
+      speedSelect.addEventListener('change', function() {
+        speed = parseInt(speedSelect.value);
+        if (playing) { pause(); play(); }
+      });
+
+      // Click on timeline markers
+      document.querySelectorAll('.timeline-marker').forEach(function(m) {
+        m.addEventListener('click', function() {
+          pause();
+          renderTurn(parseInt(m.dataset.turn));
+        });
+      });
+
+      // Keyboard shortcuts
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') { pause(); renderTurn(currentTurn - 1); }
+        else if (e.key === 'ArrowRight') { pause(); renderTurn(currentTurn + 1); }
+        else if (e.key === ' ') { e.preventDefault(); playing ? pause() : play(); }
+      });
+
+      renderTurn(0);
+    }
+
+    function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  </script>
+
+<script>
+  window.__demoToast = function(msg) {
+    var existing = document.getElementById('demo-toast');
+    if (existing) existing.remove();
+    var t = document.createElement('div');
+    t.id = 'demo-toast';
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#ededed;padding:10px 20px;border-radius:8px;font-size:14px;z-index:10000;transition:opacity 0.3s;';
+    document.body.appendChild(t);
+    setTimeout(function() { t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, 2500);
+  };
+</script>
+</body>
+</html>

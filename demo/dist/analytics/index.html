@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promptly - Analytics</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #ededed; }
+    .nav { padding: 16px 24px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 24px; }
+    .nav-brand { color: #ededed; text-decoration: none; font-weight: 700; font-size: 18px; }
+    .nav-link { color: #888; text-decoration: none; font-size: 14px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { margin-bottom: 8px; }
+    h2 { margin: 24px 0 16px; }
+    .muted { color: #888; margin-bottom: 24px; }
+    .back-link { color: #888; text-decoration: none; font-size: 14px; }
+    .badge { font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+    .badge-green { background: #1a3a1a; color: #4ade80; }
+    .badge-yellow { background: #3a3a1a; color: #facc15; }
+    .empty { padding: 40px; text-align: center; color: #666; border: 1px dashed #333; border-radius: 8px; }
+    .empty code { background: #222; padding: 2px 6px; border-radius: 4px; }
+    .filters { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 200px; padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; }
+    .search-input:focus { border-color: #555; }
+    .search-input::placeholder { color: #555; }
+    .filter-select { padding: 10px 14px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 14px; outline: none; cursor: pointer; }
+    .filter-select:focus { border-color: #555; }
+    .export-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
+    .btn { padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 13px; cursor: pointer; }
+    .btn-sm { background: #222; color: #ededed; border: 1px solid #333; }
+    .btn-sm:hover { border-color: #555; }
+    .tag { display: inline-block; padding: 2px 8px; background: #1a2a3a; color: #7dd3fc; border-radius: 4px; font-size: 12px; }
+    .tag-remove { cursor: pointer; margin-left: 4px; opacity: 0.6; }
+    .tag-remove:hover { opacity: 1; }
+    .tags-section { margin: 24px 0; }
+    .tags-container { margin: 8px 0; }
+    .tag-input-row { display: flex; gap: 8px; align-items: center; }
+    .charts-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .chart-card { background: #111; border-radius: 8px; padding: 16px; }
+    .chart-card h3 { font-size: 14px; color: #888; margin-bottom: 12px; font-weight: 500; }
+    .chart-svg { width: 100%; height: auto; }
+    .chart-label { fill: #666; font-size: 10px; }
+    .chart-hover:hover + rect { opacity: 0.8; }
+    .chart-tooltip { display: none; position: absolute; background: #222; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 12px; pointer-events: none; white-space: nowrap; z-index: 10; border: 1px solid #444; }
+    .session-card { display: block; padding: 16px; border: 1px solid #222; border-radius: 8px; text-decoration: none; color: #ededed; margin-bottom: 8px; transition: border-color 0.15s; }
+    .session-card:hover { border-color: #444; }
+    .session-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .session-header > div { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .session-meta { display: flex; gap: 24px; font-size: 13px; color: #888; flex-wrap: wrap; }
+    .detail-header { display: flex; align-items: center; gap: 16px; margin-top: 16px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 24px 0; padding: 16px; background: #111; border-radius: 8px; }
+    .stat-label { font-size: 12px; color: #888; }
+    .stat-value { font-size: 20px; font-weight: 600; }
+    .turn { padding: 16px; border-radius: 8px; margin-bottom: 8px; }
+    .turn-user { background: #1a1a2e; border-left: 3px solid #6366f1; }
+    .turn-assistant { background: #1a2e1a; border-left: 3px solid #4ade80; }
+    .turn-system { background: #2e2a1a; border-left: 3px solid #facc15; }
+    .turn-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px; color: #888; }
+    .turn-role { font-weight: 600; text-transform: uppercase; }
+    .turn-content { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.5; font-family: inherit; }
+    .tool-details { margin-top: 8px; }
+    .tool-details summary { cursor: pointer; font-size: 12px; color: #888; }
+    .tool-pre { margin: 4px 0; padding: 8px; background: #0a0a0a; border-radius: 4px; font-size: 12px; overflow: auto; }
+    .category-badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; text-transform: uppercase; }
+    .category-bug-fix { background: #3a1a1a; color: #f87171; }
+    .category-feature { background: #1a3a1a; color: #4ade80; }
+    .category-refactor { background: #1a1a3a; color: #818cf8; }
+    .category-investigation { background: #3a2a1a; color: #fbbf24; }
+    .category-testing { background: #1a2a3a; color: #38bdf8; }
+    .category-docs { background: #2a1a3a; color: #c084fc; }
+    .category-other { background: #222; color: #888; }
+    .quality-stars { color: #facc15; font-size: 12px; letter-spacing: 1px; }
+    .quality-stars-lg { color: #facc15; font-size: 22px; letter-spacing: 2px; }
+    .quality-number { font-size: 14px; color: #888; margin-left: 8px; }
+    .quality-rating { display: flex; align-items: center; margin-bottom: 12px; }
+    .intel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .intel-card { background: #111; border-radius: 8px; padding: 16px; }
+    .intel-card h3 { font-size: 13px; color: #888; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .intel-total { font-size: 20px; font-weight: 600; margin-bottom: 12px; }
+    .intel-details { display: flex; flex-direction: column; gap: 6px; }
+    .intel-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid #1a1a1a; }
+    .intel-row span:first-child { color: #888; }
+    .intel-skills { margin-top: 12px; font-size: 13px; }
+    .tool-bars { display: flex; flex-direction: column; gap: 6px; }
+    .tool-bar-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .tool-bar-name { width: 80px; color: #888; text-align: right; flex-shrink: 0; }
+    .tool-bar-track { flex: 1; height: 8px; background: #1a1a1a; border-radius: 4px; overflow: hidden; }
+    .tool-bar-fill { height: 100%; background: #6366f1; border-radius: 4px; }
+    .tool-bar-count { width: 30px; text-align: right; flex-shrink: 0; }
+    .git-badge { color: #facc15; }
+    .git-summary { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 12px 16px; background: #111; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
+    .git-stats-inline { color: #4ade80; }
+    .commits-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px; }
+    .commit-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: #111; border-radius: 6px; font-size: 13px; }
+    .commit-hash { font-family: ui-monospace, monospace; color: #facc15; background: #2a2a1a; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    .commit-message { flex: 1; }
+    .commit-stats { color: #4ade80; white-space: nowrap; font-size: 12px; }
+    .context-bar { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; }
+    .context-bar-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #facc15, #f87171); border-radius: 3px; }
+    .quality-gauge { text-align: center; margin-bottom: 12px; }
+    .gauge-value { font-size: 32px; font-weight: 700; color: #4ade80; }
+    .gauge-label { font-size: 12px; color: #888; text-transform: uppercase; }
+    .pq-insights { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .pq-insight { padding: 8px 12px; border-radius: 6px; font-size: 13px; }
+    .pq-critical { background: #3a1a1a; border-left: 3px solid #f87171; }
+    .pq-warning { background: #3a2a1a; border-left: 3px solid #fbbf24; }
+    .pq-info { background: #1a2a3a; border-left: 3px solid #38bdf8; }
+    .pq-insight-type { font-weight: 600; text-transform: capitalize; margin-bottom: 4px; }
+    .pq-insight-desc { color: #ccc; margin-bottom: 4px; }
+    .pq-insight-suggestion { color: #888; font-style: italic; }
+  
+    .analytics-table { background: #111; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
+    .analytics-table-header { display: grid; grid-template-columns: 150px 120px 1fr 120px; padding: 12px 16px; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #222; }
+    .analytics-table-row { display: grid; grid-template-columns: 150px 120px 1fr 120px; padding: 10px 16px; font-size: 14px; border-bottom: 1px solid #1a1a1a; align-items: center; }
+    .analytics-table-row:last-child { border-bottom: none; }
+    .skill-header { grid-template-columns: 150px 100px 80px 140px 160px; }
+    .skill-row { grid-template-columns: 150px 100px 80px 140px 160px; }
+    .skill-name { font-family: ui-monospace, monospace; color: #7dd3fc; }
+    .sparkline { display: flex; align-items: flex-end; gap: 2px; height: 30px; }
+    .spark-bar { width: 20px; background: #6366f1; border-radius: 2px 2px 0 0; min-height: 2px; cursor: default; }
+    .spark-bar:hover { background: #818cf8; }
+    .project-name { font-weight: 600; font-family: ui-monospace, monospace; }
+    .change-up { color: #4ade80; }
+    .change-down { color: #f87171; }
+    .change-flat { color: #888; }
+    .parallel-groups { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+    .parallel-card { background: #111; border-radius: 8px; padding: 16px; }
+    .parallel-tickets { margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+    .parallel-meta { display: flex; gap: 16px; font-size: 13px; color: #888; flex-wrap: wrap; }
+    .instruction-card { background: #111; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+    .instruction-verdict { font-size: 16px; font-weight: 500; margin-bottom: 16px; }
+    .instruction-comparison { display: flex; align-items: center; gap: 24px; margin-bottom: 16px; }
+    .instruction-metric { text-align: center; }
+    .instruction-metric-value { font-size: 24px; font-weight: 700; }
+    .instruction-metric-label { font-size: 12px; color: #888; text-transform: uppercase; }
+    .instruction-arrow { font-size: 24px; color: #888; }
+    .instruction-changes { display: flex; flex-direction: column; gap: 6px; }
+    .instruction-change { display: flex; gap: 12px; align-items: center; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #1a1a1a; }
+    .instruction-change:last-child { border-bottom: none; }
+    .pq-aggregate { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .pq-agg-card { background: #111; border-radius: 8px; padding: 20px; text-align: center; }
+    .pq-agg-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
+    .pq-agg-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  </style>
+</head>
+<body style="padding-top:48px;">
+<div style="position:fixed;top:0;left:0;right:0;z-index:1000;background:#1a1a2e;border-bottom:1px solid #333;padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:14px;font-family:system-ui,-apple-system,sans-serif;">
+  <span style="color:#ccc;">This is a demo with sample data.</span>
+  <a href="https://getpromptly.xyz" style="color:#818cf8;text-decoration:none;font-weight:600;">Get Started &rarr;</a>
+</div>
+  <nav class="nav">
+    <a href="/" class="nav-brand">Promptly</a>
+    <a href="/" class="nav-link">Sessions</a>
+    <a href="/analytics" class="nav-link">Analytics</a>
+    <a href="/digest" class="nav-link">Digest</a>
+  </nav>
+  <main class="container">
+    <h1>Analytics</h1>
+    <p class="muted">Cross-session insights and trends</p>
+    <div id="analytics"></div>
+  </main>
+  <script>
+    const data = {"projectTrends":[{"project":"UI","periods":[{"label":"Jan 21 – Jan 27","startDate":"2026-01-20T23:00:00.000Z","cost":0,"tokens":0,"sessions":0},{"label":"Jan 28 – Feb 3","startDate":"2026-01-27T23:00:00.000Z","cost":0,"tokens":0,"sessions":0},{"label":"Feb 4 – Feb 10","startDate":"2026-02-03T23:00:00.000Z","cost":0,"tokens":40074,"sessions":4},{"label":"Feb 11 – Feb 17","startDate":"2026-02-10T23:00:00.000Z","cost":0,"tokens":45194,"sessions":3}],"totalCost":0,"trendDirection":"rising","changePercent":13},{"project":"API","periods":[{"label":"Jan 21 – Jan 27","startDate":"2026-01-20T23:00:00.000Z","cost":0,"tokens":0,"sessions":0},{"label":"Jan 28 – Feb 3","startDate":"2026-01-27T23:00:00.000Z","cost":0,"tokens":0,"sessions":0},{"label":"Feb 4 – Feb 10","startDate":"2026-02-03T23:00:00.000Z","cost":0,"tokens":32176,"sessions":4},{"label":"Feb 11 – Feb 17","startDate":"2026-02-10T23:00:00.000Z","cost":0,"tokens":36591,"sessions":3}],"totalCost":0,"trendDirection":"rising","changePercent":14},{"project":"AUTH","periods":[{"label":"Jan 21 – Jan 27","startDate":"2026-01-20T23:00:00.000Z","cost":0,"tokens":0,"sessions":0},{"label":"Jan 28 – Feb 3","startDate":"2026-01-27T23:00:00.000Z","cost":0,"tokens":0,"sessions":0},{"label":"Feb 4 – Feb 10","startDate":"2026-02-03T23:00:00.000Z","cost":0,"tokens":28603,"sessions":3},{"label":"Feb 11 – Feb 17","startDate":"2026-02-10T23:00:00.000Z","cost":0,"tokens":21768,"sessions":2}],"totalCost":0,"trendDirection":"falling","changePercent":-24},{"project":"PERF","periods":[{"label":"Jan 21 – Jan 27","startDate":"2026-01-20T23:00:00.000Z","cost":0,"tokens":0,"sessions":0},{"label":"Jan 28 – Feb 3","startDate":"2026-01-27T23:00:00.000Z","cost":0,"tokens":0,"sessions":0},{"label":"Feb 4 – Feb 10","startDate":"2026-02-03T23:00:00.000Z","cost":0,"tokens":7817,"sessions":1},{"label":"Feb 11 – Feb 17","startDate":"2026-02-10T23:00:00.000Z","cost":0,"tokens":39162,"sessions":3}],"totalCost":0,"trendDirection":"rising","changePercent":401},{"project":"DB","periods":[{"label":"Jan 21 – Jan 27","startDate":"2026-01-20T23:00:00.000Z","cost":0,"tokens":0,"sessions":0},{"label":"Jan 28 – Feb 3","startDate":"2026-01-27T23:00:00.000Z","cost":0,"tokens":0,"sessions":0},{"label":"Feb 4 – Feb 10","startDate":"2026-02-03T23:00:00.000Z","cost":0,"tokens":15180,"sessions":2},{"label":"Feb 11 – Feb 17","startDate":"2026-02-10T23:00:00.000Z","cost":0,"tokens":22370,"sessions":2}],"totalCost":0,"trendDirection":"rising","changePercent":47}],"parallelSessions":[{"sessions":[{"id":"demo18xhb72y","ticketId":"PERF-67"},{"id":"demo0d5ic83z","ticketId":"PERF-14"}],"overlapStart":"2026-02-11T11:48:40.000Z","overlapEnd":"2026-02-11T12:29:58.000Z","overlapMinutes":41,"combinedTokens":24399},{"sessions":[{"id":"demotcjrjfb7","ticketId":"API-178"},{"id":"demou7bqiea6","ticketId":"AUTH-55"}],"overlapStart":"2026-02-16T13:49:26.000Z","overlapEnd":"2026-02-16T14:10:01.000Z","overlapMinutes":21,"combinedTokens":25624},{"sessions":[{"id":"demoegd2xtpl","ticketId":"AUTH-215"},{"id":"demodlk3yuqm","ticketId":"AUTH-87"}],"overlapStart":"2026-02-04T17:16:40.000Z","overlapEnd":"2026-02-04T17:33:40.000Z","overlapMinutes":17,"combinedTokens":18714},{"sessions":[{"id":"democqr4zvrn","ticketId":"UI-78"},{"id":"demobvy50wso","ticketId":"UI-134"}],"overlapStart":"2026-02-05T16:30:04.000Z","overlapEnd":"2026-02-05T16:40:04.000Z","overlapMinutes":10,"combinedTokens":21932},{"sessions":[{"id":"demo4tce83zv","ticketId":"DB-55"},{"id":"demo3yjf940w","ticketId":"DB-102"}],"overlapStart":"2026-02-10T17:14:12.000Z","overlapEnd":"2026-02-10T17:21:12.000Z","overlapMinutes":7,"combinedTokens":15180}],"skillUsage":{"skills":[{"name":"/commit","totalInvocations":14,"sessionsUsed":14,"avgQualityWhenUsed":4,"avgQualityWhenNotUsed":3.5},{"name":"/review-pr","totalInvocations":14,"sessionsUsed":14,"avgQualityWhenUsed":3.7,"avgQualityWhenNotUsed":3.5},{"name":"/init","totalInvocations":2,"sessionsUsed":2,"avgQualityWhenUsed":3.9,"avgQualityWhenNotUsed":3.5},{"name":"/doctor","totalInvocations":2,"sessionsUsed":2,"avgQualityWhenUsed":4.4,"avgQualityWhenNotUsed":3.5},{"name":"/status","totalInvocations":1,"sessionsUsed":1,"avgQualityWhenUsed":2.6,"avgQualityWhenNotUsed":3.5},{"name":"/track","totalInvocations":1,"sessionsUsed":1,"avgQualityWhenUsed":3.6,"avgQualityWhenNotUsed":3.5}]},"instructionEffectiveness":{"changes":[{"sessionId":"demoxsqmfb72","ticketId":"API-445","date":"2026-02-13T09:15:43.000Z","files":["GEMINI.md"]}],"beforeAvgQuality":3.5,"afterAvgQuality":3.7,"verdict":"Quality remained stable (3.5 -> 3.7) after instruction file updates."},"avgPromptEfficiency":79,"avgPromptLength":78,"sessionsWithInsights":5};
+    const el = document.getElementById('analytics');
+    var html = '';
+
+    // ─── Project Cost Trends ────────────────────────────────────
+    if (data.projectTrends && data.projectTrends.length > 0) {
+      html += '<h2>Project Cost Trends</h2>';
+      html += '<div class="analytics-table">';
+      html += '<div class="analytics-table-header"><span>Project</span><span>Trend</span><span>Periods</span><span>Total Tokens</span></div>';
+      data.projectTrends.forEach(function(t) {
+        var trendIcon = t.trendDirection === 'rising' ? '<span class="change-up">Rising</span>' :
+                        t.trendDirection === 'falling' ? '<span class="change-down">Falling</span>' :
+                        '<span class="change-flat">Stable</span>';
+        var changeStr = t.changePercent != null ? ' (' + (t.changePercent > 0 ? '+' : '') + t.changePercent + '%)' : '';
+        var sparkline = '<div class="sparkline">' + t.periods.map(function(p) {
+          var maxTokens = Math.max.apply(null, t.periods.map(function(pp) { return pp.tokens; })) || 1;
+          var h = Math.max(2, Math.round((p.tokens / maxTokens) * 28));
+          return '<div class="spark-bar" style="height:' + h + 'px" title="' + p.label + ': ' + p.tokens.toLocaleString() + ' tokens, ' + p.sessions + ' sessions"></div>';
+        }).join('') + '</div>';
+        var totalTokens = t.periods.reduce(function(s, p) { return s + p.tokens; }, 0);
+        html += '<div class="analytics-table-row"><span class="project-name">' + esc(t.project) + '</span><span>' + trendIcon + changeStr + '</span><span>' + sparkline + '</span><span>' + totalTokens.toLocaleString() + '</span></div>';
+      });
+      html += '</div>';
+    }
+
+    // ─── Parallel Sessions ──────────────────────────────────────
+    if (data.parallelSessions && data.parallelSessions.length > 0) {
+      html += '<h2>Parallel Sessions</h2>';
+      html += '<p class="muted" style="margin-bottom:12px">' + data.parallelSessions.length + ' overlapping session group' + (data.parallelSessions.length !== 1 ? 's' : '') + ' detected</p>';
+      html += '<div class="parallel-groups">';
+      data.parallelSessions.forEach(function(g) {
+        var tickets = g.sessions.map(function(s) { return '<span class="tag">' + esc(s.ticketId) + '</span>'; }).join(' ');
+        var start = new Date(g.overlapStart).toLocaleString();
+        var end = new Date(g.overlapEnd).toLocaleString();
+        html += '<div class="parallel-card">' +
+          '<div class="parallel-tickets">' + tickets + '</div>' +
+          '<div class="parallel-meta">' +
+            '<span>' + g.overlapMinutes + 'm overlap</span>' +
+            '<span>' + g.combinedTokens.toLocaleString() + ' combined tokens</span>' +
+            '<span class="muted">' + start + ' - ' + end + '</span>' +
+          '</div>' +
+        '</div>';
+      });
+      html += '</div>';
+    }
+
+    // ─── Skill Usage ────────────────────────────────────────────
+    if (data.skillUsage && data.skillUsage.skills.length > 0) {
+      html += '<h2>Skill Usage</h2>';
+      html += '<div class="analytics-table">';
+      html += '<div class="analytics-table-header skill-header"><span>Skill</span><span>Invocations</span><span>Sessions</span><span>Avg Quality (Used)</span><span>Avg Quality (Not Used)</span></div>';
+      data.skillUsage.skills.forEach(function(sk) {
+        html += '<div class="analytics-table-row skill-row">' +
+          '<span class="skill-name">' + esc(sk.name) + '</span>' +
+          '<span>' + sk.totalInvocations + '</span>' +
+          '<span>' + sk.sessionsUsed + '</span>' +
+          '<span>' + (sk.avgQualityWhenUsed != null ? sk.avgQualityWhenUsed + '/5' : '-') + '</span>' +
+          '<span>' + (sk.avgQualityWhenNotUsed != null ? sk.avgQualityWhenNotUsed + '/5' : '-') + '</span>' +
+        '</div>';
+      });
+      html += '</div>';
+    }
+
+    // ─── Instruction Effectiveness ──────────────────────────────
+    if (data.instructionEffectiveness && data.instructionEffectiveness.changes.length > 0) {
+      html += '<h2>Instruction File Effectiveness</h2>';
+      html += '<div class="instruction-card">';
+      html += '<div class="instruction-verdict">' + esc(data.instructionEffectiveness.verdict) + '</div>';
+      if (data.instructionEffectiveness.beforeAvgQuality != null && data.instructionEffectiveness.afterAvgQuality != null) {
+        html += '<div class="instruction-comparison">';
+        html += '<div class="instruction-metric"><div class="instruction-metric-value">' + data.instructionEffectiveness.beforeAvgQuality + '/5</div><div class="instruction-metric-label">Before</div></div>';
+        html += '<div class="instruction-arrow">&#x2192;</div>';
+        html += '<div class="instruction-metric"><div class="instruction-metric-value">' + data.instructionEffectiveness.afterAvgQuality + '/5</div><div class="instruction-metric-label">After</div></div>';
+        html += '</div>';
+      }
+      html += '<div class="instruction-changes">';
+      data.instructionEffectiveness.changes.forEach(function(c) {
+        html += '<div class="instruction-change">' +
+          '<span class="muted">' + new Date(c.date).toLocaleDateString() + '</span>' +
+          '<span>' + esc(c.ticketId) + '</span>' +
+          '<span>' + c.files.map(function(f) { return '<span class="tag">' + esc(f) + '</span>'; }).join(' ') + '</span>' +
+        '</div>';
+      });
+      html += '</div></div>';
+    }
+
+    // ─── Aggregate Prompt Quality ───────────────────────────────
+    if (data.avgPromptEfficiency != null) {
+      html += '<h2>Prompt Quality (Aggregate)</h2>';
+      html += '<div class="pq-aggregate">';
+      html += '<div class="pq-agg-card"><div class="pq-agg-value">' + data.avgPromptEfficiency + '</div><div class="pq-agg-label">Avg Efficiency</div></div>';
+      html += '<div class="pq-agg-card"><div class="pq-agg-value">' + data.avgPromptLength + '</div><div class="pq-agg-label">Avg Prompt Length (words)</div></div>';
+      html += '<div class="pq-agg-card"><div class="pq-agg-value">' + data.sessionsWithInsights + '</div><div class="pq-agg-label">Sessions with Insights</div></div>';
+      html += '</div>';
+    }
+
+    if (html === '') {
+      html = '<div class="empty"><p>Not enough data for analytics. Complete more sessions to see trends.</p></div>';
+    }
+
+    el.innerHTML = html;
+
+    function esc(s) { if (!s) return ''; var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  </script>
+
+<script>
+  window.__demoToast = function(msg) {
+    var existing = document.getElementById('demo-toast');
+    if (existing) existing.remove();
+    var t = document.createElement('div');
+    t.id = 'demo-toast';
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#ededed;padding:10px 20px;border-radius:8px;font-size:14px;z-index:10000;transition:opacity 0.3s;';
+    document.body.appendChild(t);
+    setTimeout(function() { t.style.opacity = '0'; setTimeout(function() { t.remove(); }, 300); }, 2500);
+  };
+</script>
+</body>
+</html>

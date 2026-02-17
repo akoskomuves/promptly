@@ -73,8 +73,8 @@ Claude Code / Gemini CLI / Codex CLI
 1. `promptly init` auto-detects installed tools and lets you select which to configure.
 2. `promptly start` creates a session and begins logging.
 3. The MCP server captures all conversation turns, tokens, and tool calls.
-4. `promptly finish` captures git activity (commits, branch, diff stats), auto-categorizes the session (bug-fix, feature, refactor, etc.), computes session intelligence (quality score, tool usage, subagent stats), writes data to SQLite, and clears the buffer.
-5. `promptly serve` serves a dashboard reading from SQLite.
+4. `promptly finish` captures git activity (commits, branch, diff stats, instruction file changes), auto-categorizes the session (bug-fix, feature, refactor, etc.), computes session intelligence (quality score, tool usage, subagent stats, context window metrics, prompt quality analysis), writes data to SQLite, and clears the buffer.
+5. `promptly serve` serves a dashboard with sessions, analytics, digest, and session replay.
 
 ## Data Storage
 
