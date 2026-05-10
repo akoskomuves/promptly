@@ -62,7 +62,7 @@ export function writeBuffer(session: LocalSession): void {
 }
 
 /** Initialize a new buffer when session starts */
-export function initBuffer(ticketId: string, clientTool?: string): LocalSession {
+export function initBuffer(ticketId: string, clientTool?: string, externalSessionId?: string): LocalSession {
   const session: LocalSession = {
     ticketId,
     startedAt: new Date().toISOString(),
@@ -70,6 +70,7 @@ export function initBuffer(ticketId: string, clientTool?: string): LocalSession 
     conversations: [],
     models: [],
     clientTool,
+    externalSessionId,
     totalTokens: 0,
     promptTokens: 0,
     responseTokens: 0,
@@ -161,6 +162,11 @@ export function writeToSqlite(session: LocalSession): void {
     } catch {
       // column already exists
     }
+    try {
+      db.exec("ALTER TABLE sessions ADD COLUMN external_session_id TEXT");
+    } catch {
+      // column already exists
+    }
 
     const activeSession = getActiveSession();
     const id = activeSession?.sessionId ??
@@ -174,26 +180,28 @@ export function writeToSqlite(session: LocalSession): void {
           finished_at = ?, status = 'COMPLETED',
           total_tokens = ?, prompt_tokens = ?, response_tokens = ?,
           message_count = ?, tool_call_count = ?,
-          conversations = ?, models = ?, client_tool = ?, started_at = ?
+          conversations = ?, models = ?, client_tool = ?, started_at = ?,
+          external_session_id = ?
         WHERE id = ?
       `).run(
         session.finishedAt, session.totalTokens, session.promptTokens,
         session.responseTokens, session.messageCount, session.toolCallCount,
         JSON.stringify(session.conversations), JSON.stringify(session.models),
-        session.clientTool ?? null, session.startedAt, id
+        session.clientTool ?? null, session.startedAt,
+        session.externalSessionId ?? null, id
       );
     } else {
       db.prepare(`
         INSERT INTO sessions (id, ticket_id, started_at, finished_at, status,
           total_tokens, prompt_tokens, response_tokens, message_count, tool_call_count,
-          conversations, models, client_tool)
-        VALUES (?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?, ?, ?, ?, ?)
+          conversations, models, client_tool, external_session_id)
+        VALUES (?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         id, session.ticketId, session.startedAt, session.finishedAt,
         session.totalTokens, session.promptTokens, session.responseTokens,
         session.messageCount, session.toolCallCount,
         JSON.stringify(session.conversations), JSON.stringify(session.models),
-        session.clientTool ?? null
+        session.clientTool ?? null, session.externalSessionId ?? null
       );
     }
     db.close();

@@ -88,6 +88,7 @@ export function finishSession(
     gitActivity?: unknown;
     category?: string;
     intelligence?: unknown;
+    clientTool?: string;
   }
 ): void {
   const db = getDb();
@@ -105,7 +106,8 @@ export function finishSession(
       started_at = ?,
       git_activity = ?,
       category = ?,
-      intelligence = ?
+      intelligence = ?,
+      client_tool = COALESCE(?, client_tool)
     WHERE id = ?`
   ).run(
     data.finishedAt,
@@ -120,6 +122,7 @@ export function finishSession(
     data.gitActivity ? JSON.stringify(data.gitActivity) : null,
     data.category ?? null,
     data.intelligence ? JSON.stringify(data.intelligence) : null,
+    data.clientTool ?? null,
     id
   );
 }

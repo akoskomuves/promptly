@@ -37,6 +37,8 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 
 During setup, `promptly init` can enable **auto-prompt** — your AI tool will offer session tracking at the start of each conversation without any manual action.
 
+> **vs `ccusage` / `Codeburn`**: those parse Claude Code's local JSONL logs to show your token spend. Promptly adds multi-tool coverage (Cursor, Codex CLI, Gemini CLI, VS Code), git/ticket attribution, session intelligence, and an optional team dashboard.
+
 ## Commands
 
 | Command | Description |
@@ -57,6 +59,8 @@ During setup, `promptly init` can enable **auto-prompt** — your AI tool will o
 | `promptly skill install` | Install /track command for all configured tools |
 | `promptly skill uninstall` | Remove /track skill |
 | `promptly skill status` | Check skill installation status |
+| `promptly import-claude` | Import a past Claude Code session from `~/.claude/projects` (no MCP setup needed) |
+| `promptly optimize` | Analyze session history and surface AI spend leak recommendations |
 
 All commands support direct arguments for scripting/automation.
 

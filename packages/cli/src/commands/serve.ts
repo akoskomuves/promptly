@@ -1,15 +1,17 @@
 import http from "node:http";
 import https from "node:https";
-import { listSessions, listAllSessions, getSession, countSessions, updateSessionTags } from "../db.js";
-import { sessionsListPage, sessionDetailPage, digestPage, analyticsPage, sessionReplayPage } from "../dashboard.js";
+import { listSessions, listAllSessions, listSessionsInRange, getSession, countSessions, updateSessionTags } from "../db.js";
+import { sessionsListPage, sessionDetailPage, digestPage, analyticsPage, sessionReplayPage, optimizePage } from "../dashboard.js";
 import {
   computeWeeklyDigest,
   computeProjectCostTrends,
   detectParallelSessions,
   computeSkillUsageAnalytics,
   computeInstructionEffectiveness,
+  runOptimizationDetectors,
 } from "@getpromptly/shared";
 import type { DigestSessionInput } from "@getpromptly/shared";
+import { toOptimizeInput } from "../optimize-data.js";
 
 let pricingCache: { data: Record<string, { input_price_per_million: number; output_price_per_million: number }> | null; fetchedAt: number } = { data: null, fetchedAt: 0 };
 
@@ -37,6 +39,12 @@ function fetchPricing(): Promise<Record<string, { input_price_per_million: numbe
     req.on("error", () => resolve(pricingCache.data));
     req.on("timeout", () => { req.destroy(); resolve(pricingCache.data); });
   });
+}
+
+function clampDays(raw: string | null): number {
+  const n = raw ? parseInt(raw, 10) : 90;
+  if (!Number.isFinite(n) || n < 1) return 90;
+  return Math.min(365, n);
 }
 
 /** Parse session rows into DigestSessionInput format */
@@ -290,6 +298,58 @@ export async function serveCommand(options: { port?: string }) {
       const digest = computeWeeklyDigest(inputs);
       res.writeHead(200, { "Content-Type": "text/html" });
       res.end(digestPage(JSON.stringify(digest)));
+      return;
+    }
+
+    // Optimize: API + HTML page
+    if (url.pathname === "/api/optimize" && req.method === "GET") {
+      const days = clampDays(url.searchParams.get("days"));
+      const to = new Date();
+      const from = new Date(to.getTime() - days * 86400000);
+      const rows = listSessionsInRange(from.toISOString(), to.toISOString());
+      fetchPricing().then((pricing) => {
+        const recs = runOptimizationDetectors({
+          sessions: toOptimizeInput(rows),
+          pricing,
+          windowDays: days,
+        });
+        const totalEstimatedMonthlySavings =
+          Math.round(recs.reduce((s, r) => s + r.estimatedMonthlySavings, 0) * 100) / 100;
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          sessions: rows.length,
+          windowDays: days,
+          pricingAvailable: !!pricing,
+          recs,
+          totalEstimatedMonthlySavings,
+        }));
+      });
+      return;
+    }
+
+    if (url.pathname === "/optimize") {
+      const days = clampDays(url.searchParams.get("days"));
+      const to = new Date();
+      const from = new Date(to.getTime() - days * 86400000);
+      const rows = listSessionsInRange(from.toISOString(), to.toISOString());
+      fetchPricing().then((pricing) => {
+        const recs = runOptimizationDetectors({
+          sessions: toOptimizeInput(rows),
+          pricing,
+          windowDays: days,
+        });
+        const totalEstimatedMonthlySavings =
+          Math.round(recs.reduce((s, r) => s + r.estimatedMonthlySavings, 0) * 100) / 100;
+        const data = {
+          sessions: rows.length,
+          windowDays: days,
+          pricingAvailable: !!pricing,
+          recs,
+          totalEstimatedMonthlySavings,
+        };
+        res.writeHead(200, { "Content-Type": "text/html" });
+        res.end(optimizePage(JSON.stringify(data), days));
+      });
       return;
     }
 

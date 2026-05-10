@@ -11,6 +11,8 @@ import { teamsCommand } from "./commands/teams.js";
 import { teamCommand } from "./commands/team.js";
 import { skillCommand } from "./commands/skill.js";
 import { digestCommand } from "./commands/digest.js";
+import { importClaudeCommand } from "./commands/import-claude.js";
+import { optimizeCommand } from "./commands/optimize.js";
 
 const program = new Command();
 
@@ -80,5 +82,22 @@ program
   .option("--from <date>", "Start of current period (YYYY-MM-DD)")
   .option("--to <date>", "End of current period (YYYY-MM-DD)")
   .action(digestCommand);
+
+program
+  .command("import-claude")
+  .description("Import a past Claude Code session from ~/.claude/projects (no MCP setup needed)")
+  .option("--session <id>", "Claude session ID (or prefix) to import non-interactively")
+  .option("--ticket <id>", "Ticket ID to tag the imported session with")
+  .option("--list", "List recent Claude Code sessions and exit")
+  .action(importClaudeCommand);
+
+program
+  .command("optimize")
+  .description("Analyze session history and surface AI spend leak recommendations")
+  .option("--days <n>", "Lookback window in days (default 90)")
+  .option("--from <date>", "Start date (YYYY-MM-DD) — overrides --days")
+  .option("--to <date>", "End date (YYYY-MM-DD)")
+  .option("--json", "Print recommendations as JSON")
+  .action(optimizeCommand);
 
 program.parse();

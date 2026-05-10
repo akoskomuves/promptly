@@ -1,6 +1,6 @@
 {
   "name": "@getpromptly/cli",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "Developer prompt analytics CLI - capture and review AI coding sessions",
   "type": "module",
   "license": "MIT",
@@ -16,7 +16,15 @@
     "analytics",
     "claude",
     "mcp",
-    "developer-tools"
+    "developer-tools",
+    "cost-tracking",
+    "session-tracking",
+    "llm",
+    "cursor",
+    "gemini",
+    "codex",
+    "developer-productivity",
+    "ai-coding"
   ],
   "bin": {
     "promptly": "dist/index.js"
@@ -31,7 +39,7 @@
   "dependencies": {
     "@getpromptly/shared": "workspace:*",
     "@inquirer/prompts": "^8.2.0",
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "^12.0.0",
     "commander": "^12.0.0",
     "open": "^10.0.0"
   },

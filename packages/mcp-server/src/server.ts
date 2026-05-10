@@ -48,14 +48,16 @@ export function createServer(): McpServer {
       }
 
       const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const externalSessionId = process.env.CLAUDE_CODE_SESSION_ID || undefined;
       writeActiveSession({
         sessionId,
         ticketId,
         startedAt: new Date().toISOString(),
         apiUrl: "http://localhost:3001",
+        externalSessionId,
       });
       const clientTool = getClientToolName(server);
-      initBuffer(ticketId, clientTool);
+      initBuffer(ticketId, clientTool, externalSessionId);
       return {
         content: [
           {

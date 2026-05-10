@@ -73,6 +73,7 @@ export interface LocalSession {
   messageCount: number;
   toolCallCount: number;
   intelligence?: SessionIntelligence;
+  externalSessionId?: string;
 }
 
 // API request to create a session
@@ -370,4 +371,5 @@ export interface ActiveSessionState {
   ticketId: string;
   startedAt: string;
   apiUrl: string;
+  externalSessionId?: string;
 }

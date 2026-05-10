@@ -50,6 +50,7 @@ export async function startCommand(ticketId?: string) {
   }
 
   const config = loadConfig();
+  const externalSessionId = process.env.CLAUDE_CODE_SESSION_ID || undefined;
 
   if (isLocalMode(config)) {
     const sessionId = generateId();
@@ -60,6 +61,7 @@ export async function startCommand(ticketId?: string) {
       ticketId,
       startedAt: new Date().toISOString(),
       apiUrl: config.apiUrl,
+      externalSessionId,
     });
 
     console.log(`Session started for ${ticketId}`);
@@ -110,6 +112,7 @@ export async function startCommand(ticketId?: string) {
       ticketId,
       startedAt: new Date().toISOString(),
       apiUrl: config.apiUrl,
+      externalSessionId,
     });
 
     console.log(`Session started for ${ticketId}`);

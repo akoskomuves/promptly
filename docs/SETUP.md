@@ -91,6 +91,44 @@ The dashboard includes:
 - **Digest**: Weekly insights with week-over-week trends
 - **Session Replay**: Step through conversation turns with timing, playback controls (play/pause, speed, keyboard shortcuts), and cumulative stats
 
+### Cost Estimates
+
+Promptly fetches model pricing from the live `vizra.ai` pricing API (covers 290+ models). Sessions whose model has no pricing entry display `—` instead of a misleading `$0.00` — hover the cell or check the session detail page to see which model is missing pricing data.
+
+## Optimization — Find AI Spend Leaks
+
+Once you have a few weeks of session data, `promptly optimize` analyzes patterns and surfaces dollar-quantified recommendations. Available as a CLI command, a dashboard page (`/optimize`), and a JSON API (`/api/optimize?days=N`).
+
+```bash
+promptly optimize                       # Last 90 days (default)
+promptly optimize --days 30             # Last 30 days
+promptly optimize --from 2026-04-01     # Custom range
+promptly optimize --json                # Machine-readable output
+```
+
+The dashboard view at `http://localhost:3000/optimize` shows the same recommendations visually, with severity-colored cards, a window selector (7/30/90/180/365 days), and evidence rows that link back to the session detail page that triggered each rec.
+
+Current detectors (v1):
+- **Model misuse** — sessions where a premium model (Opus, GPT-5.5 Pro, Gemini Ultra) handled tasks completed in ≤5 turns with quality ≥4/5 and low correction rate. A cheaper-tier model in the same family would likely have produced the same outcome.
+- **Context bloat** — sessions where peak context utilization hit 80%+, at least one summarization/compaction event triggered, and the total token volume was material (≥100K). Splitting these into smaller scopes saves the context-restoration overhead. The waste estimate is intentionally conservative (only the overage above 80% counts, halved as a calibration).
+- **Repeated corrections** — phrases the user repeats across 5+ distinct sessions ("don't use any types", "always run the linter") signal an instruction-file gap. Adding the rule to CLAUDE.md / .cursorrules / GEMINI.md prevents the friction. Direct $ savings are small (a few cents/mo); the real win is fewer re-do cycles and less compounding context bloat.
+
+Each recommendation shows the top 3-5 evidence rows. Aggregate monthly savings is extrapolated from the analysis window — model misuse uses real prices, context bloat uses a conservative formula, repeated corrections estimate ~1500 wasted tokens per occurrence at the user's median model price.
+
+> **Privacy note:** Repeated-corrections evidence shows verbatim user messages. The CLI and local dashboard are single-user and read from your local SQLite — nothing is uploaded. Cloud team aggregation of correction patterns is deliberately not yet implemented.
+
+## Importing Past Claude Code Sessions
+
+If you used Claude Code before installing Promptly (or want to skip MCP setup entirely), you can import existing sessions directly from `~/.claude/projects`:
+
+```bash
+promptly import-claude              # Interactive picker over the 20 most recent sessions
+promptly import-claude --list       # List recent sessions and exit
+promptly import-claude --session <prefix> --ticket AUTH-123   # Non-interactive
+```
+
+Imported sessions parse the JSONL conversation log, capture models, token usage, and tool calls, run the same auto-categorization and intelligence analysis as live sessions, and tag the AI tool field as `claude-code` so they show up alongside live Claude Code sessions in the dashboard's filters and analytics. Git activity isn't captured (the import is post-hoc), so commits/diff stats are omitted on those sessions.
+
 ## Native /track Commands
 
 `promptly init` offers to install native `/track` commands for supported AI tools. This provides slash commands for session tracking directly in your AI tool.

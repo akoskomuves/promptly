@@ -1,9 +1,17 @@
+// Defense against user-controlled content containing literal "</script>" that
+// would close the inline script tag prematurely. < is valid JSON-encoded
+// "<" — JSON parsers accept it, HTML parsers never see a closing tag.
+function embedJson(json: string): string {
+  return json.replace(/</g, "\\u003c");
+}
+
 function navHtml(): string {
   return `<nav class="nav">
     <a href="/" class="nav-brand">Promptly</a>
     <a href="/" class="nav-link">Sessions</a>
     <a href="/analytics" class="nav-link">Analytics</a>
     <a href="/digest" class="nav-link">Digest</a>
+    <a href="/optimize" class="nav-link">Optimize</a>
   </nav>`;
 }
 
@@ -51,7 +59,7 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
     <div id="sessions"></div>
   </main>
   <script>
-    const allSessions = ${sessionsJson};
+    const allSessions = ${embedJson(sessionsJson)};
     const container = document.getElementById('sessions');
     const searchInput = document.getElementById('search');
     const statusFilter = document.getElementById('filter-status');
@@ -171,18 +179,25 @@ export function sessionsListPage(sessionsJson: string, total: number): string {
       const models = JSON.parse(session.models || '[]');
       if (!models.length || (!session.prompt_tokens && !session.response_tokens)) return null;
       const p = findPrice(models[0]);
-      if (!p) return null;
+      if (!p) return { display: '—', missing: models[0] };
       const cost = (session.prompt_tokens / 1e6) * p.input_price_per_million + (session.response_tokens / 1e6) * p.output_price_per_million;
-      if (cost < 0.01) return '<$0.01';
-      return '$' + cost.toFixed(2);
+      return { display: cost < 0.01 ? '<$0.01' : '$' + cost.toFixed(2), missing: null };
     }
 
     function updateCosts() {
       allSessions.forEach(s => {
         const el = document.querySelector('.cost[data-id="' + s.id + '"]');
         if (el) {
-          const cost = calcCost(s);
-          el.textContent = cost || '';
+          const r = calcCost(s);
+          if (!r) { el.textContent = ''; return; }
+          el.textContent = r.display;
+          if (r.missing) {
+            el.title = 'Estimate unavailable: no pricing data for ' + r.missing;
+            el.style.opacity = '0.5';
+          } else {
+            el.title = '';
+            el.style.opacity = '';
+          }
         }
       });
     }
@@ -301,7 +316,7 @@ export function sessionDetailPage(sessionJson: string): string {
     <div id="detail"></div>
   </main>
   <script>
-    const s = ${sessionJson};
+    const s = ${embedJson(sessionJson)};
     const conversations = JSON.parse(s.conversations || '[]');
     const models = JSON.parse(s.models || '[]');
     const tags = JSON.parse(s.tags || '[]');
@@ -494,12 +509,19 @@ export function sessionDetailPage(sessionJson: string): string {
             if (model.includes(key) || key.includes(model)) { p = val; break; }
           }
         }
+        const costEl = document.getElementById('cost-stat');
+        const valEl = document.getElementById('cost-value');
+        costEl.style.display = '';
         if (p) {
           const cost = (s.prompt_tokens / 1e6) * p.input_price_per_million + (s.response_tokens / 1e6) * p.output_price_per_million;
-          const costEl = document.getElementById('cost-stat');
-          const valEl = document.getElementById('cost-value');
-          costEl.style.display = '';
           valEl.textContent = cost < 0.01 ? '<$0.01' : '$' + cost.toFixed(2);
+        } else {
+          valEl.innerHTML = '<span style="opacity:0.5">—</span>';
+          valEl.title = 'No pricing data for ' + models[0];
+          const hint = document.createElement('div');
+          hint.style.cssText = 'font-size:11px;opacity:0.5;margin-top:4px';
+          hint.textContent = 'Estimate unavailable for ' + models[0];
+          valEl.parentElement.appendChild(hint);
         }
       }).catch(() => {});
     }
@@ -570,7 +592,7 @@ export function analyticsPage(analyticsJson: string): string {
     <div id="analytics"></div>
   </main>
   <script>
-    const data = ${analyticsJson};
+    const data = ${embedJson(analyticsJson)};
     const el = document.getElementById('analytics');
     var html = '';
 
@@ -694,7 +716,7 @@ export function sessionReplayPage(sessionJson: string): string {
     <div id="replay"></div>
   </main>
   <script>
-    const s = ${sessionJson};
+    const s = ${embedJson(sessionJson)};
     const conversations = JSON.parse(s.conversations || '[]');
     const el = document.getElementById('replay');
 
@@ -868,6 +890,141 @@ export function sessionReplayPage(sessionJson: string): string {
 </html>`;
 }
 
+export function optimizePage(dataJson: string, currentDays: number): string {
+  const dayOptions = [7, 30, 90, 180, 365];
+  const optionsHtml = dayOptions
+    .map(
+      (d) =>
+        `<option value="${d}"${d === currentDays ? " selected" : ""}>${d} days</option>`
+    )
+    .join("");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promptly - Optimize</title>
+  <style>${baseStyles()}${optimizeStyles()}</style>
+</head>
+<body>
+  ${navHtml()}
+  <main class="container">
+    <div class="opt-header">
+      <h1>Optimize</h1>
+      <div>
+        <label class="muted" style="font-size:13px;margin-right:8px">Window:</label>
+        <select class="opt-window-select" id="window-select">
+          ${optionsHtml}
+        </select>
+      </div>
+    </div>
+    <p class="muted" id="subtitle"></p>
+    <div id="optimize"></div>
+  </main>
+  <script>
+    const data = ${embedJson(dataJson)};
+    const root = document.getElementById('optimize');
+    const subtitle = document.getElementById('subtitle');
+    const windowSelect = document.getElementById('window-select');
+
+    windowSelect.addEventListener('change', function() {
+      window.location.href = '/optimize?days=' + windowSelect.value;
+    });
+
+    function esc(s) { if (s == null) return ''; var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+    function fmt(n) { return Number(n).toFixed(2); }
+    function pct(n) { return Math.round(n * 100); }
+
+    subtitle.textContent = 'Analyzed ' + data.sessions + ' session' + (data.sessions === 1 ? '' : 's') + ' over the last ' + data.windowDays + ' day' + (data.windowDays === 1 ? '' : 's') + '.';
+
+    var html = '';
+
+    if (!data.pricingAvailable) {
+      html += '<div class="opt-no-pricing">Could not reach the pricing API. Recommendations involving cost estimates may be skipped.</div>';
+    }
+
+    if (data.recs.length === 0) {
+      html += '<div class="empty">';
+      if (data.sessions === 0) {
+        html += 'No sessions found in this window. Try a longer window or run <code>promptly start</code> first.';
+      } else {
+        html += 'No optimization opportunities detected. Your AI spend looks efficient.';
+      }
+      html += '</div>';
+      root.innerHTML = html;
+    } else {
+      html += '<div class="opt-summary">' +
+        '<div class="opt-summary-savings">$' + fmt(data.totalEstimatedMonthlySavings) + '<span style="font-size:14px;color:#888;font-weight:400"> /mo if all applied</span></div>' +
+        '<div class="muted" style="margin:0;margin-top:4px">' + data.recs.length + ' recommendation' + (data.recs.length === 1 ? '' : 's') + '</div>' +
+      '</div>';
+
+      data.recs.forEach(function(rec) {
+        html += renderRec(rec);
+      });
+      root.innerHTML = html;
+    }
+
+    function renderRec(rec) {
+      var sevClass = 'opt-rec-' + rec.severity;
+      var sevBadgeClass = 'opt-sev-' + rec.severity;
+      var out = '<div class="opt-rec ' + sevClass + '">';
+      out += '<div class="opt-rec-header">';
+      out += '<div>';
+      out += '<span class="opt-sev-badge ' + sevBadgeClass + '">' + rec.severity + '</span>';
+      out += '<h3 class="opt-rec-title" style="display:inline">' + esc(rec.title) + '</h3>';
+      out += '</div>';
+      out += '<div class="opt-rec-savings">$' + fmt(rec.estimatedMonthlySavings) + '/mo</div>';
+      out += '</div>';
+      out += '<p class="opt-rec-desc">' + esc(rec.description) + '</p>';
+
+      if (rec.evidence && rec.evidence.length > 0) {
+        out += renderEvidence(rec.evidence, rec.type);
+      }
+      out += '</div>';
+      return out;
+    }
+
+    function renderEvidence(evidence, type) {
+      var rows = '';
+      var thead = '';
+      evidence.slice(0, 5).forEach(function(e) {
+        if (e.kind === 'model-misuse') {
+          if (!thead) thead = '<tr><th>Ticket</th><th>Model → Alternative</th><th>Cost</th><th>Saves</th><th>Quality / Turns</th></tr>';
+          var saved = e.currentCost - e.alternativeCost;
+          rows += '<tr>' +
+            '<td><a href="/sessions/' + esc(e.sessionId) + '">' + esc(e.ticketId) + '</a></td>' +
+            '<td>' + esc(e.model) + ' &rarr; ' + esc(e.alternativeModel || '') + '</td>' +
+            '<td><span class="opt-cost-was">$' + fmt(e.currentCost) + '</span><span class="opt-cost">$' + fmt(e.alternativeCost) + '</span></td>' +
+            '<td class="opt-cost">$' + fmt(saved) + '</td>' +
+            '<td>' + e.qualityScore + '/5 &middot; ' + e.turnsToComplete + ' turn' + (e.turnsToComplete === 1 ? '' : 's') + '</td>' +
+          '</tr>';
+        } else if (e.kind === 'context-bloat') {
+          if (!thead) thead = '<tr><th>Ticket</th><th>Cost</th><th>Wasted</th><th>Context</th><th>Compactions</th></tr>';
+          rows += '<tr>' +
+            '<td><a href="/sessions/' + esc(e.sessionId) + '">' + esc(e.ticketId) + '</a></td>' +
+            '<td>$' + fmt(e.totalCost) + '</td>' +
+            '<td class="opt-cost">~$' + fmt(e.estimatedWaste) + '</td>' +
+            '<td>' + pct(e.contextUtilization) + '% &middot; ' + Math.round(e.peakTokenCount / 1000) + 'K peak</td>' +
+            '<td>' + e.summarizationEvents + '</td>' +
+          '</tr>';
+        } else if (e.kind === 'repeated-correction') {
+          if (!thead) thead = '<tr><th>Ticket</th><th>Said</th><th>Context</th></tr>';
+          rows += '<tr>' +
+            '<td><a href="/sessions/' + esc(e.sessionId) + '">' + esc(e.ticketId) + '</a></td>' +
+            '<td>"' + esc(e.originalPhrase) + '"</td>' +
+            '<td class="opt-evidence-quote">' + (e.context ? '"' + esc(e.context.substring(0, 100)) + (e.context.length > 100 ? '…' : '') + '"' : '') + '</td>' +
+          '</tr>';
+        }
+      });
+      var more = evidence.length > 5 ? '<div class="opt-evidence-more">&hellip; and ' + (evidence.length - 5) + ' more</div>' : '';
+      return '<table class="opt-evidence-table"><thead>' + thead + '</thead><tbody>' + rows + '</tbody></table>' + more;
+    }
+  </script>
+</body>
+</html>`;
+}
+
 export function digestPage(digestJson: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -883,7 +1040,7 @@ export function digestPage(digestJson: string): string {
     <div id="digest"></div>
   </main>
   <script>
-    const digest = ${digestJson};
+    const digest = ${embedJson(digestJson)};
     const el = document.getElementById('digest');
 
     function arrow(val) {
@@ -1120,6 +1277,38 @@ function replayStyles(): string {
     .turn-timing { text-align: center; color: #666; font-size: 12px; margin: 8px 0; padding: 4px; }
     .replay-turn-active { animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  `;
+}
+
+function optimizeStyles(): string {
+  return `
+    .opt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 12px; }
+    .opt-window-select { padding: 8px 12px; background: #161616; border: 1px solid #333; border-radius: 6px; color: #ededed; font-size: 13px; }
+    .opt-summary { padding: 16px; background: #111; border-radius: 8px; margin-bottom: 24px; }
+    .opt-summary-savings { font-size: 28px; font-weight: 700; color: #4ade80; }
+    .opt-rec { padding: 20px; border: 1px solid #222; border-left-width: 3px; border-radius: 8px; margin-bottom: 16px; background: #0e0e0e; }
+    .opt-rec-info { border-left-color: #38bdf8; }
+    .opt-rec-warning { border-left-color: #fbbf24; }
+    .opt-rec-critical { border-left-color: #f87171; }
+    .opt-rec-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 8px; }
+    .opt-rec-title { font-size: 16px; font-weight: 600; margin: 0; }
+    .opt-sev-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; margin-right: 8px; vertical-align: middle; }
+    .opt-sev-info { background: #1a2a3a; color: #38bdf8; }
+    .opt-sev-warning { background: #3a2a1a; color: #fbbf24; }
+    .opt-sev-critical { background: #3a1a1a; color: #f87171; }
+    .opt-rec-savings { font-size: 18px; font-weight: 600; color: #4ade80; white-space: nowrap; }
+    .opt-rec-desc { color: #aaa; font-size: 14px; line-height: 1.5; margin-bottom: 16px; }
+    .opt-evidence-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .opt-evidence-table th { text-align: left; padding: 8px 10px; color: #888; font-weight: 500; border-bottom: 1px solid #222; font-size: 12px; }
+    .opt-evidence-table td { padding: 10px; border-bottom: 1px solid #1a1a1a; }
+    .opt-evidence-table tr:last-child td { border-bottom: none; }
+    .opt-evidence-table a { color: #ededed; text-decoration: none; }
+    .opt-evidence-table a:hover { color: #38bdf8; }
+    .opt-evidence-quote { color: #aaa; font-style: italic; font-size: 12px; }
+    .opt-cost { color: #4ade80; font-weight: 500; }
+    .opt-cost-was { color: #888; text-decoration: line-through; margin-right: 4px; }
+    .opt-evidence-more { padding: 10px; font-size: 12px; color: #666; text-align: center; }
+    .opt-no-pricing { padding: 12px 16px; background: #2e2a1a; border-left: 3px solid #facc15; border-radius: 6px; margin-bottom: 16px; font-size: 13px; color: #facc15; }
   `;
 }
 

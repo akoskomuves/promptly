@@ -40,8 +40,12 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 - **Session intelligence**: Quality scoring (1-5 stars), tool usage analytics (Bash, Read, Edit, etc.), subagent tracking, context window metrics, and prompt quality analysis -- computed automatically at finish time.
 - **Session replay**: Step through conversation turns with timing, playback controls, and cumulative stats to see how a session unfolded.
 - **Analytics dashboard**: Cost-per-project trends, parallel session detection, skill usage analytics, instruction file effectiveness tracking, and aggregate prompt quality.
+- **Spend optimization**: `promptly optimize` analyzes your session history and surfaces dollar-quantified recommendations — premium-model misuse on simple tasks, context-window saturation on long sessions, and repeated corrections that belong in your instruction file. Available in CLI, dashboard (`/optimize`), and JSON API.
+- **Import past Claude Code sessions**: `promptly import-claude` pulls existing sessions from `~/.claude/projects` into Promptly with no MCP setup needed — handy for backfilling history or skipping the MCP install entirely.
 - **Built-in dashboard**: View sessions, analytics, digest, and session replay in your browser at `localhost:3000`.
 - **Optional cloud sync**: For teams that want a shared dashboard.
+
+> **vs `ccusage` / `Codeburn`**: those parse Claude Code's local JSONL logs to show your token spend. Promptly adds multi-tool coverage (Cursor, Codex CLI, Gemini CLI, VS Code), git/ticket attribution, session intelligence, and an optional team dashboard.
 
 ## Deployment Tiers
 
@@ -73,6 +77,8 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 | `promptly team unset` | Clear default team |
 | `promptly skill install` | Install /track command for all configured tools |
 | `promptly skill status` | Check skill installation status |
+| `promptly import-claude` | Import a past Claude Code session from `~/.claude/projects` (no MCP setup needed) |
+| `promptly optimize` | Analyze session history and surface AI spend leak recommendations |
 
 ## How It Works
 

@@ -102,6 +102,8 @@ Pages:
 | `/sessions/:id/replay` | Session replay with timeline, playback controls, turn-by-turn view |
 | `/digest` | Weekly insights digest with trends |
 | `/analytics` | Cost-per-project trends, parallel sessions, skill usage, instruction effectiveness |
+| `/optimize` | Spend-leak recommendations (model misuse, context bloat, repeated corrections) with severity badges + window selector |
+| `/api/optimize?days=N` | JSON endpoint backing the optimize page; same data the `promptly optimize` CLI prints |
 
 ## Data Flow
 
