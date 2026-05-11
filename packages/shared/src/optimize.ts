@@ -26,6 +26,9 @@ export interface OptimizeSessionInput {
   // (e.g. repeated-corrections) read from here. Optional so detectors that
   // only need aggregates work without populating it.
   userMessages?: string[];
+  // Normalized Bash invocations in chronological order — first 1-2 tokens of
+  // each Bash tool call. Used by repetitive-workflow detection.
+  bashSequence?: string[];
 }
 
 export interface ModelPricing {
@@ -72,12 +75,33 @@ export interface RepeatedCorrectionEvidence {
   context?: string;             // first ~80 chars of the surrounding message
 }
 
+export interface RepetitiveWorkflowEvidence {
+  kind: "repetitive-workflow";
+  sessionId: string;
+  ticketId: string;
+  occurrenceCount: number;      // how many times the workflow ran in this session
+}
+
+export interface PrePostActionEvidence {
+  kind: "pre-post-action";
+  sessionId: string;
+  ticketId: string;
+  occurrences: number;          // how many times the (A,B) pair occurred here
+}
+
 export type OptimizationEvidence =
   | ModelMisuseEvidence
   | ContextBloatEvidence
-  | RepeatedCorrectionEvidence;
+  | RepeatedCorrectionEvidence
+  | RepetitiveWorkflowEvidence
+  | PrePostActionEvidence;
 
-export type OptimizationType = "model-misuse" | "context-bloat" | "repeated-corrections";
+export type OptimizationType =
+  | "model-misuse"
+  | "context-bloat"
+  | "repeated-corrections"
+  | "repetitive-workflow"
+  | "pre-post-action";
 
 export interface OptimizationRecommendation {
   id: string;
@@ -522,6 +546,338 @@ export function detectRepeatedCorrections(
 }
 
 /**
+ * Detector: multi-step Bash workflows (`npm test → npm run lint → git commit`)
+ * that recur across sessions. Each is a candidate for a Claude Code skill /
+ * Cursor command / Codex skill / Gemini command — automating it saves the
+ * typing time + the AI's deliberation about which step comes next.
+ *
+ * Pipeline:
+ *   1. For each session, take the normalized Bash sequence and emit all
+ *      n-grams of length 2..4.
+ *   2. Group n-grams by canonical join string. Track distinct sessions and
+ *      total occurrences per cluster.
+ *   3. Filter: ≥5 distinct sessions, length ≥2.
+ *   4. Subsumption pass — drop a shorter n-gram if a longer one already
+ *      surfaces with the same set of sessions (prevents 5 redundant recs
+ *      for the same underlying workflow).
+ *
+ * Savings: time-based, not token-based. Each automated occurrence saves
+ * ~30s (typing + AI deliberation). Monetized at $1/min as a transparent
+ * placeholder so it sorts alongside the dollar detectors. The minutes
+ * figure is the headline number in the description.
+ */
+const WORKFLOW_MIN_LENGTH = 2;
+const WORKFLOW_MAX_LENGTH = 4;
+const WORKFLOW_MIN_DISTINCT_SESSIONS = 5;
+const WORKFLOW_SECONDS_PER_OCCURRENCE = 30;
+const WORKFLOW_DOLLAR_PER_MINUTE = 1; // placeholder calibration
+
+const MULTI_VERB_BINARIES = new Set([
+  "git", "npm", "yarn", "pnpm", "cargo", "docker", "kubectl",
+  "gh", "brew", "aws", "gcloud", "az", "make", "bun", "deno",
+]);
+
+export function normalizeBashCommand(cmd: string): string {
+  // Use only the first line (drop heredocs / multi-line scripts beyond line 1)
+  const trimmed = cmd.trim().split("\n")[0]?.trim();
+  if (!trimmed) return "";
+  // Strip env-var prefix like `FOO=bar npm test`
+  const stripped = trimmed.replace(/^(\s*[A-Z_][A-Z0-9_]*=\S+\s+)+/, "");
+  const tokens = stripped.split(/\s+/).filter((t) => t && !t.startsWith("-"));
+  if (tokens.length === 0) return "";
+  const first = tokens[0].toLowerCase();
+  if (MULTI_VERB_BINARIES.has(first) && tokens[1] && /^[a-z]/i.test(tokens[1])) {
+    return `${first} ${tokens[1].toLowerCase()}`;
+  }
+  return first;
+}
+
+interface WorkflowCluster {
+  sequence: string[];
+  distinctSessions: Set<string>;
+  occurrencesBySession: Map<string, number>;
+}
+
+function clusterKey(sequence: string[]): string {
+  return sequence.join(" ");
+}
+
+function isContiguousSubsequence(short: string[], long: string[]): boolean {
+  if (short.length >= long.length) return false;
+  outer: for (let i = 0; i + short.length <= long.length; i++) {
+    for (let j = 0; j < short.length; j++) {
+      if (long[i + j] !== short[j]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
+export function detectRepetitiveWorkflow(
+  input: OptimizationInput
+): OptimizationRecommendation[] {
+  const clusters = new Map<string, WorkflowCluster>();
+
+  for (const session of input.sessions) {
+    const seq = session.bashSequence;
+    if (!seq || seq.length < WORKFLOW_MIN_LENGTH) continue;
+
+    // Per-session occurrence counter for each n-gram, so a session that
+    // runs the same workflow twice reflects that in monthly savings.
+    const sessionCounts = new Map<string, number>();
+
+    for (let n = WORKFLOW_MIN_LENGTH; n <= WORKFLOW_MAX_LENGTH; n++) {
+      for (let i = 0; i + n <= seq.length; i++) {
+        const ngram = seq.slice(i, i + n);
+        const key = clusterKey(ngram);
+        sessionCounts.set(key, (sessionCounts.get(key) ?? 0) + 1);
+      }
+    }
+
+    for (const [key, count] of sessionCounts) {
+      let cluster = clusters.get(key);
+      if (!cluster) {
+        const sequence = key.split(" ");
+        cluster = {
+          sequence,
+          distinctSessions: new Set(),
+          occurrencesBySession: new Map(),
+        };
+        clusters.set(key, cluster);
+      }
+      cluster.distinctSessions.add(session.id);
+      cluster.occurrencesBySession.set(session.id, count);
+    }
+  }
+
+  // First filter by threshold
+  const qualifying = Array.from(clusters.values()).filter(
+    (c) => c.distinctSessions.size >= WORKFLOW_MIN_DISTINCT_SESSIONS
+  );
+
+  // Subsumption: drop a shorter cluster only if a longer one is a true
+  // superset — same sessions AND at least as many per-session occurrences
+  // everywhere. The per-session check handles the "ABABAB" trap: if the
+  // user runs "AB" 12 times per session, we'd also see "ABAB" 10 times,
+  // but "AB" is the real atomic workflow and we want to surface that one.
+  qualifying.sort((a, b) => b.sequence.length - a.sequence.length);
+  const kept: WorkflowCluster[] = [];
+  for (const c of qualifying) {
+    const subsumed = kept.some((k) => {
+      if (k.sequence.length <= c.sequence.length) return false;
+      if (!isContiguousSubsequence(c.sequence, k.sequence)) return false;
+      for (const s of c.distinctSessions) {
+        if (!k.distinctSessions.has(s)) return false;
+        const shortCount = c.occurrencesBySession.get(s) ?? 0;
+        const longCount = k.occurrencesBySession.get(s) ?? 0;
+        if (shortCount > longCount) return false;
+      }
+      return true;
+    });
+    if (!subsumed) kept.push(c);
+  }
+
+  // Build recommendations
+  const recs: OptimizationRecommendation[] = [];
+  for (const cluster of kept) {
+    const totalOccurrences = Array.from(cluster.occurrencesBySession.values())
+      .reduce((s, n) => s + n, 0);
+    const minutesPerWindow = (totalOccurrences * WORKFLOW_SECONDS_PER_OCCURRENCE) / 60;
+    const monthlyMinutes = Math.round((minutesPerWindow * 30) / input.windowDays * 10) / 10;
+    const monthlySavings = Math.round(monthlyMinutes * WORKFLOW_DOLLAR_PER_MINUTE * 100) / 100;
+
+    const display = cluster.sequence.join(" → ");
+    const evidence: RepetitiveWorkflowEvidence[] = Array.from(cluster.occurrencesBySession.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([sessionId, occurrenceCount]) => {
+        const session = input.sessions.find((s) => s.id === sessionId);
+        return {
+          kind: "repetitive-workflow" as const,
+          sessionId,
+          ticketId: session?.ticketId ?? sessionId,
+          occurrenceCount,
+        };
+      });
+
+    recs.push({
+      id: `repetitive-workflow:${clusterKey(cluster.sequence)}`,
+      type: "repetitive-workflow",
+      severity:
+        monthlyMinutes >= 30 ? "critical" : monthlyMinutes >= 10 ? "warning" : "info",
+      title: `Repeated workflow — ${display}`,
+      description: `This ${cluster.sequence.length}-step workflow ran ${totalOccurrences} time${totalOccurrences === 1 ? "" : "s"} across ${cluster.distinctSessions.size} sessions over the last ${input.windowDays} days. Automating it as a Claude Code skill, Cursor command, Codex skill, or Gemini command saves about ${monthlyMinutes} min/mo of typing + AI deliberation. Dollar figure ($${monthlySavings}/mo) is monetized at $${WORKFLOW_DOLLAR_PER_MINUTE}/min as a placeholder so it sorts alongside the dollar detectors.`,
+      evidence,
+      estimatedMonthlySavings: monthlySavings,
+      details: {
+        sequence: cluster.sequence,
+        distinctSessions: cluster.distinctSessions.size,
+        totalOccurrences,
+        monthlyMinutes,
+        thresholds: {
+          minLength: WORKFLOW_MIN_LENGTH,
+          maxLength: WORKFLOW_MAX_LENGTH,
+          minDistinctSessions: WORKFLOW_MIN_DISTINCT_SESSIONS,
+          secondsPerOccurrence: WORKFLOW_SECONDS_PER_OCCURRENCE,
+          dollarPerMinute: WORKFLOW_DOLLAR_PER_MINUTE,
+        },
+      },
+    });
+  }
+
+  return recs.sort((a, b) =>
+    ((b.details?.monthlyMinutes as number) ?? 0) - ((a.details?.monthlyMinutes as number) ?? 0)
+  );
+}
+
+/**
+ * Detector: bigrams (A → B) where the second action is consistently preceded
+ * by the first (or the first is consistently followed by the second). High
+ * conditional probability is the signal — even if A→B only fires 5 times,
+ * if B occurred 6 times total and 5 of those were preceded by A, that's
+ * strong evidence A is a prerequisite that belongs in a hook.
+ *
+ * Distinct from repetitive-workflow: that one says "this 2-step sequence
+ * repeats — automate as a skill". This one says "the second step is
+ * statistically tied to the first — automate as a hook." Different actionable
+ * outputs (manual `/skill` vs automatic hook), so overlap is acceptable.
+ *
+ * Savings: time per prevented manual invocation. Conservative ~10s
+ * (typing + AI deliberation only — the action's actual execution time
+ * isn't saved, just the friction of remembering to do it).
+ */
+const PREPOST_MIN_DISTINCT_SESSIONS = 5;
+const PREPOST_PROB_THRESHOLD = 0.8;
+const PREPOST_SECONDS_PER_OCCURRENCE = 10;
+
+interface BigramStats {
+  cooccurCount: number;
+  sessions: Set<string>;
+  occurrencesBySession: Map<string, number>;
+}
+
+export function detectPrePostAction(
+  input: OptimizationInput
+): OptimizationRecommendation[] {
+  const cooccur = new Map<string, BigramStats>();
+  const antecedentCount = new Map<string, number>();   // total times X appeared as antecedent
+  const consequentCount = new Map<string, number>();   // total times X appeared as consequent
+
+  for (const session of input.sessions) {
+    const seq = session.bashSequence;
+    if (!seq || seq.length < 2) continue;
+    for (let i = 0; i < seq.length - 1; i++) {
+      const a = seq[i];
+      const b = seq[i + 1];
+      antecedentCount.set(a, (antecedentCount.get(a) ?? 0) + 1);
+      consequentCount.set(b, (consequentCount.get(b) ?? 0) + 1);
+      const key = `${a} ${b}`;
+      let stats = cooccur.get(key);
+      if (!stats) {
+        stats = { cooccurCount: 0, sessions: new Set(), occurrencesBySession: new Map() };
+        cooccur.set(key, stats);
+      }
+      stats.cooccurCount++;
+      stats.sessions.add(session.id);
+      stats.occurrencesBySession.set(
+        session.id,
+        (stats.occurrencesBySession.get(session.id) ?? 0) + 1
+      );
+    }
+  }
+
+  const recs: OptimizationRecommendation[] = [];
+  for (const [key, stats] of cooccur) {
+    if (stats.sessions.size < PREPOST_MIN_DISTINCT_SESSIONS) continue;
+    const [a, b] = key.split(" ");
+    const aCount = antecedentCount.get(a) ?? 0;
+    const bCount = consequentCount.get(b) ?? 0;
+    const preProb = bCount > 0 ? stats.cooccurCount / bCount : 0;
+    const postProb = aCount > 0 ? stats.cooccurCount / aCount : 0;
+
+    const seconds = stats.cooccurCount * PREPOST_SECONDS_PER_OCCURRENCE;
+    const monthlyMinutes = Math.round(((seconds / 60) * 30) / input.windowDays * 10) / 10;
+    const monthlySavings = Math.round(monthlyMinutes * 100) / 100;
+
+    const evidence: PrePostActionEvidence[] = Array.from(stats.occurrencesBySession.entries())
+      .sort((x, y) => y[1] - x[1])
+      .slice(0, 5)
+      .map(([sessionId, occurrences]) => {
+        const session = input.sessions.find((s) => s.id === sessionId);
+        return {
+          kind: "pre-post-action" as const,
+          sessionId,
+          ticketId: session?.ticketId ?? sessionId,
+          occurrences,
+        };
+      });
+
+    const baseSeverity =
+      monthlyMinutes >= 10 ? "warning" : "info";
+
+    if (preProb >= PREPOST_PROB_THRESHOLD) {
+      recs.push({
+        id: `pre-post-action:pre:${a}->${b}`,
+        type: "pre-post-action",
+        severity: baseSeverity,
+        title: `Pre-action — \`${a}\` before \`${b}\``,
+        description: `Almost every time \`${b}\` runs (${Math.round(preProb * 100)}% of ${bCount} occurrences), it's preceded by \`${a}\`. Set up a Claude Code pre-tool-use hook, a git pre-commit hook, or a shell alias so \`${a}\` runs automatically before \`${b}\` and you stop typing it. Saves about ${monthlyMinutes} min/mo of typing + deliberation.`,
+        evidence,
+        estimatedMonthlySavings: monthlySavings,
+        details: {
+          direction: "pre",
+          before: a,
+          after: b,
+          cooccurCount: stats.cooccurCount,
+          consequentCount: bCount,
+          preProbability: Math.round(preProb * 100) / 100,
+          distinctSessions: stats.sessions.size,
+          monthlyMinutes,
+          thresholds: {
+            minDistinctSessions: PREPOST_MIN_DISTINCT_SESSIONS,
+            probabilityThreshold: PREPOST_PROB_THRESHOLD,
+            secondsPerOccurrence: PREPOST_SECONDS_PER_OCCURRENCE,
+          },
+        },
+      });
+    }
+
+    if (postProb >= PREPOST_PROB_THRESHOLD) {
+      recs.push({
+        id: `pre-post-action:post:${a}->${b}`,
+        type: "pre-post-action",
+        severity: baseSeverity,
+        title: `Post-action — \`${b}\` after \`${a}\``,
+        description: `Almost every time \`${a}\` runs (${Math.round(postProb * 100)}% of ${aCount} occurrences), \`${b}\` follows. Set up a post-tool-use hook or chain with \`&&\` so \`${b}\` runs automatically after \`${a}\`. Saves about ${monthlyMinutes} min/mo of typing + deliberation.`,
+        evidence,
+        estimatedMonthlySavings: monthlySavings,
+        details: {
+          direction: "post",
+          before: a,
+          after: b,
+          cooccurCount: stats.cooccurCount,
+          antecedentCount: aCount,
+          postProbability: Math.round(postProb * 100) / 100,
+          distinctSessions: stats.sessions.size,
+          monthlyMinutes,
+          thresholds: {
+            minDistinctSessions: PREPOST_MIN_DISTINCT_SESSIONS,
+            probabilityThreshold: PREPOST_PROB_THRESHOLD,
+            secondsPerOccurrence: PREPOST_SECONDS_PER_OCCURRENCE,
+          },
+        },
+      });
+    }
+  }
+
+  return recs.sort(
+    (a, b) =>
+      ((b.details?.monthlyMinutes as number) ?? 0) -
+      ((a.details?.monthlyMinutes as number) ?? 0)
+  );
+}
+
+/**
  * Public entry point — runs all enabled detectors and returns recommendations
  * sorted by estimated monthly savings (highest first).
  */
@@ -532,6 +888,8 @@ export function runOptimizationDetectors(
     ...detectModelMisuse(input),
     ...detectContextBloat(input),
     ...detectRepeatedCorrections(input),
+    ...detectRepetitiveWorkflow(input),
+    ...detectPrePostAction(input),
   ];
   return recs.sort((a, b) => b.estimatedMonthlySavings - a.estimatedMonthlySavings);
 }

@@ -108,12 +108,14 @@ promptly optimize --json                # Machine-readable output
 
 The dashboard view at `http://localhost:3000/optimize` shows the same recommendations visually, with severity-colored cards, a window selector (7/30/90/180/365 days), and evidence rows that link back to the session detail page that triggered each rec.
 
-Current detectors (v1):
+Current detectors:
 - **Model misuse** — sessions where a premium model (Opus, GPT-5.5 Pro, Gemini Ultra) handled tasks completed in ≤5 turns with quality ≥4/5 and low correction rate. A cheaper-tier model in the same family would likely have produced the same outcome.
 - **Context bloat** — sessions where peak context utilization hit 80%+, at least one summarization/compaction event triggered, and the total token volume was material (≥100K). Splitting these into smaller scopes saves the context-restoration overhead. The waste estimate is intentionally conservative (only the overage above 80% counts, halved as a calibration).
 - **Repeated corrections** — phrases the user repeats across 5+ distinct sessions ("don't use any types", "always run the linter") signal an instruction-file gap. Adding the rule to CLAUDE.md / .cursorrules / GEMINI.md prevents the friction. Direct $ savings are small (a few cents/mo); the real win is fewer re-do cycles and less compounding context bloat.
+- **Repetitive workflow** — multi-step Bash sequences (`npm test → npm run lint → git commit`) that repeat across 5+ sessions. Recommends automating as a Claude Code skill / Cursor command / Codex skill / Gemini command. Savings are time-based — about 30s per occurrence of typing + AI deliberation, monetized at $1/min as a transparent placeholder so it sorts alongside the dollar detectors.
+- **Pre/post action automation** — Bash command **bigrams** with high conditional probability. If `git commit` is preceded by `eslint` ≥80% of the time, that's a pre-hook candidate. If `Edit` is followed by `npm test` ≥80% of the time, that's a post-hook candidate. Distinct from repetitive workflow: that one says "automate as a skill"; this one says "automate as a hook" (Claude Code hooks, git pre-commit hooks, shell aliases). Time savings at ~10s per prevented manual invocation.
 
-Each recommendation shows the top 3-5 evidence rows. Aggregate monthly savings is extrapolated from the analysis window — model misuse uses real prices, context bloat uses a conservative formula, repeated corrections estimate ~1500 wasted tokens per occurrence at the user's median model price.
+Each recommendation shows the top 3-5 evidence rows. Aggregate monthly savings is extrapolated from the analysis window — model misuse uses real prices, context bloat uses a conservative formula, repeated corrections estimate ~1500 wasted tokens per occurrence at the user's median model price, repetitive workflow uses time × placeholder rate.
 
 > **Privacy note:** Repeated-corrections evidence shows verbatim user messages. The CLI and local dashboard are single-user and read from your local SQLite — nothing is uploaded. Cloud team aggregation of correction patterns is deliberately not yet implemented.
 

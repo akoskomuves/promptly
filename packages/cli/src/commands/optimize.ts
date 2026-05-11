@@ -86,6 +86,14 @@ function formatRec(rec: OptimizationRecommendation): string {
         lines.push(
           `      ${e.ticketId.padEnd(14)} ${e.sessionId.substring(0, 8)}  said: "${e.originalPhrase}"${ctx}`
         );
+      } else if (e.kind === "repetitive-workflow") {
+        lines.push(
+          `      ${e.ticketId.padEnd(14)} ${e.sessionId.substring(0, 8)}  ran the workflow ${e.occurrenceCount} time${e.occurrenceCount === 1 ? "" : "s"}`
+        );
+      } else if (e.kind === "pre-post-action") {
+        lines.push(
+          `      ${e.ticketId.padEnd(14)} ${e.sessionId.substring(0, 8)}  pair ran ${e.occurrences} time${e.occurrences === 1 ? "" : "s"}`
+        );
       }
     }
     if (rec.evidence.length > 3) {

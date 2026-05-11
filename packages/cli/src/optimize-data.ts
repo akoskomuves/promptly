@@ -2,12 +2,18 @@
 // Shared by the `optimize` CLI command and the dashboard's /api/optimize route
 // so the analysis sees the exact same data shape regardless of caller.
 
-import type { OptimizeSessionInput } from "@getpromptly/shared";
+import { normalizeBashCommand, type OptimizeSessionInput } from "@getpromptly/shared";
 import type { DbSession } from "./db.js";
+
+interface RawToolCall {
+  name?: string;
+  input?: unknown;
+}
 
 interface RawTurn {
   role?: string;
   content?: string;
+  toolCalls?: RawToolCall[];
 }
 
 export function extractUserMessages(conversationsJson: string): string[] {
@@ -22,6 +28,29 @@ export function extractUserMessages(conversationsJson: string): string[] {
       }
     }
     return out;
+  } catch {
+    return [];
+  }
+}
+
+export function extractBashSequence(conversationsJson: string): string[] {
+  if (!conversationsJson) return [];
+  try {
+    const turns = JSON.parse(conversationsJson) as RawTurn[];
+    if (!Array.isArray(turns)) return [];
+    const seq: string[] = [];
+    for (const t of turns) {
+      if (!Array.isArray(t.toolCalls)) continue;
+      for (const tc of t.toolCalls) {
+        if (tc.name !== "Bash") continue;
+        const input = tc.input as { command?: unknown } | null | undefined;
+        const cmd = input?.command;
+        if (typeof cmd !== "string") continue;
+        const normalized = normalizeBashCommand(cmd);
+        if (normalized) seq.push(normalized);
+      }
+    }
+    return seq;
   } catch {
     return [];
   }
@@ -66,6 +95,7 @@ export function toOptimizeInput(rows: DbSession[]): OptimizeSessionInput[] {
       models,
       intelligence,
       userMessages: extractUserMessages(s.conversations),
+      bashSequence: extractBashSequence(s.conversations),
     };
   });
 }

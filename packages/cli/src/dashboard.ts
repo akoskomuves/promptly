@@ -1015,6 +1015,18 @@ export function optimizePage(dataJson: string, currentDays: number): string {
             '<td>"' + esc(e.originalPhrase) + '"</td>' +
             '<td class="opt-evidence-quote">' + (e.context ? '"' + esc(e.context.substring(0, 100)) + (e.context.length > 100 ? '…' : '') + '"' : '') + '</td>' +
           '</tr>';
+        } else if (e.kind === 'repetitive-workflow') {
+          if (!thead) thead = '<tr><th>Ticket</th><th>Ran</th></tr>';
+          rows += '<tr>' +
+            '<td><a href="/sessions/' + esc(e.sessionId) + '">' + esc(e.ticketId) + '</a></td>' +
+            '<td>' + e.occurrenceCount + ' time' + (e.occurrenceCount === 1 ? '' : 's') + '</td>' +
+          '</tr>';
+        } else if (e.kind === 'pre-post-action') {
+          if (!thead) thead = '<tr><th>Ticket</th><th>Pair occurrences</th></tr>';
+          rows += '<tr>' +
+            '<td><a href="/sessions/' + esc(e.sessionId) + '">' + esc(e.ticketId) + '</a></td>' +
+            '<td>' + e.occurrences + ' time' + (e.occurrences === 1 ? '' : 's') + '</td>' +
+          '</tr>';
         }
       });
       var more = evidence.length > 5 ? '<div class="opt-evidence-more">&hellip; and ' + (evidence.length - 5) + ' more</div>' : '';
