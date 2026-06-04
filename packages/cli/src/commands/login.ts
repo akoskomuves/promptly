@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { loadConfig, saveConfig } from "../config.js";
+import { getAnalytics, getDistinctId } from "../analytics.js";
 
 export async function loginCommand(options: { apiUrl?: string }) {
   const config = loadConfig();
@@ -66,6 +67,21 @@ export async function loginCommand(options: { apiUrl?: string }) {
       config.apiUrl = apiUrl;
 
       saveConfig(config);
+
+      const anonymousId = getDistinctId();
+      getAnalytics().identify({
+        distinctId: data.email,
+        properties: {
+          email: data.email,
+          $anon_distinct_id: anonymousId,
+        },
+      });
+      getAnalytics().capture({
+        distinctId: data.email,
+        event: "user logged in",
+        properties: { method: "device_code" },
+      });
+      await getAnalytics().shutdown();
 
       console.log(`\nLogged in as ${data.email}`);
       console.log("Config saved to ~/.promptly/config.json");

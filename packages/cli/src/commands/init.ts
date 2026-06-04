@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { checkbox, confirm } from "@inquirer/prompts";
+import { getAnalytics, getDistinctId } from "../analytics.js";
 
 interface Tool {
   name: string;
@@ -495,6 +496,16 @@ export async function initCommand() {
   if (claudeConfigured || codexConfigured || geminiConfigured || vscodeConfigured || cursorConfigured || windsurfConfigured) {
     await maybeInstallSkills(claudeConfigured, codexConfigured, geminiConfigured, vscodeConfigured, cursorConfigured, windsurfConfigured);
   }
+
+  getAnalytics().capture({
+    distinctId: getDistinctId(),
+    event: "tool configured",
+    properties: {
+      tools_configured: toConfigure.map(t => t.name),
+      tools_count: toConfigure.length,
+    },
+  });
+  await getAnalytics().shutdown();
 
   console.log("\nSetup complete. Restart your AI coding tools to activate Promptly.");
 }

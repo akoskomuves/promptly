@@ -6,6 +6,7 @@ import {
   saveActiveSession,
 } from "../config.js";
 import { createSession, generateId } from "../db.js";
+import { getAnalytics, getDistinctId } from "../analytics.js";
 import {
   isClaudeConfigured,
   isSkillInstalledAnywhere,
@@ -69,6 +70,13 @@ export async function startCommand(ticketId?: string) {
     console.log("  Run 'promptly finish' when done.");
     console.log("  Run 'promptly serve' to view the dashboard.");
     maybeShowSkillHint(config);
+
+    getAnalytics().capture({
+      distinctId: getDistinctId(),
+      event: "session started",
+      properties: { mode: "local", has_ticket_id: ticketId !== "untitled", has_team: false },
+    });
+    await getAnalytics().shutdown();
     return;
   }
 
@@ -122,6 +130,13 @@ export async function startCommand(ticketId?: string) {
     console.log("  Recording all AI conversations...");
     console.log("  Run 'promptly finish' when done.");
     maybeShowSkillHint(config);
+
+    getAnalytics().capture({
+      distinctId: getDistinctId(),
+      event: "session started",
+      properties: { mode: "cloud", has_ticket_id: ticketId !== "untitled", has_team: !!teamId },
+    });
+    await getAnalytics().shutdown();
   } catch (err) {
     console.error(
       `Could not reach API at ${config.apiUrl}. Is it running?`

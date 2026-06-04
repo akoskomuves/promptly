@@ -3,6 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import { loadConfig, isLocalMode, getActiveSession, clearActiveSession } from "../config.js";
 import { finishSession } from "../db.js";
+import { getAnalytics, getDistinctId } from "../analytics.js";
 import { captureGitActivity } from "../git.js";
 import { categorizeSession, analyzeSession } from "@getpromptly/shared";
 import type { LocalSession } from "@getpromptly/shared";
@@ -129,6 +130,22 @@ export async function finishCommand() {
       `\n  View at: ${config.apiUrl.replace("localhost:3001", "localhost:3000")}/sessions/${session.sessionId}`
     );
   }
+
+  getAnalytics().capture({
+    distinctId: getDistinctId(),
+    event: "session finished",
+    properties: {
+      mode: isLocalMode(config) ? "local" : "cloud",
+      category,
+      duration_minutes: minutes,
+      message_count: buffer?.messageCount ?? 0,
+      total_tokens: buffer?.totalTokens ?? 0,
+      model_count: buffer?.models?.length ?? 0,
+      quality_score: intelligence.qualityScore.overall,
+      has_git_activity: !!(gitActivity && gitActivity.totalCommits > 0),
+    },
+  });
+  await getAnalytics().shutdown();
 
   // Clean up
   clearActiveSession();

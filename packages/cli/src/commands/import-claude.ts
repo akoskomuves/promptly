@@ -5,6 +5,7 @@ import { input, select } from "@inquirer/prompts";
 import { createSession, finishSession, generateId } from "../db.js";
 import { categorizeSession, analyzeSession } from "@getpromptly/shared";
 import type { ConversationTurn } from "@getpromptly/shared";
+import { getAnalytics, getDistinctId } from "../analytics.js";
 
 const CLAUDE_PROJECTS = path.join(os.homedir(), ".claude", "projects");
 
@@ -292,6 +293,19 @@ export async function importClaudeCommand(options: ImportOptions = {}) {
     0,
     Math.floor((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 60000)
   );
+  getAnalytics().capture({
+    distinctId: getDistinctId(),
+    event: "session imported",
+    properties: {
+      message_count: parsed.messageCount,
+      total_tokens: parsed.totalTokens,
+      category,
+      quality_score: intelligence.qualityScore.overall,
+      model_count: parsed.models.length,
+    },
+  });
+  await getAnalytics().shutdown();
+
   console.log(`Imported Claude Code session ${chosen.sessionId.substring(0, 8)} as ${ticketId}`);
   console.log(`  Project: ${parsed.cwd ?? "-"}`);
   console.log(`  Branch: ${parsed.gitBranch ?? "-"}`);

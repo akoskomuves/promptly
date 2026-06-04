@@ -13,6 +13,8 @@ import { skillCommand } from "./commands/skill.js";
 import { digestCommand } from "./commands/digest.js";
 import { importClaudeCommand } from "./commands/import-claude.js";
 import { optimizeCommand } from "./commands/optimize.js";
+import { reviewCommand } from "./commands/review.js";
+import { telemetryCommand } from "./commands/telemetry.js";
 
 const program = new Command();
 
@@ -99,5 +101,18 @@ program
   .option("--to <date>", "End date (YYYY-MM-DD)")
   .option("--json", "Print recommendations as JSON")
   .action(optimizeCommand);
+
+program
+  .command("review <session-id>")
+  .description("Run prompt review against a captured session (LLM-as-judge)")
+  .option("--rubric <id>", "Rubric to apply (default: intent-clarity)")
+  .option("--model <id>", "Override the judge model (default: rubric's model_default)")
+  .option("--json", "Print verdict as JSON")
+  .action(reviewCommand);
+
+program
+  .command("telemetry [action]")
+  .description("Manage anonymous usage telemetry: on | off | status")
+  .action(telemetryCommand);
 
 program.parse();

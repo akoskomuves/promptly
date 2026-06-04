@@ -1,5 +1,6 @@
 import https from "node:https";
 import { listSessionsInRange, listAllSessions } from "../db.js";
+import { getAnalytics, getDistinctId } from "../analytics.js";
 import {
   runOptimizationDetectors,
   type ModelPricing,
@@ -153,6 +154,19 @@ export async function optimizeCommand(options: OptimizeOptions = {}) {
     pricing,
     windowDays: days,
   });
+
+  const totalSavingsForCapture = recs.reduce((s, r) => s + r.estimatedMonthlySavings, 0);
+  getAnalytics().capture({
+    distinctId: getDistinctId(),
+    event: "optimize run",
+    properties: {
+      session_count: rows.length,
+      recommendation_count: recs.length,
+      total_estimated_savings: totalSavingsForCapture,
+      window_days: days,
+    },
+  });
+  await getAnalytics().shutdown();
 
   if (options.json) {
     console.log(JSON.stringify(recs, null, 2));

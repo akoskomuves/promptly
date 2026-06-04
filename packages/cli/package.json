@@ -30,18 +30,21 @@
     "promptly": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "rubrics"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
     "@getpromptly/shared": "workspace:*",
     "@inquirer/prompts": "^8.2.0",
     "better-sqlite3": "^12.0.0",
     "commander": "^12.0.0",
-    "open": "^10.0.0"
+    "open": "^10.0.0",
+    "posthog-node": "^5.35.15"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",

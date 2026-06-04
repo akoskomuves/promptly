@@ -363,6 +363,9 @@ export interface CliConfig {
   mode?: "local" | "cloud";
   defaultTeamSlug?: string;
   skillHintShown?: boolean; // True after showing /track skill hint
+  anonymousId?: string; // Stable anonymous device ID for analytics
+  telemetry?: boolean; // Explicit user choice — true = on, false = off, undefined = default on
+  telemetryBannerShown?: boolean; // One-shot flag for the first-run telemetry disclosure banner
 }
 
 // State file for active session ~/.promptly/session.json

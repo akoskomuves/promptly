@@ -2,6 +2,7 @@ import { listAllSessions } from "../db.js";
 import type { DbSession } from "../db.js";
 import { computeWeeklyDigest } from "@getpromptly/shared";
 import type { DigestSessionInput, WeeklyDigest } from "@getpromptly/shared";
+import { getAnalytics, getDistinctId } from "../analytics.js";
 
 function convertDbSession(s: DbSession): DigestSessionInput {
   let models: string[] = [];
@@ -145,6 +146,13 @@ export async function digestCommand(options: {
   } else {
     digest = computeWeeklyDigest(inputs);
   }
+
+  getAnalytics().capture({
+    distinctId: getDistinctId(),
+    event: "digest viewed",
+    properties: { session_count: sessions.length },
+  });
+  await getAnalytics().shutdown();
 
   printDigest(digest);
 }
