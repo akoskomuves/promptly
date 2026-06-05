@@ -16,3 +16,10 @@ docs/LAUNCH.md
 docs/LAUNCH-TWEETS.md
 docs/funding/
 scripts/
+
+# Local junk
+.DS_Store
+.claude/
+
+# Wizard-generated setup reports (contain private PostHog dashboard URLs)
+posthog-setup-report.md
