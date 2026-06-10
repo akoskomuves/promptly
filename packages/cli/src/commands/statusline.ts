@@ -50,10 +50,28 @@ export function isOtherProject(recordingDir?: string, currentDir?: string): bool
   return !isWithin(currentDir, recordingDir) && !isWithin(recordingDir, currentDir);
 }
 
+function parseContext(data: string): { currentDir?: string } | null {
+  try {
+    const payload = JSON.parse(data) as {
+      workspace?: { current_dir?: string; project_dir?: string };
+      cwd?: string;
+    };
+    // project_dir is the stable project root; current_dir follows the
+    // session's shell cwd and may point into a subdirectory
+    return {
+      currentDir:
+        payload.workspace?.project_dir ?? payload.workspace?.current_dir ?? payload.cwd,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Read the JSON payload Claude Code pipes to status line commands
- * (contains workspace.current_dir). Resolves empty when stdin is a TTY,
- * carries no JSON, or stays quiet past the timeout.
+ * Read the JSON payload Claude Code pipes to status line commands.
+ * The payload arrives as one small write and the pipe may stay open, so
+ * parse eagerly on each chunk instead of waiting for end-of-stream —
+ * the status line must render with no artificial delay.
  */
 function readStdinContext(timeoutMs = 250): Promise<{ currentDir?: string }> {
   if (process.stdin.isTTY) return Promise.resolve({});
@@ -63,45 +81,33 @@ function readStdinContext(timeoutMs = 250): Promise<{ currentDir?: string }> {
       clearTimeout(timer);
       process.stdin.removeListener("data", onData);
       process.stdin.removeListener("end", onEnd);
-      process.stdin.pause();
+      process.stdin.destroy();
       resolve(result);
     };
-    const timer = setTimeout(() => finish({}), timeoutMs);
+    // On timeout, still use whatever data arrived — "end" may never fire
+    const timer = setTimeout(() => finish(parseContext(data) ?? {}), timeoutMs);
     const onData = (chunk: Buffer) => {
       data += chunk.toString();
+      const parsed = parseContext(data);
+      if (parsed) finish(parsed);
     };
-    const onEnd = () => {
-      try {
-        const payload = JSON.parse(data) as {
-          workspace?: { current_dir?: string; project_dir?: string };
-          cwd?: string;
-        };
-        // project_dir is the stable project root; current_dir follows the
-        // session's shell cwd and may point into a subdirectory
-        finish({
-          currentDir:
-            payload.workspace?.project_dir ?? payload.workspace?.current_dir ?? payload.cwd,
-        });
-      } catch {
-        finish({});
-      }
-    };
+    const onEnd = () => finish(parseContext(data) ?? {});
     process.stdin.on("data", onData);
     process.stdin.on("end", onEnd);
   });
 }
 
-/** Print the one-line recording indicator. Prints nothing when idle. */
-async function printIndicator(): Promise<void> {
+/** Build the one-line recording indicator, or null when idle/foreign project. */
+async function getIndicatorLine(): Promise<string | null> {
   const session = readJson<ActiveSessionState>(SESSION_FILE);
   const buffer = readJson<LocalSession>(BUFFER_FILE);
-  if (!session && !buffer) return;
+  if (!session && !buffer) return null;
 
   // Only show the indicator inside the project the recording belongs to —
   // other Claude Code windows should not display another project's session.
   const { currentDir } = await readStdinContext();
   const recordingDir = session?.projectDir ?? buffer?.projectDir;
-  if (isOtherProject(recordingDir, currentDir)) return;
+  if (isOtherProject(recordingDir, currentDir)) return null;
 
   const ticketId = session?.ticketId ?? buffer?.ticketId ?? "untitled";
   const startedAt = session?.startedAt ?? buffer?.startedAt;
@@ -115,7 +121,20 @@ async function printIndicator(): Promise<void> {
     const elapsed = formatElapsed(startedAt);
     if (elapsed) parts.push(elapsed);
   }
-  console.log(parts.join(" · "));
+  return parts.join(" · ");
+}
+
+/**
+ * Print the indicator and exit explicitly. Claude Code holds the stdin pipe
+ * open, which keeps node's event loop alive — without the exit the command
+ * never terminates and the status line never renders.
+ */
+async function printIndicator(): Promise<void> {
+  const line = await getIndicatorLine();
+  if (line === null) process.exit(0);
+  process.stdout.write(line + "\n", () => process.exit(0));
+  // safety net in case the write callback never fires
+  setTimeout(() => process.exit(0), 200);
 }
 
 function install(): void {
