@@ -34,11 +34,63 @@ function formatElapsed(startedAt: string): string | null {
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
+/** True when both dirs are known and refer to different projects. */
+export function isOtherProject(recordingDir?: string, currentDir?: string): boolean {
+  return Boolean(
+    recordingDir && currentDir && path.resolve(recordingDir) !== path.resolve(currentDir)
+  );
+}
+
+/**
+ * Read the JSON payload Claude Code pipes to status line commands
+ * (contains workspace.current_dir). Resolves empty when stdin is a TTY,
+ * carries no JSON, or stays quiet past the timeout.
+ */
+function readStdinContext(timeoutMs = 250): Promise<{ currentDir?: string }> {
+  if (process.stdin.isTTY) return Promise.resolve({});
+  return new Promise((resolve) => {
+    let data = "";
+    const finish = (result: { currentDir?: string }) => {
+      clearTimeout(timer);
+      process.stdin.removeListener("data", onData);
+      process.stdin.removeListener("end", onEnd);
+      process.stdin.pause();
+      resolve(result);
+    };
+    const timer = setTimeout(() => finish({}), timeoutMs);
+    const onData = (chunk: Buffer) => {
+      data += chunk.toString();
+    };
+    const onEnd = () => {
+      try {
+        const payload = JSON.parse(data) as {
+          workspace?: { current_dir?: string; project_dir?: string };
+          cwd?: string;
+        };
+        finish({
+          currentDir:
+            payload.workspace?.current_dir ?? payload.workspace?.project_dir ?? payload.cwd,
+        });
+      } catch {
+        finish({});
+      }
+    };
+    process.stdin.on("data", onData);
+    process.stdin.on("end", onEnd);
+  });
+}
+
 /** Print the one-line recording indicator. Prints nothing when idle. */
-function printIndicator(): void {
+async function printIndicator(): Promise<void> {
   const session = readJson<ActiveSessionState>(SESSION_FILE);
   const buffer = readJson<LocalSession>(BUFFER_FILE);
   if (!session && !buffer) return;
+
+  // Only show the indicator inside the project the recording belongs to —
+  // other Claude Code windows should not display another project's session.
+  const { currentDir } = await readStdinContext();
+  const recordingDir = session?.projectDir ?? buffer?.projectDir;
+  if (isOtherProject(recordingDir, currentDir)) return;
 
   const ticketId = session?.ticketId ?? buffer?.ticketId ?? "untitled";
   const startedAt = session?.startedAt ?? buffer?.startedAt;
@@ -110,10 +162,10 @@ function printManualInstructions(): void {
   );
 }
 
-export function statuslineCommand(action?: string): void {
+export async function statuslineCommand(action?: string): Promise<void> {
   switch (action) {
     case undefined:
-      printIndicator();
+      await printIndicator();
       break;
     case "install":
       install();

@@ -74,6 +74,7 @@ export interface LocalSession {
   toolCallCount: number;
   intelligence?: SessionIntelligence;
   externalSessionId?: string;
+  projectDir?: string; // absolute path of the project the recording belongs to
 }
 
 // API request to create a session
@@ -375,4 +376,5 @@ export interface ActiveSessionState {
   startedAt: string;
   apiUrl: string;
   externalSessionId?: string;
+  projectDir?: string; // absolute path of the project the recording belongs to
 }

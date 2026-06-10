@@ -38,13 +38,14 @@ beforeEach(() => {
 
 describe("buffer lifecycle", () => {
   it("initBuffer creates a fresh zeroed session buffer", () => {
-    const s = initBuffer("TICKET-1", "claude-code", "ext-123");
+    const s = initBuffer("TICKET-1", "claude-code", "ext-123", "/some/project");
     expect(s.totalTokens).toBe(0);
     expect(s.conversations).toEqual([]);
     expect(readBuffer()).toMatchObject({
       ticketId: "TICKET-1",
       clientTool: "claude-code",
       externalSessionId: "ext-123",
+      projectDir: "/some/project",
     });
   });
 

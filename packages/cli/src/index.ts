@@ -22,7 +22,7 @@ const program = new Command();
 program
   .name("promptly")
   .description("Developer prompt analytics - log and review AI conversations")
-  .version("0.2.2");
+  .version("0.2.3");
 
 program
   .command("login")

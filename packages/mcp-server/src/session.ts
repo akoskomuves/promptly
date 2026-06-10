@@ -64,7 +64,12 @@ export function writeBuffer(session: LocalSession): void {
 }
 
 /** Initialize a new buffer when session starts */
-export function initBuffer(ticketId: string, clientTool?: string, externalSessionId?: string): LocalSession {
+export function initBuffer(
+  ticketId: string,
+  clientTool?: string,
+  externalSessionId?: string,
+  projectDir?: string
+): LocalSession {
   const session: LocalSession = {
     ticketId,
     startedAt: new Date().toISOString(),
@@ -73,6 +78,7 @@ export function initBuffer(ticketId: string, clientTool?: string, externalSessio
     models: [],
     clientTool,
     externalSessionId,
+    projectDir,
     totalTokens: 0,
     promptTokens: 0,
     responseTokens: 0,

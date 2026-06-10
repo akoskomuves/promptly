@@ -143,8 +143,12 @@ async function maybeInstallSkills(
     const globalSkillExists = isSkillInstalled("global");
 
     if (projectSkillExists || globalSkillExists) {
+      // Refresh in place so upgrades pick up new skill content
       const location = projectSkillExists ? "project" : "global";
-      console.log(`\nClaude Code /track skill already installed (${location}).`);
+      process.stdout.write(`\nClaude Code /track skill already installed (${location}) — updating... `);
+      const ok = installSkill(location);
+      console.log(ok ? "done." : "failed.");
+      if (ok) installedAny = true;
     } else {
       console.log("\n--- Claude Code /track Skill ---");
       console.log("The /track skill lets you start/stop session tracking with a slash command.");
@@ -176,7 +180,10 @@ async function maybeInstallSkills(
 
     if (projectSkillExists || globalSkillExists) {
       const location = projectSkillExists ? "project" : "global";
-      console.log(`\nCodex CLI $track skill already installed (${location}).`);
+      process.stdout.write(`\nCodex CLI $track skill already installed (${location}) — updating... `);
+      const ok = installCodexSkill(location);
+      console.log(ok ? "done." : "failed.");
+      if (ok) installedAny = true;
     } else {
       console.log("\n--- Codex CLI $track Skill ---");
       console.log("The $track skill lets you start/stop session tracking with a command.");
@@ -208,7 +215,10 @@ async function maybeInstallSkills(
 
     if (projectCmdExists || globalCmdExists) {
       const location = projectCmdExists ? "project" : "global";
-      console.log(`\nGemini CLI /track command already installed (${location}).`);
+      process.stdout.write(`\nGemini CLI /track command already installed (${location}) — updating... `);
+      const ok = installGeminiCommand(location);
+      console.log(ok ? "done." : "failed.");
+      if (ok) installedAny = true;
     } else {
       console.log("\n--- Gemini CLI /track Command ---");
       console.log("The /track command lets you start/stop session tracking.");
@@ -236,7 +246,10 @@ async function maybeInstallSkills(
   // VS Code + Copilot prompt
   if (vscodeConfigured) {
     if (isVSCodePromptInstalled()) {
-      console.log("\nVS Code + Copilot /track prompt already installed.");
+      process.stdout.write("\nVS Code + Copilot /track prompt already installed — updating... ");
+      const ok = installVSCodePrompt();
+      console.log(ok ? "done." : "failed.");
+      if (ok) installedAny = true;
     } else {
       console.log("\n--- VS Code + Copilot /track Prompt ---");
       console.log("The /track prompt lets you start/stop session tracking in Copilot.");

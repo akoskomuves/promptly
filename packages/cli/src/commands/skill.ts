@@ -380,8 +380,12 @@ async function installSkillInteractive() {
     const globalInstalled = isSkillInstalled("global");
 
     if (projectInstalled || globalInstalled) {
+      // Refresh in place so upgrades pick up new skill content
       const location = projectInstalled ? "project" : "global";
-      console.log(`Claude Code: /track skill already installed (${location}).`);
+      process.stdout.write(`Claude Code: /track skill already installed (${location}) — updating... `);
+      const ok = installSkill(location);
+      console.log(ok ? "done." : "failed.");
+      if (ok) installedAny = true;
     } else {
       const install = await confirm({
         message: "Install /track skill for Claude Code?",
@@ -412,7 +416,10 @@ async function installSkillInteractive() {
 
     if (projectInstalled || globalInstalled) {
       const location = projectInstalled ? "project" : "global";
-      console.log(`Codex CLI: $track skill already installed (${location}).`);
+      process.stdout.write(`Codex CLI: $track skill already installed (${location}) — updating... `);
+      const ok = installCodexSkill(location);
+      console.log(ok ? "done." : "failed.");
+      if (ok) installedAny = true;
     } else {
       const install = await confirm({
         message: "Install $track skill for Codex CLI?",
@@ -443,7 +450,10 @@ async function installSkillInteractive() {
 
     if (projectInstalled || globalInstalled) {
       const location = projectInstalled ? "project" : "global";
-      console.log(`Gemini CLI: /track command already installed (${location}).`);
+      process.stdout.write(`Gemini CLI: /track command already installed (${location}) — updating... `);
+      const ok = installGeminiCommand(location);
+      console.log(ok ? "done." : "failed.");
+      if (ok) installedAny = true;
     } else {
       const install = await confirm({
         message: "Install /track command for Gemini CLI?",
@@ -470,7 +480,10 @@ async function installSkillInteractive() {
   // VS Code + Copilot
   if (isVSCodeInstalled() && isVSCodeConfigured()) {
     if (isVSCodePromptInstalled()) {
-      console.log("VS Code + Copilot: /track prompt already installed.");
+      process.stdout.write("VS Code + Copilot: /track prompt already installed — updating... ");
+      const ok = installVSCodePrompt();
+      console.log(ok ? "done." : "failed.");
+      if (ok) installedAny = true;
     } else {
       const install = await confirm({
         message: "Install /track prompt for VS Code + Copilot?",

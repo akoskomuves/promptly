@@ -229,7 +229,7 @@ While a session is active, the bottom of Claude Code shows:
 🔴 REC ABC-111 · 12 msgs · 34.3k tok · 1h 23m
 ```
 
-When nothing is being recorded, the line is empty. `promptly statusline` prints the same line for any other tool that can run a shell command for its status area (tmux status bars, shell prompts, etc.). Remove it with `promptly statusline uninstall`. If you already have a custom status line, the installer won't overwrite it — it prints instructions for chaining instead.
+When nothing is being recorded, the line is empty. The indicator is **project-scoped**: recordings are stamped with the project directory they were started in, and other Claude Code windows won't show them (the MCP server in another project also refuses to log turns into a recording that isn't its own). `promptly statusline` prints the same line for any other tool that can run a shell command for its status area (tmux status bars, shell prompts, etc.) — without Claude Code's workspace context it shows the machine-wide recording. Remove it with `promptly statusline uninstall`. If you already have a custom status line, the installer won't overwrite it — it prints instructions for chaining instead.
 
 ## Cloud Setup (Teams)
 

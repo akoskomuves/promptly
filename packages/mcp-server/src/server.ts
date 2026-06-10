@@ -1,3 +1,4 @@
+import path from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import {
@@ -11,6 +12,20 @@ import {
   writeToSqlite,
 } from "./session.js";
 import type { ConversationTurn } from "@getpromptly/shared";
+
+/** The project this MCP server instance is running in (Claude Code spawns one per project). */
+function currentProjectDir(): string | undefined {
+  const cwd = process.cwd();
+  return cwd !== "/" ? cwd : undefined;
+}
+
+/** True when the recording was started in a different project than this server's. */
+function belongsToOtherProject(recordingDir?: string): boolean {
+  const here = currentProjectDir();
+  return Boolean(
+    recordingDir && here && path.resolve(recordingDir) !== path.resolve(here)
+  );
+}
 
 function getClientToolName(server: McpServer): string | undefined {
   try {
@@ -37,11 +52,14 @@ export function createServer(): McpServer {
       const ticketId = rawTicketId || "untitled";
       const existing = getActiveSession();
       if (existing) {
+        const where = belongsToOtherProject(existing.projectDir)
+          ? ` — started in another project (${existing.projectDir})`
+          : "";
         return {
           content: [
             {
               type: "text" as const,
-              text: `Session already active for ${existing.ticketId}. Run promptly_finish first.`,
+              text: `Session already active for ${existing.ticketId}${where}. Run promptly_finish first.`,
             },
           ],
         };
@@ -49,15 +67,17 @@ export function createServer(): McpServer {
 
       const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
       const externalSessionId = process.env.CLAUDE_CODE_SESSION_ID || undefined;
+      const projectDir = currentProjectDir();
       writeActiveSession({
         sessionId,
         ticketId,
         startedAt: new Date().toISOString(),
         apiUrl: "http://localhost:3001",
         externalSessionId,
+        projectDir,
       });
       const clientTool = getClientToolName(server);
-      initBuffer(ticketId, clientTool, externalSessionId);
+      initBuffer(ticketId, clientTool, externalSessionId, projectDir);
       return {
         content: [
           {
@@ -94,6 +114,20 @@ export function createServer(): McpServer {
             {
               type: "text" as const,
               text: "No active session. Run promptly_start first.",
+            },
+          ],
+        };
+      }
+
+      // Never log this project's turns into a recording that belongs to
+      // another project — that would silently pollute its session data.
+      const recordingDir = session?.projectDir ?? buffer?.projectDir;
+      if (belongsToOtherProject(recordingDir)) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Not logged: the active recording (${session?.ticketId ?? buffer?.ticketId}) belongs to another project (${recordingDir}). Finish it there first, or start a session for this project.`,
             },
           ],
         };
@@ -138,6 +172,18 @@ export function createServer(): McpServer {
       const messageCount = buffer?.messageCount ?? 0;
       const totalTokens = buffer?.totalTokens ?? 0;
       const startedAt = session?.startedAt ?? buffer?.startedAt ?? "";
+      const recordingDir = session?.projectDir ?? buffer?.projectDir;
+
+      if (belongsToOtherProject(recordingDir)) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `A recording is active for ${ticketId}, but it belongs to another project (${recordingDir}). This project's turns are NOT being logged.`,
+            },
+          ],
+        };
+      }
 
       return {
         content: [
