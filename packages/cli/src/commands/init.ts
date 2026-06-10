@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { checkbox, confirm } from "@inquirer/prompts";
+import { checkbox, confirm, setAssumeYes } from "../prompts.js";
 import { getAnalytics, getDistinctId } from "../analytics.js";
 
 interface Tool {
@@ -377,7 +377,46 @@ function getToolDefs(): ToolDef[] {
 
 // --- Main ---
 
-export async function initCommand() {
+// Accepted --tools tokens → canonical tool names
+const TOOL_ALIASES: Record<string, string> = {
+  claude: "Claude Code",
+  "claude-code": "Claude Code",
+  codex: "Codex CLI",
+  "codex-cli": "Codex CLI",
+  gemini: "Gemini CLI",
+  "gemini-cli": "Gemini CLI",
+  vscode: "VS Code (Copilot)",
+  copilot: "VS Code (Copilot)",
+  cursor: "Cursor",
+  windsurf: "Windsurf",
+};
+
+function resolveToolSelection(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+    .map((token) => {
+      const name = TOOL_ALIASES[token];
+      if (!name) {
+        throw new Error(
+          `Unknown tool "${token}". Valid values: ${Object.keys(TOOL_ALIASES).join(", ")}`
+        );
+      }
+      return name;
+    });
+}
+
+export interface InitOptions {
+  tools?: string;
+  yes?: boolean;
+}
+
+export async function initCommand(options: InitOptions = {}) {
+  if (options.yes) setAssumeYes(true);
+  // Resolve early so a typo in --tools fails before any changes are made
+  const requestedNames = options.tools ? resolveToolSelection(options.tools) : null;
+  const wants = (name: string) => !requestedNames || requestedNames.includes(name);
   console.log("Promptly MCP Setup\n");
 
   const mcpBin = findMcpBinary();
@@ -446,7 +485,14 @@ export async function initCommand() {
       console.log("\nAll detected tools are already configured.");
       // Check if skills need to be installed
       if (claudeAlreadyConfigured || codexAlreadyConfigured || geminiAlreadyConfigured || vscodeAlreadyConfigured || cursorAlreadyConfigured || windsurfAlreadyConfigured) {
-        await maybeInstallSkills(claudeAlreadyConfigured, codexAlreadyConfigured, geminiAlreadyConfigured, vscodeAlreadyConfigured, cursorAlreadyConfigured, windsurfAlreadyConfigured);
+        await maybeInstallSkills(
+          claudeAlreadyConfigured && wants("Claude Code"),
+          codexAlreadyConfigured && wants("Codex CLI"),
+          geminiAlreadyConfigured && wants("Gemini CLI"),
+          vscodeAlreadyConfigured && wants("VS Code (Copilot)"),
+          cursorAlreadyConfigured && wants("Cursor"),
+          windsurfAlreadyConfigured && wants("Windsurf"),
+        );
       }
       return;
     }
@@ -454,19 +500,34 @@ export async function initCommand() {
 
   console.log(`\nServer: ${command} ${args.join(" ")}\n`);
 
-  // Let user select which tools to configure
-  const selectedTools = await checkbox({
-    message: "Select tools to configure:",
-    choices: availableToConfigure.map(t => ({
-      name: t.name,
-      value: t.name,
-      checked: true, // Pre-select all by default
-    })),
-  });
+  // Let user select which tools to configure (or take them from --tools)
+  let selectedTools: string[];
+  if (requestedNames) {
+    selectedTools = availableToConfigure
+      .map(t => t.name)
+      .filter(n => requestedNames.includes(n));
+    for (const name of requestedNames) {
+      if (!selectedTools.includes(name)) {
+        const tool = tools.find(t => t.name === name);
+        console.log(
+          `  ${name}: ${tool?.configured ? "already configured" : "not detected"} — skipping configure step.`
+        );
+      }
+    }
+  } else {
+    selectedTools = await checkbox({
+      message: "Select tools to configure:",
+      choices: availableToConfigure.map(t => ({
+        name: t.name,
+        value: t.name,
+        checked: true, // Pre-select all by default
+      })),
+    });
 
-  if (selectedTools.length === 0) {
-    console.log("No tools selected. Aborted.");
-    return;
+    if (selectedTools.length === 0) {
+      console.log("No tools selected. Aborted.");
+      return;
+    }
   }
 
   const toConfigure = availableToConfigure.filter(t => selectedTools.includes(t.name));
@@ -494,7 +555,14 @@ export async function initCommand() {
   const windsurfConfigured = windsurfJustConfigured || windsurfAlreadyConfigured;
 
   if (claudeConfigured || codexConfigured || geminiConfigured || vscodeConfigured || cursorConfigured || windsurfConfigured) {
-    await maybeInstallSkills(claudeConfigured, codexConfigured, geminiConfigured, vscodeConfigured, cursorConfigured, windsurfConfigured);
+    await maybeInstallSkills(
+      claudeConfigured && wants("Claude Code"),
+      codexConfigured && wants("Codex CLI"),
+      geminiConfigured && wants("Gemini CLI"),
+      vscodeConfigured && wants("VS Code (Copilot)"),
+      cursorConfigured && wants("Cursor"),
+      windsurfConfigured && wants("Windsurf"),
+    );
   }
 
   getAnalytics().capture({

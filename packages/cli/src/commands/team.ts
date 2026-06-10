@@ -1,4 +1,4 @@
-import { select } from "@inquirer/prompts";
+import { select } from "../prompts.js";
 import { loadConfig, saveConfig, isLocalMode } from "../config.js";
 
 interface Team {
@@ -60,6 +60,7 @@ export async function teamSetCommand(slug?: string) {
           value: t.slug,
           description: config.defaultTeamSlug === t.slug ? "Currently default" : undefined,
         })),
+        nonInteractiveHint: "Pass the slug directly: promptly team set <slug>",
       });
 
       slug = selected;

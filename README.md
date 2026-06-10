@@ -83,6 +83,8 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 | `promptly statusline install` | Show `🔴 REC <ticket>` in Claude Code's status line while recording |
 | `promptly telemetry on\|off\|status` | Manage anonymous usage telemetry |
 
+All commands work without a TTY (scripts, CI, AI agents): prompts fall back to sensible defaults or fail with the flag to pass instead. Use `promptly init --tools claude --yes` for fully unattended setup.
+
 ## How It Works
 
 ```

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { confirm } from "@inquirer/prompts";
+import { confirm } from "../prompts.js";
 
 // --- Instruction block constants ---
 

@@ -1,4 +1,4 @@
-import { select } from "@inquirer/prompts";
+import { select } from "../prompts.js";
 import open from "open";
 import { loadConfig, saveConfig, isLocalMode } from "../config.js";
 
@@ -87,6 +87,7 @@ export async function teamsCommand() {
     const action = await select({
       message: "Quick actions:",
       choices,
+      default: "done",
     });
 
     if (action === "done") {

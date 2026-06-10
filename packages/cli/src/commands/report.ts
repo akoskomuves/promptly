@@ -1,4 +1,4 @@
-import { select } from "@inquirer/prompts";
+import { select } from "../prompts.js";
 import { listSessionsInRange, listAllSessions } from "../db.js";
 import { extractProject } from "@getpromptly/shared";
 import type { DbSession } from "../db.js";
@@ -19,6 +19,7 @@ export async function reportCommand(options: {
         { name: "Last year", value: "year" },
         { name: "All time", value: "all" },
       ],
+      default: "month",
     });
     if (period !== "all") {
       options.period = period;

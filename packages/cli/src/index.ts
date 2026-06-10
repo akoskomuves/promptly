@@ -22,7 +22,7 @@ const program = new Command();
 program
   .name("promptly")
   .description("Developer prompt analytics - log and review AI conversations")
-  .version("0.2.1");
+  .version("0.2.2");
 
 program
   .command("login")
@@ -54,6 +54,8 @@ program
 program
   .command("init")
   .description("Auto-detect and configure MCP in all supported AI coding tools")
+  .option("--tools <tools>", "Comma-separated tools to configure (claude, codex, gemini, vscode, cursor, windsurf) — skips the selector")
+  .option("-y, --yes", "Accept defaults for all prompts (for scripts and AI agents)")
   .action(initCommand);
 
 program
@@ -77,6 +79,7 @@ program
 program
   .command("skill [action]")
   .description("Manage Claude Code /track skill: install | uninstall | status")
+  .option("-y, --yes", "Accept defaults for all prompts (for scripts and AI agents)")
   .action(skillCommand);
 
 program

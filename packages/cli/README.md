@@ -65,6 +65,8 @@ During setup, `promptly init` can enable **auto-prompt** — your AI tool will o
 | `promptly statusline install` | Show `🔴 REC <ticket>` in Claude Code's status line while recording |
 | `promptly telemetry on\|off\|status` | Manage anonymous usage telemetry |
 
+All commands work without a TTY (scripts, CI, AI agents): prompts fall back to sensible defaults or fail with the flag to pass instead. Use `promptly init --tools claude --yes` for fully unattended setup.
+
 All commands support direct arguments for scripting/automation.
 
 ## How It Works

@@ -170,6 +170,18 @@ promptly skill status     # Check installation status
 
 Or run `promptly init` again — even if tools are already configured, it will offer to install `/track` commands.
 
+### Non-Interactive Setup (scripts, CI, AI agents)
+
+Interactive prompts need a real terminal — they can't run from `!` commands inside Claude Code, CI jobs, or scripts. Every command degrades gracefully without a TTY: confirms take their defaults, selectors use their default or fail with the exact flag to pass instead. For fully unattended setup:
+
+```bash
+promptly init --tools claude --yes        # configure MCP + /track skill + auto-prompt, no prompts
+promptly init --tools claude,codex --yes  # multiple tools
+promptly skill install --yes              # skills only
+```
+
+This means an AI agent can set Promptly up by itself: if the `/track` skill is installed but the MCP tools are missing, the skill instructs the agent to run `promptly init --tools claude --yes` and ask you to restart the session.
+
 ## Auto-Prompt
 
 After installing skills, `promptly init` offers to enable **auto-prompt**. This adds a small instruction block to each tool's system instructions file so the AI automatically offers session tracking at the start of each conversation.

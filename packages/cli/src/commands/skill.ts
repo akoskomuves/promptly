@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { execSync } from "node:child_process";
-import { confirm } from "@inquirer/prompts";
+import { confirm, setAssumeYes } from "../prompts.js";
 import { installAutoPromptInteractive, getAutoPromptStatus } from "./autoprompt.js";
 
 const TRACK_SKILL_CONTENT = `---
@@ -58,6 +58,14 @@ Based on the argument:
 - User says they are starting work on a ticket ("I'm starting ABC-111", "let's pick up AUTH-42") → extract the ticket ID from the sentence and call \`promptly_start\` with it, then confirm: \`🔴 Promptly recording — ABC-111\`
 - User asks "are we recording?" / "is this tracked?" → call \`promptly_status\`
 - User says the ticket work is done ("we're done with this ticket", "wrap it up") → call \`promptly_finish\` and relay the summary
+
+## If the promptly MCP tools are not available
+
+Promptly is not configured for this project yet. Run this in the shell, then ask the user to restart the session:
+
+\`\`\`
+promptly init --tools claude --yes
+\`\`\`
 `;
 
 // --- Codex CLI Skill Content ---
@@ -345,7 +353,8 @@ export function installVSCodePrompt(): boolean {
   }
 }
 
-export async function skillCommand(action?: string) {
+export async function skillCommand(action?: string, options: { yes?: boolean } = {}) {
+  if (options.yes) setAssumeYes(true);
   if (action === "install") {
     await installSkillInteractive();
   } else if (action === "uninstall") {

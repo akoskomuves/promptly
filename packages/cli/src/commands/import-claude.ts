@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { input, select } from "@inquirer/prompts";
+import { input, select } from "../prompts.js";
 import { createSession, finishSession, generateId } from "../db.js";
 import { categorizeSession, analyzeSession } from "@getpromptly/shared";
 import type { ConversationTurn } from "@getpromptly/shared";
@@ -237,6 +237,8 @@ export async function importClaudeCommand(options: ImportOptions = {}) {
         name: `${s.sessionId.substring(0, 8)}  ${path.basename(s.cwd ?? "-")}  (${s.mtime.substring(0, 16)} · ${s.sizeKB}KB)`,
         value: s.sessionId,
       })),
+      nonInteractiveHint:
+        "List sessions with 'promptly import-claude --list', then pass --session <id>.",
     });
     chosen = summaries.find((s) => s.sessionId === choice);
   }
