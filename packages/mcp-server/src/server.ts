@@ -19,12 +19,21 @@ function currentProjectDir(): string | undefined {
   return cwd !== "/" ? cwd : undefined;
 }
 
-/** True when the recording was started in a different project than this server's. */
+function isWithin(child: string, parent: string): boolean {
+  const rel = path.relative(path.resolve(parent), path.resolve(child));
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+/**
+ * True when the recording was started in a different project than this
+ * server's. Containment counts as the same project — a recording started
+ * via `promptly start` in a subdirectory must still accept this server's
+ * turns.
+ */
 function belongsToOtherProject(recordingDir?: string): boolean {
   const here = currentProjectDir();
-  return Boolean(
-    recordingDir && here && path.resolve(recordingDir) !== path.resolve(here)
-  );
+  if (!recordingDir || !here) return false;
+  return !isWithin(recordingDir, here) && !isWithin(here, recordingDir);
 }
 
 function getClientToolName(server: McpServer): string | undefined {

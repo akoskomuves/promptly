@@ -1,6 +1,6 @@
 {
   "name": "@getpromptly/mcp-server",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "description": "MCP server for tracking AI coding sessions — captures conversations, token usage, and costs",
   "type": "module",
   "license": "MIT",

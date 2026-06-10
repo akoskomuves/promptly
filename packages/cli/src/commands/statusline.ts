@@ -34,11 +34,20 @@ function formatElapsed(startedAt: string): string | null {
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
-/** True when both dirs are known and refer to different projects. */
+function isWithin(child: string, parent: string): boolean {
+  const rel = path.relative(path.resolve(parent), path.resolve(child));
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+}
+
+/**
+ * True when both dirs are known and belong to different projects.
+ * Containment counts as the same project: the session's working directory
+ * is often a subdirectory of the project the recording was started in
+ * (or vice versa when a recording was started from a subdir).
+ */
 export function isOtherProject(recordingDir?: string, currentDir?: string): boolean {
-  return Boolean(
-    recordingDir && currentDir && path.resolve(recordingDir) !== path.resolve(currentDir)
-  );
+  if (!recordingDir || !currentDir) return false;
+  return !isWithin(currentDir, recordingDir) && !isWithin(recordingDir, currentDir);
 }
 
 /**
@@ -67,9 +76,11 @@ function readStdinContext(timeoutMs = 250): Promise<{ currentDir?: string }> {
           workspace?: { current_dir?: string; project_dir?: string };
           cwd?: string;
         };
+        // project_dir is the stable project root; current_dir follows the
+        // session's shell cwd and may point into a subdirectory
         finish({
           currentDir:
-            payload.workspace?.current_dir ?? payload.workspace?.project_dir ?? payload.cwd,
+            payload.workspace?.project_dir ?? payload.workspace?.current_dir ?? payload.cwd,
         });
       } catch {
         finish({});

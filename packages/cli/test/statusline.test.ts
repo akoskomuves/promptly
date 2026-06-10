@@ -17,4 +17,13 @@ describe("isOtherProject", () => {
     expect(isOtherProject("/a/promptly/", "/a/promptly")).toBe(false);
     expect(isOtherProject("/a/./promptly", "/a/promptly")).toBe(false);
   });
+
+  it("treats subdirectories as the same project (either direction)", () => {
+    // session cwd is a subdir of the recorded project
+    expect(isOtherProject("/a/promptly", "/a/promptly/packages/cli")).toBe(false);
+    // recording was started from a subdir, session reports the root
+    expect(isOtherProject("/a/promptly/packages/cli", "/a/promptly")).toBe(false);
+    // sibling with a shared prefix is still another project
+    expect(isOtherProject("/a/promptly", "/a/promptly-cloud")).toBe(true);
+  });
 });
