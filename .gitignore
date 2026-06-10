@@ -21,5 +21,10 @@ scripts/
 .DS_Store
 .claude/
 
+# Local AI-tool config written by `promptly init` / `promptly skill install`
+.codex/
+.gemini/
+GEMINI.md
+
 # Wizard-generated setup reports (contain private PostHog dashboard URLs)
 posthog-setup-report.md
