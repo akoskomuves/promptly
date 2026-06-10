@@ -62,7 +62,7 @@ export function createServer(): McpServer {
         content: [
           {
             type: "text" as const,
-            text: `Session started for ${ticketId}. All conversations will be logged.`,
+            text: `🔴 Promptly recording — ${ticketId}. All conversation turns will be logged. Tell the user recording has started (one short line). Finish with promptly_finish when the work wraps up.`,
           },
         ],
       };
@@ -144,7 +144,7 @@ export function createServer(): McpServer {
           {
             type: "text" as const,
             text: [
-              `Active session: ${ticketId}`,
+              `🔴 Promptly recording — ${ticketId}`,
               `Started: ${startedAt}`,
               `Messages: ${messageCount}`,
               `Tokens: ${totalTokens}`,
@@ -174,10 +174,21 @@ export function createServer(): McpServer {
       buffer.status = "COMPLETED";
 
       // Persist to SQLite before clearing buffer
-      writeToSqlite(buffer);
+      const writeResult = writeToSqlite(buffer);
+      if (!writeResult.ok) {
+        // Keep buffer.json and session.json so the session can be recovered
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Failed to save session to the local database: ${writeResult.error}. The conversation buffer was kept at ~/.promptly/buffer.json — run \`promptly finish\` from the CLI to retry.`,
+            },
+          ],
+        };
+      }
 
       const summary = [
-        `Session completed for ${buffer.ticketId}`,
+        `⏹ Recording stopped — session saved for ${buffer.ticketId}`,
         `Duration: ${formatDuration(buffer.startedAt, buffer.finishedAt)}`,
         `Messages: ${buffer.messageCount}`,
         `Tokens: ${buffer.totalTokens}`,

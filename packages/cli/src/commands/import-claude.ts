@@ -158,8 +158,9 @@ function parseJsonl(filePath: string): ParsedSession {
 
     if (usage) {
       totalTokens += turnTokens;
-      if (role === "user") promptTokens += turnTokens;
-      else responseTokens += turnTokens;
+      // assistant turns are output-side; user and system turns are input-side
+      if (role === "assistant") responseTokens += turnTokens;
+      else promptTokens += turnTokens;
     }
 
     if (toolCalls.length > 0) toolCallCount += toolCalls.length;

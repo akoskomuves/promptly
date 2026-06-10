@@ -1,6 +1,6 @@
 {
   "name": "@getpromptly/mcp-server",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "MCP server for tracking AI coding sessions — captures conversations, token usage, and costs",
   "type": "module",
   "license": "MIT",
@@ -10,25 +10,39 @@
     "directory": "packages/mcp-server"
   },
   "homepage": "https://getpromptly.xyz",
-  "keywords": ["mcp", "ai", "prompt", "analytics", "claude", "conversation-logging", "session-tracking", "llm", "developer-tools"],
+  "keywords": [
+    "mcp",
+    "ai",
+    "prompt",
+    "analytics",
+    "claude",
+    "conversation-logging",
+    "session-tracking",
+    "llm",
+    "developer-tools"
+  ],
   "bin": {
     "promptly-mcp": "dist/index.js"
   },
   "main": "./dist/index.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "zod": "^3.23.0",
     "@getpromptly/shared": "workspace:*",
-    "better-sqlite3": "^12.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "better-sqlite3": "^12.0.0",
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^22.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.8"
   }
 }

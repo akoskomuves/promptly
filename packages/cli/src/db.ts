@@ -2,9 +2,10 @@ import Database from "better-sqlite3";
 import path from "node:path";
 import os from "node:os";
 import fs from "node:fs";
-import type { LocalSession } from "@getpromptly/shared";
+import { applySessionSchema } from "@getpromptly/shared";
 
-const PROMPTLY_DIR = path.join(os.homedir(), ".promptly");
+const PROMPTLY_DIR =
+  process.env.PROMPTLY_DIR ?? path.join(os.homedir(), ".promptly");
 const DB_PATH = path.join(PROMPTLY_DIR, "promptly.db");
 
 let _db: Database.Database | null = null;
@@ -20,49 +21,7 @@ export function getDb(): Database.Database {
   ensureDir();
   _db = new Database(DB_PATH);
   _db.pragma("journal_mode = WAL");
-  _db.exec(`
-    CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      ticket_id TEXT NOT NULL,
-      started_at TEXT NOT NULL,
-      finished_at TEXT,
-      status TEXT DEFAULT 'ACTIVE',
-      total_tokens INTEGER DEFAULT 0,
-      prompt_tokens INTEGER DEFAULT 0,
-      response_tokens INTEGER DEFAULT 0,
-      message_count INTEGER DEFAULT 0,
-      tool_call_count INTEGER DEFAULT 0,
-      conversations TEXT DEFAULT '[]',
-      models TEXT DEFAULT '[]',
-      tags TEXT DEFAULT '[]',
-      client_tool TEXT,
-      created_at TEXT DEFAULT (datetime('now'))
-    );
-  `);
-  // Migrate: add client_tool column if missing
-  try {
-    _db.exec("ALTER TABLE sessions ADD COLUMN client_tool TEXT");
-  } catch {
-    // column already exists
-  }
-  // Migrate: add git_activity column if missing
-  try {
-    _db.exec("ALTER TABLE sessions ADD COLUMN git_activity TEXT");
-  } catch {
-    // column already exists
-  }
-  // Migrate: add category column if missing
-  try {
-    _db.exec("ALTER TABLE sessions ADD COLUMN category TEXT");
-  } catch {
-    // column already exists
-  }
-  // Migrate: add intelligence column if missing
-  try {
-    _db.exec("ALTER TABLE sessions ADD COLUMN intelligence TEXT");
-  } catch {
-    // column already exists
-  }
+  applySessionSchema(_db);
   return _db;
 }
 
@@ -145,6 +104,7 @@ export interface DbSession {
   git_activity: string | null;
   category: string | null;
   intelligence: string | null;
+  external_session_id: string | null;
   created_at: string;
 }
 

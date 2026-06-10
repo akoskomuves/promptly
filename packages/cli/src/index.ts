@@ -15,13 +15,14 @@ import { importClaudeCommand } from "./commands/import-claude.js";
 import { optimizeCommand } from "./commands/optimize.js";
 import { reviewCommand } from "./commands/review.js";
 import { telemetryCommand } from "./commands/telemetry.js";
+import { statuslineCommand } from "./commands/statusline.js";
 
 const program = new Command();
 
 program
   .name("promptly")
   .description("Developer prompt analytics - log and review AI conversations")
-  .version("0.1.0");
+  .version("0.2.1");
 
 program
   .command("login")
@@ -115,4 +116,12 @@ program
   .description("Manage anonymous usage telemetry: on | off | status")
   .action(telemetryCommand);
 
-program.parse();
+program
+  .command("statusline [action]")
+  .description("Recording indicator for your AI tool's status line: (print) | install | uninstall")
+  .action(statuslineCommand);
+
+program.parseAsync().catch((err: unknown) => {
+  console.error(err instanceof Error ? err.message : err);
+  process.exit(1);
+});

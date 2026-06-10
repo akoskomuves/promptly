@@ -5,3 +5,4 @@ export * from "./digest.js";
 export * from "./trends.js";
 export * from "./parallel.js";
 export * from "./optimize.js";
+export * from "./schema.js";

@@ -123,9 +123,7 @@ function resolveRange(options: OptimizeOptions): { from: string; to: string; day
 export async function optimizeCommand(options: OptimizeOptions = {}) {
   const { from, to, days } = resolveRange(options);
 
-  const rows = options.from || options.to || options.days
-    ? listSessionsInRange(from, to)
-    : listSessionsInRange(from, to);
+  const rows = listSessionsInRange(from, to);
 
   if (rows.length === 0) {
     if (options.json) {

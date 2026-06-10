@@ -7,7 +7,7 @@ import { installAutoPromptInteractive, getAutoPromptStatus } from "./autoprompt.
 
 const TRACK_SKILL_CONTENT = `---
 name: track
-description: Start, check, or finish tracking an AI session with Promptly. Use this to tie your work to a ticket ID and track token usage.
+description: Start, check, or finish tracking an AI session with Promptly. Use when the user runs /track, says they are starting work on a ticket (e.g. "I'm starting ABC-111", "picking up AUTH-42"), asks whether a session is being recorded, or says the ticket work is done.
 allowed-tools: mcp__promptly__promptly_start, mcp__promptly__promptly_status, mcp__promptly__promptly_finish
 argument-hint: "<ticket-id> | status | finish"
 ---
@@ -52,13 +52,19 @@ Based on the argument:
 - If argument is "status" → call \`promptly_status\` tool
 - If argument is "finish" → call \`promptly_finish\` tool
 - Otherwise → call \`promptly_start\` with the argument as ticketId
+
+## Natural-language triggers (no /track typed)
+
+- User says they are starting work on a ticket ("I'm starting ABC-111", "let's pick up AUTH-42") → extract the ticket ID from the sentence and call \`promptly_start\` with it, then confirm: \`🔴 Promptly recording — ABC-111\`
+- User asks "are we recording?" / "is this tracked?" → call \`promptly_status\`
+- User says the ticket work is done ("we're done with this ticket", "wrap it up") → call \`promptly_finish\` and relay the summary
 `;
 
 // --- Codex CLI Skill Content ---
 
 const CODEX_SKILL_CONTENT = `---
 name: track
-description: Start, check, or finish tracking an AI session with Promptly. Use this to tie your work to a ticket ID and track token usage.
+description: Start, check, or finish tracking an AI session with Promptly. Use when the user runs $track, says they are starting work on a ticket (e.g. "I'm starting ABC-111"), asks whether a session is being recorded, or says the ticket work is done.
 ---
 
 # Promptly Session Tracker

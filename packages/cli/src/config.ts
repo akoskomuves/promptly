@@ -3,7 +3,8 @@ import path from "node:path";
 import os from "node:os";
 import type { CliConfig, ActiveSessionState } from "@getpromptly/shared";
 
-const PROMPTLY_DIR = path.join(os.homedir(), ".promptly");
+const PROMPTLY_DIR =
+  process.env.PROMPTLY_DIR ?? path.join(os.homedir(), ".promptly");
 const CONFIG_FILE = path.join(PROMPTLY_DIR, "config.json");
 const SESSION_FILE = path.join(PROMPTLY_DIR, "session.json");
 
@@ -13,16 +14,25 @@ function ensureDir() {
   }
 }
 
+const DEFAULT_CONFIG: CliConfig = {
+  apiUrl: "https://api.getpromptly.xyz",
+  mode: "local",
+};
+
 export function loadConfig(): CliConfig {
+  if (!fs.existsSync(CONFIG_FILE)) {
+    return { ...DEFAULT_CONFIG };
+  }
   try {
-    if (!fs.existsSync(CONFIG_FILE)) {
-      return { apiUrl: "https://api.getpromptly.xyz", mode: "local" };
-    }
     const config = JSON.parse(fs.readFileSync(CONFIG_FILE, "utf-8")) as CliConfig;
     if (!config.mode) config.mode = "local";
     return config;
-  } catch {
-    return { apiUrl: "https://api.getpromptly.xyz", mode: "local" };
+  } catch (err) {
+    console.error(
+      `Warning: ${CONFIG_FILE} is unreadable (${err instanceof Error ? err.message : err}). ` +
+        `Falling back to local mode — cloud settings (API URL, token, team) are ignored until the file is fixed or you run 'promptly login' again.`
+    );
+    return { ...DEFAULT_CONFIG };
   }
 }
 

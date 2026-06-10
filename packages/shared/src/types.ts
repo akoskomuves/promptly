@@ -68,9 +68,9 @@ export interface LocalSession {
   models: string[];
   clientTool?: string; // e.g. "claude-code", "cursor", "gemini-cli"
   totalTokens: number;
-  promptTokens: number;
-  responseTokens: number;
-  messageCount: number;
+  promptTokens: number;   // user + system turns (input-side)
+  responseTokens: number; // assistant turns
+  messageCount: number;   // ALL turns incl. system — wider than qualityScore.turnsToComplete
   toolCallCount: number;
   intelligence?: SessionIntelligence;
   externalSessionId?: string;
@@ -188,7 +188,7 @@ export interface SessionQualityScore {
   correctionRate: number;   // 0-1
   oneShotSuccess: boolean;  // ≤2 follow-up user messages
   errorRecovery: number;    // 0-1 (1=clean, 0.7=errors resolved, 0.3=unresolved)
-  turnsToComplete: number;
+  turnsToComplete: number;  // user + assistant turns only — narrower than LocalSession.messageCount
 }
 
 // Tool usage statistics (computed at finish time)

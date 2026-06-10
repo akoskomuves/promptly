@@ -85,18 +85,28 @@ function toDigestInputs(sessions: ReturnType<typeof listAllSessions>): DigestSes
   });
 }
 
+function respondServerError(res: http.ServerResponse, err: unknown): void {
+  console.error(`Request failed: ${err instanceof Error ? (err.stack ?? err.message) : err}`);
+  if (!res.headersSent) {
+    res.writeHead(500, { "Content-Type": "application/json" });
+  }
+  res.end(JSON.stringify({ error: "Internal server error" }));
+}
+
 export async function serveCommand(options: { port?: string }) {
   const port = parseInt(options.port ?? "3000", 10);
 
-  const server = http.createServer((req, res) => {
+  const handleRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     const url = new URL(req.url ?? "/", `http://localhost:${port}`);
 
     // Pricing endpoint
     if (url.pathname === "/api/pricing" && req.method === "GET") {
-      fetchPricing().then((models) => {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify(models || {}));
-      });
+      fetchPricing()
+        .then((models) => {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify(models || {}));
+        })
+        .catch((err) => respondServerError(res, err));
       return;
     }
 
@@ -116,7 +126,8 @@ export async function serveCommand(options: { port?: string }) {
       const headers = ["id","ticket_id","started_at","finished_at","status","total_tokens","prompt_tokens","response_tokens","message_count","tool_call_count","client_tool","models","category","quality_score","plan_mode","one_shot","correction_rate","top_tools","total_tool_calls","subagent_count"];
       const csvRows = [headers.join(",")];
       for (const s of sessions) {
-        const models = JSON.parse(s.models || "[]").join(";");
+        let models = "";
+        try { models = (JSON.parse(s.models || "[]") as string[]).join(";"); } catch {}
         let qualityScore = "", planMode = "", oneShot = "", correctionRate = "", topToolsStr = "", totalToolCallsStr = "", subagentCount = "";
         if (s.intelligence) {
           try {
@@ -323,7 +334,7 @@ export async function serveCommand(options: { port?: string }) {
           recs,
           totalEstimatedMonthlySavings,
         }));
-      });
+      }).catch((err) => respondServerError(res, err));
       return;
     }
 
@@ -349,7 +360,7 @@ export async function serveCommand(options: { port?: string }) {
         };
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(optimizePage(JSON.stringify(data), days));
-      });
+      }).catch((err) => respondServerError(res, err));
       return;
     }
 
@@ -392,6 +403,23 @@ export async function serveCommand(options: { port?: string }) {
 
     res.writeHead(404, { "Content-Type": "text/plain" });
     res.end("Not found");
+  };
+
+  const server = http.createServer((req, res) => {
+    try {
+      handleRequest(req, res);
+    } catch (err) {
+      respondServerError(res, err);
+    }
+  });
+
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(`Port ${port} is already in use. Try: promptly serve --port ${Number(port) + 1}`);
+    } else {
+      console.error(`Server error: ${err.message}`);
+    }
+    process.exit(1);
   });
 
   server.listen(port, () => {

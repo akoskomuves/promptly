@@ -2,13 +2,15 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import Database from "better-sqlite3";
+import { applySessionSchema } from "@getpromptly/shared";
 import type {
   ConversationTurn,
   LocalSession,
   ActiveSessionState,
 } from "@getpromptly/shared";
 
-const PROMPTLY_DIR = path.join(os.homedir(), ".promptly");
+const PROMPTLY_DIR =
+  process.env.PROMPTLY_DIR ?? path.join(os.homedir(), ".promptly");
 const SESSION_STATE_FILE = path.join(PROMPTLY_DIR, "session.json");
 const BUFFER_FILE = path.join(PROMPTLY_DIR, "buffer.json");
 
@@ -91,10 +93,12 @@ export function addTurn(turn: ConversationTurn): void {
 
   if (turn.tokenCount) {
     session.totalTokens += turn.tokenCount;
-    if (turn.role === "user") {
-      session.promptTokens += turn.tokenCount;
-    } else if (turn.role === "assistant") {
+    if (turn.role === "assistant") {
       session.responseTokens += turn.tokenCount;
+    } else {
+      // user and system turns are both input-side tokens, so the
+      // prompt/response split always sums to totalTokens
+      session.promptTokens += turn.tokenCount;
     }
   }
 
@@ -109,104 +113,58 @@ export function addTurn(turn: ConversationTurn): void {
   writeBuffer(session);
 }
 
+export type SqliteWriteResult = { ok: true } | { ok: false; error: string };
+
 /** Write completed session data to SQLite for local persistence */
-export function writeToSqlite(session: LocalSession): void {
+export function writeToSqlite(session: LocalSession): SqliteWriteResult {
+  let db: InstanceType<typeof Database> | null = null;
   try {
     ensureDir();
     const dbPath = path.join(PROMPTLY_DIR, "promptly.db");
-    const db = new Database(dbPath);
+    db = new Database(dbPath);
     db.pragma("journal_mode = WAL");
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        id TEXT PRIMARY KEY,
-        ticket_id TEXT NOT NULL,
-        started_at TEXT NOT NULL,
-        finished_at TEXT,
-        status TEXT DEFAULT 'ACTIVE',
-        total_tokens INTEGER DEFAULT 0,
-        prompt_tokens INTEGER DEFAULT 0,
-        response_tokens INTEGER DEFAULT 0,
-        message_count INTEGER DEFAULT 0,
-        tool_call_count INTEGER DEFAULT 0,
-        conversations TEXT DEFAULT '[]',
-        models TEXT DEFAULT '[]',
-        tags TEXT DEFAULT '[]',
-        client_tool TEXT,
-        git_activity TEXT,
-        category TEXT,
-        created_at TEXT DEFAULT (datetime('now'))
-      );
-    `);
-
-    // Migrate: add client_tool column if missing
-    try {
-      db.exec("ALTER TABLE sessions ADD COLUMN client_tool TEXT");
-    } catch {
-      // column already exists
-    }
-    // Migrate: add git_activity column if missing
-    try {
-      db.exec("ALTER TABLE sessions ADD COLUMN git_activity TEXT");
-    } catch {
-      // column already exists
-    }
-    // Migrate: add category column if missing
-    try {
-      db.exec("ALTER TABLE sessions ADD COLUMN category TEXT");
-    } catch {
-      // column already exists
-    }
-    // Migrate: add intelligence column if missing
-    try {
-      db.exec("ALTER TABLE sessions ADD COLUMN intelligence TEXT");
-    } catch {
-      // column already exists
-    }
-    try {
-      db.exec("ALTER TABLE sessions ADD COLUMN external_session_id TEXT");
-    } catch {
-      // column already exists
-    }
+    applySessionSchema(db);
 
     const activeSession = getActiveSession();
     const id = activeSession?.sessionId ??
       (Math.random().toString(36).substring(2) + Date.now().toString(36));
 
-    // Upsert: update if exists, insert if not
-    const existing = db.prepare("SELECT id FROM sessions WHERE id = ?").get(id);
-    if (existing) {
-      db.prepare(`
-        UPDATE sessions SET
-          finished_at = ?, status = 'COMPLETED',
-          total_tokens = ?, prompt_tokens = ?, response_tokens = ?,
-          message_count = ?, tool_call_count = ?,
-          conversations = ?, models = ?, client_tool = ?, started_at = ?,
-          external_session_id = ?
-        WHERE id = ?
-      `).run(
-        session.finishedAt, session.totalTokens, session.promptTokens,
-        session.responseTokens, session.messageCount, session.toolCallCount,
-        JSON.stringify(session.conversations), JSON.stringify(session.models),
-        session.clientTool ?? null, session.startedAt,
-        session.externalSessionId ?? null, id
-      );
-    } else {
-      db.prepare(`
-        INSERT INTO sessions (id, ticket_id, started_at, finished_at, status,
-          total_tokens, prompt_tokens, response_tokens, message_count, tool_call_count,
-          conversations, models, client_tool, external_session_id)
-        VALUES (?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        id, session.ticketId, session.startedAt, session.finishedAt,
-        session.totalTokens, session.promptTokens, session.responseTokens,
-        session.messageCount, session.toolCallCount,
-        JSON.stringify(session.conversations), JSON.stringify(session.models),
-        session.clientTool ?? null, session.externalSessionId ?? null
-      );
+    // Atomic upsert — a SELECT-then-INSERT would race against the CLI
+    // writing the same session id from another process
+    db.prepare(`
+      INSERT INTO sessions (id, ticket_id, started_at, finished_at, status,
+        total_tokens, prompt_tokens, response_tokens, message_count, tool_call_count,
+        conversations, models, client_tool, external_session_id)
+      VALUES (?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        finished_at = excluded.finished_at,
+        status = 'COMPLETED',
+        total_tokens = excluded.total_tokens,
+        prompt_tokens = excluded.prompt_tokens,
+        response_tokens = excluded.response_tokens,
+        message_count = excluded.message_count,
+        tool_call_count = excluded.tool_call_count,
+        conversations = excluded.conversations,
+        models = excluded.models,
+        client_tool = COALESCE(excluded.client_tool, client_tool),
+        started_at = excluded.started_at,
+        external_session_id = COALESCE(excluded.external_session_id, external_session_id)
+    `).run(
+      id, session.ticketId, session.startedAt, session.finishedAt,
+      session.totalTokens, session.promptTokens, session.responseTokens,
+      session.messageCount, session.toolCallCount,
+      JSON.stringify(session.conversations), JSON.stringify(session.models),
+      session.clientTool ?? null, session.externalSessionId ?? null
+    );
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  } finally {
+    try {
+      db?.close();
+    } catch {
+      // already closed or never opened
     }
-    db.close();
-  } catch {
-    // SQLite write is best-effort; buffer.json is the crash-recovery layer
   }
 }
 

@@ -4,7 +4,10 @@ import os from "node:os";
 import { getActiveSession } from "../config.js";
 import type { LocalSession } from "@getpromptly/shared";
 
-const BUFFER_FILE = path.join(os.homedir(), ".promptly", "buffer.json");
+const BUFFER_FILE = path.join(
+  process.env.PROMPTLY_DIR ?? path.join(os.homedir(), ".promptly"),
+  "buffer.json"
+);
 
 export function statusCommand() {
   const session = getActiveSession();

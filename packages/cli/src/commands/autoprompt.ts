@@ -8,12 +8,17 @@ import { confirm } from "@inquirer/prompts";
 const AUTO_PROMPT_MCP = `
 <!-- promptly:auto-prompt:start -->
 ## Promptly Session Tracking
-At the start of each conversation, call the \`promptly_status\` MCP tool to check if a session is being tracked. If no session is active, ask: "Want me to track this session? Provide a ticket ID (e.g. AUTH-123)." If the user provides one, call \`promptly_start\` with it. If they decline, continue without asking again.
+Promptly records AI coding sessions tied to ticket IDs (MCP tools: \`promptly_start\` / \`promptly_status\` / \`promptly_finish\`).
+
+- **Ticket mentioned → start recording.** When the user says they are starting work on a ticket or task (e.g. "I'm starting ABC-111", "let's work on AUTH-42", "picking up PROJ-7"), immediately call \`promptly_start\` with that ticket ID — no need to ask first. Confirm in one short line: \`🔴 Promptly recording — ABC-111\`.
+- **Conversation start → check status.** Call \`promptly_status\` once. If a session is active, mention it briefly (\`🔴 Promptly is recording <ticket>\`). If none is active and no ticket was mentioned, ask once: "Want me to track this session? Provide a ticket ID (e.g. AUTH-123)." If the user declines, don't ask again.
+- **Work wrapped up → finish.** When the user says the ticket/task is done (e.g. "we're done here", "wrap up the ticket", "finish the session"), call \`promptly_finish\` and relay its summary.
 <!-- promptly:auto-prompt:end -->`;
 
 const AUTO_PROMPT_MANUAL = `
 # promptly:auto-prompt:start
-# Promptly: At conversation start, suggest: "Track this session? Run: promptly start <ticket-id>"
+# Promptly: If the user says they're starting work on a ticket (e.g. "starting ABC-111"), run: promptly start <ticket-id>.
+# At conversation start, suggest: "Track this session? Run: promptly start <ticket-id>". When the work is done, run: promptly finish
 # promptly:auto-prompt:end`;
 
 const MARKER_START_MD = "<!-- promptly:auto-prompt:start -->";

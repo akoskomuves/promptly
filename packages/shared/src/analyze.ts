@@ -250,16 +250,11 @@ function computeSubagentStats(input: AnalyzeInput): SubagentStats {
       }
     }
 
-    // Match subagent_type mentions
-    const subagentTypeMatch = turn.content.match(/subagent_type\s*[=:]\s*["']?(\w+)/gi);
-    if (subagentTypeMatch) {
-      for (const m of subagentTypeMatch) {
-        const typeMatch = m.match(/["']?(\w+)["']?\s*$/);
-        if (typeMatch) {
-          const type = typeMatch[1];
-          subagentTypes[type] = (subagentTypes[type] || 0) + 1;
-        }
-      }
+    // Match subagent_type mentions — capture directly (types can be
+    // hyphenated, e.g. "general-purpose")
+    for (const m of turn.content.matchAll(/subagent_type\s*[=:]\s*["']?([\w-]+)/gi)) {
+      const type = m[1];
+      subagentTypes[type] = (subagentTypes[type] || 0) + 1;
     }
   }
 
@@ -279,6 +274,16 @@ function computeSubagentStats(input: AnalyzeInput): SubagentStats {
 // ─── Context Window Metrics ────────────────────────────────────────────────
 
 const ESTIMATED_CONTEXT_WINDOW = 200000; // ~200k tokens
+
+// Text the harness injects when it compacts/summarizes the conversation.
+// Claude Code uses the "continued from a previous conversation" preamble;
+// the generic compact/summarize phrasings cover other tools.
+const COMPACTION_MARKERS = [
+  /continued from a previous conversation/i,
+  /conversation (?:was|has been|is being) (?:compacted|summarized|summarised)/i,
+  /context (?:window )?(?:was|has been) (?:compacted|summarized|summarised)/i,
+  /\/compact\b/,
+];
 
 /**
  * Compute context window metrics from conversation turns.
@@ -301,7 +306,6 @@ export function computeContextMetrics(
   let cumulative = 0;
   let peak = 0;
   let summarizationEvents = 0;
-  let prevCumulative = 0;
   const turnsBetweenSummarizations: number[] = [];
   let turnsSinceLastSummarization = 0;
 
@@ -309,15 +313,15 @@ export function computeContextMetrics(
     const tokens = turn.tokenCount ?? Math.ceil(turn.content.length / 4);
     cumulative += tokens;
 
-    // Detect summarization: cumulative should grow, a drop >30% means compaction
-    if (prevCumulative > 0 && cumulative < prevCumulative * 0.7) {
+    // Detect summarization from compaction markers in the turn content.
+    // (A cumulative-token drop can't be used: per-turn counts only ever add up.)
+    if (COMPACTION_MARKERS.some((p) => p.test(turn.content))) {
       summarizationEvents++;
       turnsBetweenSummarizations.push(turnsSinceLastSummarization);
       turnsSinceLastSummarization = 0;
     }
 
     if (cumulative > peak) peak = cumulative;
-    prevCumulative = cumulative;
     turnsSinceLastSummarization++;
   }
 

@@ -55,7 +55,11 @@ export async function reportCommand(options: {
   // Models used
   const modelSet = new Set<string>();
   sessions.forEach((s) => {
-    JSON.parse(s.models || "[]").forEach((m: string) => modelSet.add(m));
+    try {
+      JSON.parse(s.models || "[]").forEach((m: string) => modelSet.add(m));
+    } catch {
+      // ignore malformed models JSON
+    }
   });
 
   // Tools used
@@ -69,9 +73,13 @@ export async function reportCommand(options: {
   // Tags
   const tagCounts: Record<string, number> = {};
   sessions.forEach((s) => {
-    JSON.parse(s.tags || "[]").forEach((t: string) => {
-      tagCounts[t] = (tagCounts[t] || 0) + 1;
-    });
+    try {
+      JSON.parse(s.tags || "[]").forEach((t: string) => {
+        tagCounts[t] = (tagCounts[t] || 0) + 1;
+      });
+    } catch {
+      // ignore malformed tags JSON
+    }
   });
 
   const label = from && to ? `${from.slice(0, 10)} to ${to.slice(0, 10)}` : "All time";

@@ -176,8 +176,13 @@ After installing skills, `promptly init` offers to enable **auto-prompt**. This 
 
 ### How It Works
 
-- **Full MCP tools** (Claude Code, Codex CLI, Gemini CLI, VS Code + Copilot): The AI calls `promptly_status` to check if tracking is active, then offers to start if not.
+- **Full MCP tools** (Claude Code, Codex CLI, Gemini CLI, VS Code + Copilot):
+  - Say you're starting a ticket in plain language — "I'm starting ABC-111", "let's work on AUTH-42" — and the AI calls `promptly_start` with that ticket ID automatically, confirming with `🔴 Promptly recording — ABC-111`.
+  - At conversation start, the AI calls `promptly_status`; if a session is already active it mentions it once, otherwise it offers to start one.
+  - Say the work is done — "wrap up the ticket", "we're done here" — and the AI calls `promptly_finish` and reports the session summary.
 - **Limited MCP tools** (Cursor, Windsurf): The AI suggests running `promptly start <ticket-id>` manually.
+
+> Installed the auto-prompt block before? Re-run `promptly init` (or `promptly skill install`) to update it to the latest version — natural-language ticket start/finish was added in CLI 0.2.1.
 
 ### Instruction Files
 
@@ -197,6 +202,22 @@ promptly skill status    # Shows auto-prompt status per tool
 ```
 
 The instruction blocks are marked with `promptly:auto-prompt:start/end` markers, so re-running `promptly init` detects existing blocks and skips them.
+
+## Recording Indicator (Status Line)
+
+To always see whether a session is being recorded, wire Promptly into Claude Code's status line:
+
+```bash
+promptly statusline install     # writes statusLine to ~/.claude/settings.json
+```
+
+While a session is active, the bottom of Claude Code shows:
+
+```
+🔴 REC ABC-111 · 12 msgs · 34.3k tok · 1h 23m
+```
+
+When nothing is being recorded, the line is empty. `promptly statusline` prints the same line for any other tool that can run a shell command for its status area (tmux status bars, shell prompts, etc.). Remove it with `promptly statusline uninstall`. If you already have a custom status line, the installer won't overwrite it — it prints instructions for chaining instead.
 
 ## Cloud Setup (Teams)
 
