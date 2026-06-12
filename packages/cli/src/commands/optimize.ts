@@ -7,12 +7,16 @@ import {
   type OptimizationRecommendation,
 } from "@getpromptly/shared";
 import { toOptimizeInput } from "../optimize-data.js";
+import { applyRecommendation } from "./optimize-apply.js";
+import { setAssumeYes } from "../prompts.js";
 
 interface OptimizeOptions {
   from?: string;
   to?: string;
   days?: string;
   json?: boolean;
+  apply?: string;
+  yes?: boolean;
 }
 
 let pricingCache: { data: Record<string, ModelPricing> | null; fetchedAt: number } = {
@@ -101,8 +105,17 @@ function formatRec(rec: OptimizationRecommendation): string {
       lines.push(`      … and ${rec.evidence.length - 3} more`);
     }
   }
+  if (APPLIABLE_TYPES.has(rec.type)) {
+    lines.push(`    Apply: promptly optimize --apply "${rec.id}"`);
+  }
   return lines.join("\n");
 }
+
+const APPLIABLE_TYPES = new Set([
+  "repetitive-workflow",
+  "repeated-corrections",
+  "pre-post-action",
+]);
 
 function resolveRange(options: OptimizeOptions): { from: string; to: string; days: number } {
   const to = options.to ? new Date(options.to) : new Date();
@@ -152,6 +165,31 @@ export async function optimizeCommand(options: OptimizeOptions = {}) {
     pricing,
     windowDays: days,
   });
+
+  if (options.apply) {
+    if (options.yes) setAssumeYes(true);
+    const needle = options.apply;
+    const rec =
+      recs.find((r) => r.id === needle) ??
+      recs.find((r) => r.id.startsWith(needle));
+    if (!rec) {
+      console.error(`No recommendation matches "${needle}" in the last ${days} days.`);
+      if (recs.length > 0) {
+        console.error("Available ids:");
+        for (const r of recs) console.error(`  ${r.id}`);
+      }
+      process.exitCode = 1;
+      return;
+    }
+    await applyRecommendation(rec);
+    getAnalytics().capture({
+      distinctId: getDistinctId(),
+      event: "optimize rec applied",
+      properties: { rec_type: rec.type, window_days: days },
+    });
+    await getAnalytics().shutdown();
+    return;
+  }
 
   const totalSavingsForCapture = recs.reduce((s, r) => s + r.estimatedMonthlySavings, 0);
   getAnalytics().capture({

@@ -79,6 +79,7 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 | `promptly skill status` | Check skill installation status |
 | `promptly import-claude` | Import a past Claude Code session from `~/.claude/projects` (no MCP setup needed) |
 | `promptly optimize` | Analyze session history and surface AI spend leak recommendations |
+| `promptly optimize --apply <rec-id>` | Apply a recommendation: generates the skill / instruction rule / hook it suggests |
 | `promptly review <session-id>` | Run prompt review against a captured session (LLM-as-judge) |
 | `promptly statusline install` | Show `🔴 REC <ticket>` in Claude Code's status line while recording |
 | `promptly telemetry on\|off\|status` | Manage anonymous usage telemetry |

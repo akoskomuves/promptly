@@ -599,7 +599,7 @@ interface WorkflowCluster {
 }
 
 function clusterKey(sequence: string[]): string {
-  return sequence.join(" ");
+  return sequence.join(",");
 }
 
 function isContiguousSubsequence(short: string[], long: string[]): boolean {
@@ -637,7 +637,7 @@ export function detectRepetitiveWorkflow(
     for (const [key, count] of sessionCounts) {
       let cluster = clusters.get(key);
       if (!cluster) {
-        const sequence = key.split(" ");
+        const sequence = key.split(",");
         cluster = {
           sequence,
           distinctSessions: new Set(),
@@ -771,7 +771,7 @@ export function detectPrePostAction(
       const b = seq[i + 1];
       antecedentCount.set(a, (antecedentCount.get(a) ?? 0) + 1);
       consequentCount.set(b, (consequentCount.get(b) ?? 0) + 1);
-      const key = `${a} ${b}`;
+      const key = `${a},${b}`;
       let stats = cooccur.get(key);
       if (!stats) {
         stats = { cooccurCount: 0, sessions: new Set(), occurrencesBySession: new Map() };
@@ -789,7 +789,7 @@ export function detectPrePostAction(
   const recs: OptimizationRecommendation[] = [];
   for (const [key, stats] of cooccur) {
     if (stats.sessions.size < PREPOST_MIN_DISTINCT_SESSIONS) continue;
-    const [a, b] = key.split(" ");
+    const [a, b] = key.split(",");
     const aCount = antecedentCount.get(a) ?? 0;
     const bCount = consequentCount.get(b) ?? 0;
     const preProb = bCount > 0 ? stats.cooccurCount / bCount : 0;

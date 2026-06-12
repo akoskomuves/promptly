@@ -104,7 +104,21 @@ promptly optimize                       # Last 90 days (default)
 promptly optimize --days 30             # Last 30 days
 promptly optimize --from 2026-04-01     # Custom range
 promptly optimize --json                # Machine-readable output
+promptly optimize --apply <rec-id>      # Apply a recommendation (id shown in the listing)
 ```
+
+### One-Click Apply
+
+Each appliable recommendation prints its id and an `Apply:` line. `promptly optimize --apply <rec-id>` previews the exact files it will create, asks for confirmation (`--yes` to skip — works from scripts and AI agents), then writes:
+
+| Recommendation type | What gets generated |
+|---|---|
+| Repeated workflow | A Claude Code skill (`.claude/skills/<name>/SKILL.md`) that runs the detected step sequence |
+| Repeated correction | A marker-wrapped standing rule appended to your project `CLAUDE.md` |
+| Pre/post action | A guarded hook script (`.claude/hooks/`) + the matching `PreToolUse`/`PostToolUse` entry in project `.claude/settings.json` |
+| Model misuse / context bloat | Advice only — these are usage habits, not config |
+
+Every generated artifact carries the recommendation id as a marker, so re-applying is detected and skipped instead of duplicated. Generated files are plain config in your project — edit or delete them like anything else.
 
 The dashboard view at `http://localhost:3000/optimize` shows the same recommendations visually, with severity-colored cards, a window selector (7/30/90/180/365 days), and evidence rows that link back to the session detail page that triggered each rec.
 

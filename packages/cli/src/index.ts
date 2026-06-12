@@ -105,6 +105,8 @@ program
   .option("--from <date>", "Start date (YYYY-MM-DD) — overrides --days")
   .option("--to <date>", "End date (YYYY-MM-DD)")
   .option("--json", "Print recommendations as JSON")
+  .option("--apply <rec-id>", "Apply a recommendation: generate the skill/rule/hook config it suggests")
+  .option("-y, --yes", "Apply without confirmation (for scripts and AI agents)")
   .action(optimizeCommand);
 
 program
