@@ -367,6 +367,7 @@ export interface CliConfig {
   anonymousId?: string; // Stable anonymous device ID for analytics
   telemetry?: boolean; // Explicit user choice — true = on, false = off, undefined = default on
   telemetryBannerShown?: boolean; // One-shot flag for the first-run telemetry disclosure banner
+  installPingSent?: boolean; // One-shot flag — anonymous install ping already sent from `promptly init`
 }
 
 // State file for active session ~/.promptly/session.json

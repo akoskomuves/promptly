@@ -81,6 +81,67 @@ export function getDistinctId(): string {
   return anonymousId;
 }
 
+/**
+ * Gate for the one-time anonymous install ping fired from `promptly init`.
+ * Unlike session telemetry (cloud-gated above), this fires in local mode too —
+ * it is the only signal that an install ever happened. It is:
+ *   - disclosed: init prints a notice with the opt-out alongside the send
+ *   - anonymous: random device id; version + OS + node only, never content
+ *   - one-shot: config.installPingSent
+ *   - opt-out: PROMPTLY_NO_TELEMETRY / DO_NOT_TRACK / `promptly telemetry off`
+ */
+export function shouldSendInstallPing(): boolean {
+  if (process.env.PROMPTLY_NO_TELEMETRY === "1" || process.env.PROMPTLY_NO_TELEMETRY === "true") {
+    return false;
+  }
+  if (process.env.DO_NOT_TRACK === "1" || process.env.DO_NOT_TRACK === "true") {
+    return false;
+  }
+  const config = loadConfig();
+  if (config.telemetry === false) return false;
+  if (config.installPingSent) return false;
+  return true;
+}
+
+export async function sendInstallPing(version: string): Promise<void> {
+  if (!shouldSendInstallPing()) return;
+
+  // Mark first so a crash mid-send can never cause repeat pings
+  const config = loadConfig();
+  config.installPingSent = true;
+  saveConfig(config);
+
+  try {
+    const client = new PostHog(
+      process.env.POSTHOG_API_KEY ?? POSTHOG_DEFAULT_KEY,
+      {
+        host: process.env.POSTHOG_HOST ?? POSTHOG_DEFAULT_HOST,
+        flushAt: 1,
+        flushInterval: 0,
+      }
+    );
+    client.capture({
+      distinctId: getDistinctId(),
+      event: "cli installed",
+      properties: {
+        version,
+        os: process.platform,
+        node_version: process.versions.node,
+      },
+    });
+    await client.shutdown();
+  } catch {
+    // never block or fail init over analytics
+  }
+
+  console.log(
+    "\nPromptly sent a one-time anonymous install ping (version + OS only — never prompt content or paths)."
+  );
+  console.log(
+    "Disable all telemetry any time: promptly telemetry off  (or set PROMPTLY_NO_TELEMETRY=1)"
+  );
+}
+
 export function setTelemetryEnabled(enabled: boolean): void {
   const config = loadConfig();
   config.telemetry = enabled;

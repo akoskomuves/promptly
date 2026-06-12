@@ -85,6 +85,8 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 
 All commands work without a TTY (scripts, CI, AI agents): prompts fall back to sensible defaults or fail with the flag to pass instead. Use `promptly init --tools claude --yes` for fully unattended setup.
 
+Telemetry: `promptly init` sends a one-time anonymous install ping (version + OS, never content); usage telemetry only runs in cloud mode after login. Opt out any time: `promptly telemetry off` or `DO_NOT_TRACK=1`.
+
 ## How It Works
 
 ```

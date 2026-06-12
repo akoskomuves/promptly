@@ -3,7 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { checkbox, confirm, setAssumeYes } from "../prompts.js";
-import { getAnalytics, getDistinctId } from "../analytics.js";
+import { getAnalytics, getDistinctId, sendInstallPing } from "../analytics.js";
+import { CLI_VERSION } from "../version.js";
 
 interface Tool {
   name: string;
@@ -507,6 +508,7 @@ export async function initCommand(options: InitOptions = {}) {
           windsurfAlreadyConfigured && wants("Windsurf"),
         );
       }
+      await sendInstallPing(CLI_VERSION);
       return;
     }
   }
@@ -589,4 +591,5 @@ export async function initCommand(options: InitOptions = {}) {
   await getAnalytics().shutdown();
 
   console.log("\nSetup complete. Restart your AI coding tools to activate Promptly.");
+  await sendInstallPing(CLI_VERSION);
 }

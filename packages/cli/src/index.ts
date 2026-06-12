@@ -16,13 +16,14 @@ import { optimizeCommand } from "./commands/optimize.js";
 import { reviewCommand } from "./commands/review.js";
 import { telemetryCommand } from "./commands/telemetry.js";
 import { statuslineCommand } from "./commands/statusline.js";
+import { CLI_VERSION } from "./version.js";
 
 const program = new Command();
 
 program
   .name("promptly")
   .description("Developer prompt analytics - log and review AI conversations")
-  .version("0.2.5");
+  .version(CLI_VERSION);
 
 program
   .command("login")

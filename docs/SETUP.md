@@ -231,6 +231,15 @@ While a session is active, the bottom of Claude Code shows:
 
 When nothing is being recorded, the line is empty. The indicator is **project-scoped**: recordings are stamped with the project directory they were started in, and other Claude Code windows won't show them (the MCP server in another project also refuses to log turns into a recording that isn't its own). `promptly statusline` prints the same line for any other tool that can run a shell command for its status area (tmux status bars, shell prompts, etc.) — without Claude Code's workspace context it shows the machine-wide recording. Remove it with `promptly statusline uninstall`. If you already have a custom status line, the installer won't overwrite it — it prints instructions for chaining instead.
 
+## Telemetry
+
+Two layers, both anonymous, both opt-out:
+
+1. **Install ping** — `promptly init` sends a single one-time event (CLI version, OS, node version — never prompt content, code, or file paths) so we know an install happened. It prints a notice when it fires.
+2. **Usage telemetry** — only in cloud mode after `promptly login`: event names + version + OS. Local-mode users never send usage data; the analytics client doesn't even initialize.
+
+Disable everything with any of: `promptly telemetry off`, `PROMPTLY_NO_TELEMETRY=1`, or the standard `DO_NOT_TRACK=1`. Check the current state with `promptly telemetry status`.
+
 ## Cloud Setup (Teams)
 
 For teams that want a shared dashboard, use the hosted cloud at [app.getpromptly.xyz](https://app.getpromptly.xyz).
