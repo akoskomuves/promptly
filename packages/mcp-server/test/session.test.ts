@@ -18,6 +18,7 @@ const {
   writeActiveSession,
   clearActiveSession,
   getActiveSession,
+  readSessionsForReview,
 } = await import("../src/session");
 
 const DB_PATH = path.join(tmpDir, "promptly.db");
@@ -172,5 +173,32 @@ describe("writeToSqlite", () => {
     db.close();
     expect(row).toBeDefined();
     expect(row.status).toBe("COMPLETED");
+  });
+});
+
+describe("readSessionsForReview", () => {
+  it("returns only completed sessions that have git activity", () => {
+    clearActiveSession();
+    const a = { ...initBuffer("HASGIT"), finishedAt: "2026-06-01T10:30:00.000Z", status: "COMPLETED" as const };
+    expect(writeToSqlite(a).ok).toBe(true);
+    clearBuffer();
+    clearActiveSession();
+
+    const b = { ...initBuffer("NOGIT"), finishedAt: "2026-06-01T10:35:00.000Z", status: "COMPLETED" as const };
+    expect(writeToSqlite(b).ok).toBe(true);
+    clearBuffer();
+    clearActiveSession();
+
+    // Attach git activity to HASGIT only.
+    const db = new Database(DB_PATH);
+    db.prepare("UPDATE sessions SET git_activity = ? WHERE ticket_id = ?").run(
+      JSON.stringify({ branch: "fix/receipt", commits: [] }),
+      "HASGIT"
+    );
+    db.close();
+
+    const tickets = readSessionsForReview().map((r) => r.ticket_id);
+    expect(tickets).toContain("HASGIT");
+    expect(tickets).not.toContain("NOGIT");
   });
 });

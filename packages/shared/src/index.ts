@@ -5,4 +5,7 @@ export * from "./digest.js";
 export * from "./trends.js";
 export * from "./parallel.js";
 export * from "./optimize.js";
+export * from "./session-input.js";
+export * from "./pricing.js";
+export * from "./pr-review.js";
 export * from "./schema.js";

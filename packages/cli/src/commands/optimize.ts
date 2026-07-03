@@ -24,7 +24,7 @@ let pricingCache: { data: Record<string, ModelPricing> | null; fetchedAt: number
   fetchedAt: 0,
 };
 
-function fetchPricing(): Promise<Record<string, ModelPricing> | null> {
+export function fetchPricing(): Promise<Record<string, ModelPricing> | null> {
   const now = Date.now();
   if (pricingCache.data && now - pricingCache.fetchedAt < 3600000) {
     return Promise.resolve(pricingCache.data);
