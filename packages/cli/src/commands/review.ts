@@ -10,6 +10,8 @@ interface ReviewOptions {
   model?: string;
   json?: boolean;
   pr?: string;
+  /** PR mode: prompt-quality scoring (on by default; `--no-quality` disables). */
+  quality?: boolean;
 }
 
 function resolveSession(idOrPrefix: string) {
@@ -92,9 +94,14 @@ export async function reviewCommand(
   sessionIdOrPrefix: string | undefined,
   options: ReviewOptions = {}
 ): Promise<void> {
-  // PR mode: review every session behind a GitHub PR, scored on spend leaks.
+  // PR mode: review every session behind a GitHub PR — prompt quality + spend.
   if (options.pr) {
-    await reviewPrCommand(options.pr, { json: options.json });
+    await reviewPrCommand(options.pr, {
+      json: options.json,
+      quality: options.quality,
+      rubric: options.rubric,
+      model: options.model,
+    });
     return;
   }
 

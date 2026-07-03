@@ -5,8 +5,9 @@ import {
   recAvoidableUsd,
   parsePrView,
   matchSessionsToPr,
+  summarizeQuality,
 } from "../src/pr-review";
-import type { PrDetails, PrMeta } from "../src/pr-review";
+import type { PrDetails, PrMeta, SessionRubricVerdict } from "../src/pr-review";
 import type { OptimizeSessionInput, ModelPricing } from "../src/optimize";
 
 const PRICING: Record<string, ModelPricing> = {
@@ -91,6 +92,64 @@ describe("buildPrReview", () => {
     expect(v.spendEfficiency).toBe(10);
     expect(v.recommendations).toEqual([]);
     expect(formatPrReview(v)).toContain("No spend leaks detected");
+  });
+});
+
+describe("summarizeQuality", () => {
+  const verdicts: SessionRubricVerdict[] = [
+    { sessionId: "s1", ticketId: "AUTH-42", rubricId: "intent-clarity", rubricTitle: "Intent Clarity", score: 4, rationale: "Clear ask.", costUsd: 0.001 },
+    { sessionId: "s1", ticketId: "AUTH-42", rubricId: "scope-discipline", rubricTitle: "Scope Discipline", score: 2, rationale: "AUTH-42 spent 4 turns re-scoping the table. More detail here.", costUsd: 0.001 },
+    { sessionId: "s2", ticketId: "AUTH-9", rubricId: "intent-clarity", rubricTitle: "Intent Clarity", score: 5, rationale: "Excellent.", costUsd: 0.002 },
+    { sessionId: "s2", ticketId: "AUTH-9", rubricId: "scope-discipline", rubricTitle: "Scope Discipline", score: 3, rationale: "One change.", costUsd: 0.002 },
+  ];
+
+  it("returns null when there are no verdicts", () => {
+    expect(summarizeQuality([], { sessionsTotal: 3, judgeModel: "claude-haiku-4-5" })).toBeNull();
+  });
+
+  it("aggregates per-rubric and overall scores, cost, and sessions judged", () => {
+    const q = summarizeQuality(verdicts, { sessionsTotal: 2, judgeModel: "claude-haiku-4-5" });
+    expect(q).not.toBeNull();
+    if (!q) return;
+    // overall avg = (4+2+5+3)/4 = 3.5 → 7/10
+    expect(q.overall10).toBe(7);
+    const intent = q.rubrics.find((r) => r.rubricId === "intent-clarity");
+    const scope = q.rubrics.find((r) => r.rubricId === "scope-discipline");
+    expect(intent?.score10).toBe(9); // avg 4.5 → 9
+    expect(scope?.score10).toBe(5); // avg 2.5 → 5
+    expect(q.evalCostUsd).toBeCloseTo(0.006, 6);
+    expect(q.sessionsJudged).toBe(2);
+    expect(q.sessionsTotal).toBe(2);
+  });
+
+  it("identifies the worst rubric and its worst session with a one-line note", () => {
+    const q = summarizeQuality(verdicts, { sessionsTotal: 2, judgeModel: "claude-haiku-4-5" });
+    expect(q?.worst?.rubricId).toBe("scope-discipline");
+    expect(q?.worst?.score10).toBe(5);
+    expect(q?.worst?.worst?.ticketId).toBe("AUTH-42");
+    expect(q?.worst?.worst?.note).toBe("AUTH-42 spent 4 turns re-scoping the table.");
+  });
+
+  it("renders the quality bar, worst-rubric callout, and eval footer", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: PRICING });
+    v.quality = summarizeQuality(verdicts, { sessionsTotal: 2, judgeModel: "claude-haiku-4-5" });
+    const out = formatPrReview(v);
+    expect(out).toContain("Prompt quality");
+    expect(out).toContain("7/10");
+    expect(out).toContain("(judge · intent-clarity, scope-discipline)");
+    expect(out).toContain("⚠ scope-discipline 5/10 — AUTH-42");
+    expect(out).toContain("re-scoping");
+    expect(out).toContain("Prompt-quality eval:");
+  });
+
+  it("omits the worst-rubric callout when the weakest rubric still scores well", () => {
+    const strong: SessionRubricVerdict[] = [
+      { sessionId: "s1", ticketId: "AUTH-1", rubricId: "intent-clarity", rubricTitle: "Intent Clarity", score: 5, rationale: "Great.", costUsd: 0.001 },
+      { sessionId: "s1", ticketId: "AUTH-1", rubricId: "scope-discipline", rubricTitle: "Scope Discipline", score: 4, rationale: "Solid.", costUsd: 0.001 },
+    ];
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: PRICING });
+    v.quality = summarizeQuality(strong, { sessionsTotal: 1, judgeModel: "claude-haiku-4-5" });
+    expect(formatPrReview(v)).not.toContain("⚠");
   });
 });
 

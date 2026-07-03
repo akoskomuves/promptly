@@ -112,9 +112,10 @@ program
 program
   .command("review [session-id]")
   .description("Review captured prompts — a single session (LLM-as-judge) or a whole GitHub PR (--pr)")
-  .option("--pr <number>", "Review every session behind a GitHub PR (matched by branch/commits), scored on spend leaks")
-  .option("--rubric <id>", "Rubric to apply (default: intent-clarity)")
+  .option("--pr <number>", "Review every session behind a GitHub PR (matched by branch/commits): prompt quality + spend")
+  .option("--rubric <id>", "Rubric to apply (session: default intent-clarity; --pr: restrict to this one rubric)")
   .option("--model <id>", "Override the judge model (default: rubric's model_default)")
+  .option("--no-quality", "PR mode: skip prompt-quality (judge) scoring — spend analysis only")
   .option("--json", "Print verdict as JSON")
   .action(reviewCommand);
 
