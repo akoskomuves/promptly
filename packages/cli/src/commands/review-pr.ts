@@ -3,6 +3,7 @@ import { listAllSessions } from "../db.js";
 import {
   buildPrReview,
   formatPrReview,
+  formatPrReviewMarkdown,
   parsePrView,
   matchSessionsToPr,
   toOptimizeInput,
@@ -12,6 +13,7 @@ import {
   type ConversationTurn,
 } from "@getpromptly/shared";
 import { fetchPricing } from "./optimize.js";
+import { upsertPrComment } from "./pr-comment.js";
 import { judgePrSessions, DEFAULT_PR_RUBRICS, type JudgeableSession } from "../eval/judge-pr.js";
 import { getAnalytics, getDistinctId } from "../analytics.js";
 import type { DbSession } from "../db.js";
@@ -66,6 +68,8 @@ export interface ReviewPrOptions {
   rubric?: string;
   /** Override the judge model. */
   model?: string;
+  /** Post/update the verdict as a GitHub PR comment (idempotent). */
+  comment?: boolean;
 }
 
 export async function reviewPrCommand(
@@ -144,6 +148,27 @@ export async function reviewPrCommand(
     }
   }
 
+  // --comment: post (or update in place) the verdict as a PR comment. The local
+  // verdict has already printed; confirmation goes to stderr so it never
+  // pollutes --json stdout. We skip posting when nothing matched, to avoid
+  // spamming PRs where Promptly wasn't used.
+  let commentPosted = false;
+  let commentFailed = false;
+  if (options.comment) {
+    if (verdict.sessionCount === 0) {
+      console.error(`No sessions matched PR #${pr.number} — nothing posted.`);
+    } else {
+      try {
+        const res = upsertPrComment(pr.number, formatPrReviewMarkdown(verdict));
+        commentPosted = true;
+        console.error(`💬 ${res.updated ? "Updated" : "Posted"} PR comment: ${res.url}`);
+      } catch (err) {
+        commentFailed = true;
+        console.error(`Couldn't post the PR comment: ${(err as Error).message}`);
+      }
+    }
+  }
+
   getAnalytics().capture({
     distinctId: getDistinctId(),
     event: "pr review run",
@@ -156,7 +181,12 @@ export async function reviewPrCommand(
       quality_score: verdict.quality?.overall10 ?? null,
       eval_cost_usd: verdict.quality?.evalCostUsd ?? 0,
       rubrics: verdict.quality?.rubrics.map((r) => r.rubricId) ?? [],
+      commented: commentPosted,
     },
   });
   await getAnalytics().shutdown();
+
+  // A requested comment that failed to post is a non-zero exit (CI-friendly),
+  // but only after the local verdict and analytics have gone out.
+  if (commentFailed) process.exit(1);
 }

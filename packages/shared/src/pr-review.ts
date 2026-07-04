@@ -412,3 +412,138 @@ export function formatPrReview(v: PrReviewVerdict): string {
 
   return out.join("\n");
 }
+
+// ---- markdown rendering (for GitHub PR comments) ---------------------------
+
+/**
+ * Hidden HTML-comment marker embedded as the first line of every posted PR
+ * comment. It lets `promptly review --pr --comment` find its own prior comment
+ * and edit it in place on re-run, instead of stacking a new one. GitHub renders
+ * HTML comments invisibly, so it never shows to readers.
+ */
+export const PROMPTLY_REVIEW_MARKER = "<!-- promptly-review -->";
+
+function mdFooter(): string {
+  return `<sub>🌱 Posted by [Promptly](https://getpromptly.xyz) · updates in place on re-run.</sub>`;
+}
+
+/** Collapse whitespace so a padded terminal evidence line sits in inline code. */
+function collapse(s: string): string {
+  return s.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Render a PR review as GitHub-flavored markdown for posting as a PR comment.
+ * Pure sibling of `formatPrReview` (terminal): tables render aligned in a
+ * proportional font, block-bars stay in inline code, and the first line is the
+ * idempotency marker. Handles the zero-match case for completeness, though the
+ * CLI declines to post in that case.
+ */
+export function formatPrReviewMarkdown(v: PrReviewVerdict): string {
+  const out: string[] = [];
+  out.push(PROMPTLY_REVIEW_MARKER);
+  out.push("");
+  out.push(`## 🔍 Promptly — prompt review of PR #${v.pr.number}`);
+  out.push("");
+
+  if (v.sessionCount === 0) {
+    out.push(
+      `No recorded Promptly sessions matched this PR (branch \`${v.pr.headRefName}\`) — the work behind it wasn't captured by Promptly, so there's nothing to review.`
+    );
+    out.push("");
+    out.push(mdFooter());
+    return out.join("\n");
+  }
+
+  const costStr = v.totalCostUsd > 0 ? ` · ${fmtUsd(v.totalCostUsd)}` : "";
+  out.push(
+    `Built in **${v.sessionCount} session${v.sessionCount === 1 ? "" : "s"}** · ${fmtTokens(v.totalTokens)} tokens${costStr} · branch \`${v.pr.headRefName}\``
+  );
+  out.push("");
+
+  // Scores table (quality and/or spend efficiency).
+  const scoreRows: string[] = [];
+  if (v.quality) {
+    const ids = v.quality.rubrics.map((r) => r.rubricId).join(", ");
+    scoreRows.push(
+      `| Prompt quality | **${v.quality.overall10}/10** | \`${bar10(v.quality.overall10)}\` | judge · ${ids} |`
+    );
+  }
+  if (!v.pricingAvailable) {
+    scoreRows.push(`| Spend efficiency | — | | pricing unavailable (offline?) |`);
+  } else if (v.spendEfficiency != null) {
+    const note = v.avoidableUsd > 0.005 ? `${fmtUsd(v.avoidableUsd)} avoidable` : "clean ✓";
+    scoreRows.push(
+      `| Spend efficiency | **${v.spendEfficiency}/10** | \`${bar10(v.spendEfficiency)}\` | ${note} |`
+    );
+  }
+  if (scoreRows.length > 0) {
+    out.push(`| Signal | Score | | |`);
+    out.push(`|---|---|---|---|`);
+    out.push(...scoreRows);
+    out.push("");
+  }
+
+  // Worst-rubric callout — only when a rubric scored notably low.
+  const worst = v.quality?.worst;
+  if (worst?.worst && worst.score10 <= 6) {
+    const who = worst.worst.ticketId || worst.worst.sessionId.slice(0, 8);
+    let note = worst.worst.note;
+    if (who && note.toLowerCase().startsWith(who.toLowerCase())) {
+      note = note.slice(who.length).replace(/^[\s:—-]+/, "");
+    }
+    out.push(`> ⚠️ **${worst.rubricId} ${worst.score10}/10** — ${who}: ${note}`);
+    out.push("");
+  }
+
+  // Spend leaks.
+  if (v.pricingAvailable) {
+    if (v.recommendations.length === 0) {
+      out.push("**No spend leaks** detected in the prompts behind this PR. 👍");
+      out.push("");
+    } else {
+      out.push("### Leaks");
+      out.push("");
+      for (const rec of v.recommendations) {
+        const avoid = recAvoidableUsd(rec);
+        const tag = rec.severity === "critical" ? "🔴" : rec.severity === "warning" ? "🟠" : "🔵";
+        const dollars = avoid > 0.005 ? ` — **${fmtUsd(avoid)} avoidable** on this PR` : "";
+        out.push(`- ${tag} **${rec.title}**${dollars}`);
+        for (const e of rec.evidence.slice(0, 2)) {
+          const line = evidenceLine(e);
+          if (line) out.push(`  - \`${collapse(line)}\``);
+        }
+        if (APPLIABLE.has(rec.type)) {
+          out.push(`  - fix: \`promptly optimize --apply "${rec.id}"\``);
+        }
+      }
+      out.push("");
+    }
+  }
+
+  // Sessions table.
+  out.push("### Sessions");
+  out.push("");
+  const hasEval = v.sessions.some((s) => s.evalCostUsd && s.evalCostUsd > 0);
+  out.push(hasEval ? "| Ticket | Session | Date | Model | Cost | Eval |" : "| Ticket | Session | Date | Model | Cost |");
+  out.push(hasEval ? "|---|---|---|---|---|---|" : "|---|---|---|---|---|");
+  for (const s of v.sessions) {
+    const date = s.startedAt.slice(0, 10);
+    const cost = s.costUsd > 0 ? fmtUsd(s.costUsd) : "—";
+    const cells = [s.ticketId || "(no ticket)", `\`${s.id.slice(0, 8)}\``, date, shortModel(s.model), cost];
+    if (hasEval) cells.push(s.evalCostUsd && s.evalCostUsd > 0 ? fmtUsdFine(s.evalCostUsd) : "—");
+    out.push(`| ${cells.join(" | ")} |`);
+  }
+  out.push("");
+
+  if (v.quality) {
+    const q = v.quality;
+    const judged =
+      q.sessionsJudged < q.sessionsTotal ? ` · judged ${q.sessionsJudged}/${q.sessionsTotal} sessions` : "";
+    out.push(`Prompt-quality eval: ${fmtUsdFine(q.evalCostUsd)} (${shortModel(q.judgeModel)}${judged})`);
+    out.push("");
+  }
+
+  out.push(mdFooter());
+  return out.join("\n");
+}

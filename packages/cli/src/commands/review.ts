@@ -12,6 +12,8 @@ interface ReviewOptions {
   pr?: string;
   /** PR mode: prompt-quality scoring (on by default; `--no-quality` disables). */
   quality?: boolean;
+  /** PR mode: post/update the verdict as a GitHub PR comment. */
+  comment?: boolean;
 }
 
 function resolveSession(idOrPrefix: string) {
@@ -101,6 +103,7 @@ export async function reviewCommand(
       quality: options.quality,
       rubric: options.rubric,
       model: options.model,
+      comment: options.comment,
     });
     return;
   }

@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   buildPrReview,
   formatPrReview,
+  formatPrReviewMarkdown,
+  PROMPTLY_REVIEW_MARKER,
   recAvoidableUsd,
   parsePrView,
   matchSessionsToPr,
@@ -150,6 +152,64 @@ describe("summarizeQuality", () => {
     const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: PRICING });
     v.quality = summarizeQuality(strong, { sessionsTotal: 1, judgeModel: "claude-haiku-4-5" });
     expect(formatPrReview(v)).not.toContain("⚠");
+  });
+});
+
+describe("formatPrReviewMarkdown", () => {
+  const qualityVerdicts: SessionRubricVerdict[] = [
+    { sessionId: "s1", ticketId: "AUTH-42", rubricId: "intent-clarity", rubricTitle: "Intent Clarity", score: 4, rationale: "Clear ask.", costUsd: 0.001 },
+    { sessionId: "s1", ticketId: "AUTH-42", rubricId: "scope-discipline", rubricTitle: "Scope Discipline", score: 2, rationale: "AUTH-42 spent 4 turns re-scoping the table.", costUsd: 0.001 },
+  ];
+
+  it("leads with the hidden idempotency marker on the first line", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: PRICING });
+    const md = formatPrReviewMarkdown(v);
+    expect(md.startsWith(PROMPTLY_REVIEW_MARKER)).toBe(true);
+    expect(md).toContain(`PR #${PR.number}`);
+  });
+
+  it("renders a zero-match PR without tables, still carrying the marker", () => {
+    const v = buildPrReview({ pr: PR, sessions: [], pricing: PRICING });
+    const md = formatPrReviewMarkdown(v);
+    expect(md.startsWith(PROMPTLY_REVIEW_MARKER)).toBe(true);
+    expect(md).toContain("wasn't captured by Promptly");
+    expect(md).not.toContain("### Sessions");
+  });
+
+  it("renders quality, spend, leak, and sessions sections as markdown", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: PRICING });
+    v.quality = summarizeQuality(qualityVerdicts, { sessionsTotal: 1, judgeModel: "claude-haiku-4-5" });
+    // The CLI sets per-session eval cost after judging; mirror that so the
+    // Sessions table shows its Eval column.
+    v.sessions[0].evalCostUsd = 0.002;
+    const md = formatPrReviewMarkdown(v);
+    // Scores table.
+    expect(md).toContain("| Signal | Score | | |");
+    expect(md).toContain("| Prompt quality |");
+    expect(md).toContain("| Spend efficiency |");
+    // Worst-rubric callout as a blockquote (scope avg 2 → 4/10 ≤ 6).
+    expect(md).toContain("> ⚠️ **scope-discipline 4/10**");
+    // Leaks + sessions.
+    expect(md).toContain("### Leaks");
+    expect(md).toContain("### Sessions");
+    expect(md).toContain("| Ticket | Session | Date | Model | Cost | Eval |");
+    expect(md).toContain("Prompt-quality eval:");
+    // Footer.
+    expect(md).toContain("updates in place on re-run");
+  });
+
+  it("drops the Eval column when no session was judged", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: PRICING });
+    const md = formatPrReviewMarkdown(v);
+    expect(md).toContain("| Ticket | Session | Date | Model | Cost |");
+    expect(md).not.toContain("| Ticket | Session | Date | Model | Cost | Eval |");
+  });
+
+  it("notes when pricing is unavailable instead of faking a spend score", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: null });
+    const md = formatPrReviewMarkdown(v);
+    expect(md).toContain("pricing unavailable");
+    expect(md).not.toContain("### Leaks");
   });
 });
 

@@ -116,6 +116,7 @@ program
   .option("--rubric <id>", "Rubric to apply (session: default intent-clarity; --pr: restrict to this one rubric)")
   .option("--model <id>", "Override the judge model (default: rubric's model_default)")
   .option("--no-quality", "PR mode: skip prompt-quality (judge) scoring — spend analysis only")
+  .option("--comment", "PR mode: post the verdict as a PR comment (idempotent — edits in place on re-run)")
   .option("--json", "Print verdict as JSON")
   .action(reviewCommand);
 
