@@ -42,7 +42,7 @@ Key shared modules:
 
 ### @getpromptly/mcp-server
 
-MCP server that runs as a subprocess of Claude Code. Provides 4 tools:
+MCP server that runs as a subprocess of Claude Code. Provides 5 tools:
 
 | Tool | Purpose |
 |------|---------|
@@ -50,6 +50,7 @@ MCP server that runs as a subprocess of Claude Code. Provides 4 tools:
 | `promptly_log` | Record a conversation turn |
 | `promptly_status` | Check current session stats |
 | `promptly_finish` | Finalize session, write to SQLite, clear buffer |
+| `promptly_review` | Review the sessions behind a GitHub PR — prompt quality (LLM-as-judge) + spend. Read-only |
 
 Uses `@modelcontextprotocol/sdk` with stdio transport. Buffers data to `~/.promptly/buffer.json` for crash recovery, and writes completed sessions to `~/.promptly/promptly.db` (SQLite).
 

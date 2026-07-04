@@ -41,6 +41,7 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 - **Session replay**: Step through conversation turns with timing, playback controls, and cumulative stats to see how a session unfolded.
 - **Analytics dashboard**: Cost-per-project trends, parallel session detection, skill usage analytics, instruction file effectiveness tracking, and aggregate prompt quality.
 - **Spend optimization**: `promptly optimize` analyzes your session history and surfaces actionable recommendations — premium-model misuse on simple tasks, context-window saturation on long sessions, repeated corrections that belong in your instruction file, repetitive multi-step Bash workflows worth turning into a skill, and pre/post action patterns worth automating as hooks. Each rec has a dollar or time savings estimate. Available in CLI, dashboard (`/optimize`), and JSON API.
+- **Prompt review**: `promptly review` scores the prompts behind your work — one captured session, or every session behind a GitHub PR (`promptly review --pr <n>`) — with an LLM-as-judge on markdown rubrics (intent clarity, scope discipline) plus spend efficiency, in one verdict. `--comment` posts the verdict back to the PR and edits it in place on re-run (no spam). The same review runs through the `promptly_review` MCP tool when you tell your agent you're reviewing a PR. Bring your own Anthropic key.
 - **Import past Claude Code sessions**: `promptly import-claude` pulls existing sessions from `~/.claude/projects` into Promptly with no MCP setup needed — handy for backfilling history or skipping the MCP install entirely.
 - **Built-in dashboard**: View sessions, analytics, digest, and session replay in your browser at `localhost:3000`.
 - **Optional cloud sync**: For teams that want a shared dashboard.
@@ -81,6 +82,7 @@ All tools support: `/track <ticket-id>`, `/track status`, `/track finish`
 | `promptly optimize` | Analyze session history and surface AI spend leak recommendations |
 | `promptly optimize --apply <rec-id>` | Apply a recommendation: generates the skill / instruction rule / hook it suggests |
 | `promptly review <session-id>` | Run prompt review against a captured session (LLM-as-judge) |
+| `promptly review --pr <n>` | Review every session behind a GitHub PR — prompt quality (LLM-as-judge) + spend efficiency in one verdict. Flags: `--comment` (post/update as a PR comment), `--no-quality`, `--rubric <id>`, `--model <id>`, `--json` |
 | `promptly statusline install` | Show `🔴 REC <ticket>` in Claude Code's status line while recording |
 | `promptly telemetry on\|off\|status` | Manage anonymous usage telemetry |
 
