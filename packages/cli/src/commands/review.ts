@@ -1,7 +1,5 @@
 import { getSession, listAllSessions } from "../db.js";
-import { loadRubric } from "../eval/rubric.js";
-import { runJudge, type JudgeResult } from "../eval/judge.js";
-import type { ConversationTurn } from "@getpromptly/shared";
+import { loadRubric, runJudge, type JudgeResult, type ConversationTurn } from "@getpromptly/shared";
 import { getAnalytics, getDistinctId } from "../analytics.js";
 import { reviewPrCommand } from "./review-pr.js";
 

@@ -1,4 +1,5 @@
-import type { ConversationTurn, SessionRubricVerdict } from "@getpromptly/shared";
+import type { ConversationTurn } from "../types.js";
+import type { SessionRubricVerdict } from "../pr-review.js";
 import { loadRubric, type Rubric } from "./rubric.js";
 import { runJudge } from "./judge.js";
 

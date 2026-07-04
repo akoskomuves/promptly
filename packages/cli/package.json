@@ -30,8 +30,7 @@
     "promptly": "dist/index.js"
   },
   "files": [
-    "dist",
-    "rubrics"
+    "dist"
   ],
   "scripts": {
     "build": "tsc",
@@ -39,7 +38,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.40.0",
     "@getpromptly/shared": "workspace:*",
     "@inquirer/prompts": "^8.2.0",
     "better-sqlite3": "^12.0.0",

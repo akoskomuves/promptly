@@ -8,13 +8,15 @@ import {
   matchSessionsToPr,
   toOptimizeInput,
   summarizeQuality,
+  judgePrSessions,
+  DEFAULT_PR_RUBRICS,
   type PrDetails,
   type PrMeta,
   type ConversationTurn,
+  type JudgeableSession,
 } from "@getpromptly/shared";
 import { fetchPricing } from "./optimize.js";
 import { upsertPrComment } from "./pr-comment.js";
-import { judgePrSessions, DEFAULT_PR_RUBRICS, type JudgeableSession } from "../eval/judge-pr.js";
 import { getAnalytics, getDistinctId } from "../analytics.js";
 import type { DbSession } from "../db.js";
 

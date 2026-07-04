@@ -12,12 +12,16 @@
     "directory": "packages/shared"
   },
   "files": [
-    "dist"
+    "dist",
+    "rubrics"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",

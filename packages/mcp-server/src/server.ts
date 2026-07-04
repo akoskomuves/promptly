@@ -262,7 +262,7 @@ export function createServer(): McpServer {
   // Tool: Review the prompts behind a GitHub PR (read-only — not a recording)
   server.tool(
     "promptly_review",
-    "Review the AI coding sessions behind a GitHub pull request and return a prompt/spend verdict (token waste, model misuse, avoidable cost). READ-ONLY — call this when the user says they're reviewing a PR (e.g. 'I'm reviewing PR 42', 'let's review #42', 'review this PR'). It analyzes the sessions that PRODUCED the PR; it does NOT start a recording, so do not call promptly_start for review work.",
+    "Review the AI coding sessions behind a GitHub pull request and return a verdict on prompt quality (LLM-as-judge: intent clarity, scope discipline) and spend (token waste, model misuse, avoidable cost). READ-ONLY — call this when the user says they're reviewing a PR (e.g. 'I'm reviewing PR 42', 'let's review #42', 'review this PR'). It analyzes the sessions that PRODUCED the PR; it does NOT start a recording, so do not call promptly_start for review work.",
     { prNumber: z.number().int().positive().describe("The GitHub PR number to review") },
     async ({ prNumber }) => {
       const text = await reviewPr(prNumber);

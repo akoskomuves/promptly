@@ -8,4 +8,7 @@ export * from "./optimize.js";
 export * from "./session-input.js";
 export * from "./pricing.js";
 export * from "./pr-review.js";
+export * from "./eval/rubric.js";
+export * from "./eval/judge.js";
+export * from "./eval/judge-pr.js";
 export * from "./schema.js";
