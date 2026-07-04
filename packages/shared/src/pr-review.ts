@@ -32,20 +32,25 @@ export function parsePrView(raw: string): PrDetails {
     title: string;
     headRefName: string;
     baseRefName?: string;
-    commits?: { oid: string }[];
+    commits?: { oid?: string }[];
   };
   return {
     number: json.number,
     title: json.title,
     headRefName: json.headRefName,
     baseRefName: json.baseRefName,
-    shortShas: new Set((json.commits ?? []).map((c) => c.oid.slice(0, 7))),
+    shortShas: new Set(
+      (json.commits ?? [])
+        .map((c) => c.oid)
+        .filter((oid): oid is string => typeof oid === "string")
+        .map((oid) => oid.slice(0, 7))
+    ),
   };
 }
 
 interface GitActivityLike {
   branch?: string;
-  commits?: { hash: string }[];
+  commits?: { hash?: string }[];
 }
 
 /**
@@ -67,7 +72,12 @@ export function matchSessionsToPr<T extends { git_activity: string | null }>(
       return false;
     }
     if (git.branch && git.branch === pr.headRefName) return true;
-    return (git.commits ?? []).some((c) => pr.shortShas.has(c.hash.slice(0, 7)));
+    // Not every captured commit carries a hash (older/partial git_activity, or
+    // demo data), so guard before slicing — one hash-less commit must not sink
+    // the whole review.
+    return (git.commits ?? []).some(
+      (c) => typeof c?.hash === "string" && pr.shortShas.has(c.hash.slice(0, 7))
+    );
   });
 }
 

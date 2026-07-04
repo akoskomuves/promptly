@@ -229,6 +229,18 @@ describe("parsePrView", () => {
     expect(pr.shortShas.has("abcdef1")).toBe(true);
     expect(pr.shortShas.has("1234567")).toBe(true);
   });
+
+  it("skips commits with no oid instead of throwing", () => {
+    const raw = JSON.stringify({
+      number: 8,
+      title: "Partial",
+      headRefName: "x",
+      commits: [{ oid: "abcdef1234" }, { message: "no oid" }],
+    });
+    const pr = parsePrView(raw);
+    expect(pr.shortShas.has("abcdef1")).toBe(true);
+    expect(pr.shortShas.size).toBe(1);
+  });
 });
 
 describe("matchSessionsToPr", () => {
@@ -249,5 +261,15 @@ describe("matchSessionsToPr", () => {
     ];
     const matched = matchSessionsToPr(rows, pr).map((r) => r.id);
     expect(matched).toEqual(["byBranch", "byCommit"]);
+  });
+
+  it("does not throw on commits missing a hash (partial/demo git_activity)", () => {
+    const rows = [
+      // commits without a `hash` field must be skipped, not crash the scan
+      { id: "noHash", git_activity: JSON.stringify({ branch: "other", commits: [{ message: "x", insertions: 1 }] }) },
+      { id: "byBranch", git_activity: JSON.stringify({ branch: "fix/receipt", commits: [{ message: "y" }] }) },
+    ];
+    expect(() => matchSessionsToPr(rows, pr)).not.toThrow();
+    expect(matchSessionsToPr(rows, pr).map((r) => r.id)).toEqual(["byBranch"]);
   });
 });
