@@ -17,9 +17,6 @@ importers:
 
   packages/cli:
     dependencies:
-      '@anthropic-ai/sdk':
-        specifier: ^0.40.0
-        version: 0.40.1
       '@getpromptly/shared':
         specifier: workspace:*
         version: link:../shared
@@ -81,6 +78,10 @@ importers:
         version: 4.1.8(@types/node@22.19.7)(vite@8.0.16(@types/node@22.19.7))
 
   packages/shared:
+    dependencies:
+      '@anthropic-ai/sdk':
+        specifier: ^0.40.0
+        version: 0.40.1
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.0

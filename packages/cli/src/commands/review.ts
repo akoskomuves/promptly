@@ -1,13 +1,17 @@
 import { getSession, listAllSessions } from "../db.js";
-import { loadRubric } from "../eval/rubric.js";
-import { runJudge, type JudgeResult } from "../eval/judge.js";
-import type { ConversationTurn } from "@getpromptly/shared";
+import { loadRubric, runJudge, type JudgeResult, type ConversationTurn } from "@getpromptly/shared";
 import { getAnalytics, getDistinctId } from "../analytics.js";
+import { reviewPrCommand } from "./review-pr.js";
 
 interface ReviewOptions {
   rubric?: string;
   model?: string;
   json?: boolean;
+  pr?: string;
+  /** PR mode: prompt-quality scoring (on by default; `--no-quality` disables). */
+  quality?: boolean;
+  /** PR mode: post/update the verdict as a GitHub PR comment. */
+  comment?: boolean;
 }
 
 function resolveSession(idOrPrefix: string) {
@@ -87,11 +91,25 @@ function printVerdict(
 }
 
 export async function reviewCommand(
-  sessionIdOrPrefix: string,
+  sessionIdOrPrefix: string | undefined,
   options: ReviewOptions = {}
 ): Promise<void> {
+  // PR mode: review every session behind a GitHub PR — prompt quality + spend.
+  if (options.pr) {
+    await reviewPrCommand(options.pr, {
+      json: options.json,
+      quality: options.quality,
+      rubric: options.rubric,
+      model: options.model,
+      comment: options.comment,
+    });
+    return;
+  }
+
   if (!sessionIdOrPrefix) {
-    console.error("Usage: promptly review <session-id-or-prefix> [--rubric <id>]");
+    console.error(
+      "Usage: promptly review <session-id-or-prefix> [--rubric <id>]\n       promptly review --pr <number>"
+    );
     process.exit(1);
   }
 

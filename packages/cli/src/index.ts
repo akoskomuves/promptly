@@ -110,10 +110,13 @@ program
   .action(optimizeCommand);
 
 program
-  .command("review <session-id>")
-  .description("Run prompt review against a captured session (LLM-as-judge)")
-  .option("--rubric <id>", "Rubric to apply (default: intent-clarity)")
+  .command("review [session-id]")
+  .description("Review captured prompts — a single session (LLM-as-judge) or a whole GitHub PR (--pr)")
+  .option("--pr <number>", "Review every session behind a GitHub PR (matched by branch/commits): prompt quality + spend")
+  .option("--rubric <id>", "Rubric to apply (session: default intent-clarity; --pr: restrict to this one rubric)")
   .option("--model <id>", "Override the judge model (default: rubric's model_default)")
+  .option("--no-quality", "PR mode: skip prompt-quality (judge) scoring — spend analysis only")
+  .option("--comment", "PR mode: post the verdict as a PR comment (idempotent — edits in place on re-run)")
   .option("--json", "Print verdict as JSON")
   .action(reviewCommand);
 

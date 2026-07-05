@@ -153,7 +153,7 @@ function classifyModel(name: string): ModelClassification {
   return { isPremium: false };
 }
 
-function findPricing(
+export function findPricing(
   pricing: Record<string, ModelPricing>,
   model: string
 ): ModelPricing | null {
@@ -202,7 +202,7 @@ function findAlternative(
   return best;
 }
 
-function costFor(
+export function costFor(
   promptTokens: number,
   responseTokens: number,
   pricing: ModelPricing

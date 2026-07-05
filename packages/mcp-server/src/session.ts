@@ -7,6 +7,7 @@ import type {
   ConversationTurn,
   LocalSession,
   ActiveSessionState,
+  RawSessionRow,
 } from "@getpromptly/shared";
 
 const PROMPTLY_DIR =
@@ -165,6 +166,39 @@ export function writeToSqlite(session: LocalSession): SqliteWriteResult {
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  } finally {
+    try {
+      db?.close();
+    } catch {
+      // already closed or never opened
+    }
+  }
+}
+
+/** A completed-session row with the columns PR review needs (optimize fields +
+ *  git_activity for PR matching). */
+export interface ReviewSessionRow extends RawSessionRow {
+  git_activity: string | null;
+}
+
+/** Read completed sessions that have captured git activity — the candidates for
+ *  matching to a PR. Read-only; returns [] when no database exists yet. */
+export function readSessionsForReview(): ReviewSessionRow[] {
+  const dbPath = path.join(PROMPTLY_DIR, "promptly.db");
+  if (!fs.existsSync(dbPath)) return [];
+  let db: InstanceType<typeof Database> | null = null;
+  try {
+    db = new Database(dbPath);
+    applySessionSchema(db);
+    return db
+      .prepare(
+        `SELECT id, ticket_id, started_at, finished_at, total_tokens, prompt_tokens,
+                response_tokens, conversations, models, intelligence, git_activity
+         FROM sessions WHERE git_activity IS NOT NULL ORDER BY started_at DESC`
+      )
+      .all() as ReviewSessionRow[];
+  } catch {
+    return [];
   } finally {
     try {
       db?.close();

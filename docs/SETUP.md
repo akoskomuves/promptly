@@ -133,6 +133,52 @@ Each recommendation shows the top 3-5 evidence rows. Aggregate monthly savings i
 
 > **Privacy note:** Repeated-corrections evidence shows verbatim user messages. The CLI and local dashboard are single-user and read from your local SQLite — nothing is uploaded. Cloud team aggregation of correction patterns is deliberately not yet implemented.
 
+## Prompt Review
+
+Where `optimize` looks at your whole history, `promptly review` looks at the prompts behind a specific unit of work and scores them. It uses an LLM-as-judge, so it needs your own Anthropic key:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Without a key, review still runs — it just falls back to the spend-only analysis and skips the quality score (it never errors out).
+
+### Review one session
+
+```bash
+promptly review <session-id>            # id or unique prefix; --rubric <id>, --model <id>, --json
+```
+
+Prints the judge's score (0–10), rationale, and eval cost for that session against a rubric (default `intent-clarity`).
+
+### Review a whole GitHub PR
+
+```bash
+promptly review --pr 42                  # quality + spend verdict for the PR
+promptly review --pr 42 --comment        # ...and post it back to the PR
+```
+
+`--pr` resolves the PR with the GitHub CLI (`gh` — install from [cli.github.com](https://cli.github.com) and run `gh auth login`), matches your recorded sessions to it **by branch and commit**, then prints one verdict combining:
+
+- **Prompt quality** — each matched session judged on markdown rubrics (`intent-clarity`, `scope-discipline`), scored 0–10, with the weakest rubric called out.
+- **Spend efficiency** — the same leak detectors as `optimize` (model misuse, context bloat, …), scored against how much of the PR's spend was avoidable.
+
+Flags:
+
+| Flag | Effect |
+|---|---|
+| `--comment` | Post the verdict as a PR comment. **Idempotent** — a hidden marker lets a re-run edit the same comment in place instead of stacking new ones. Needs `gh` auth with repo write. |
+| `--no-quality` | Skip the LLM judge — spend analysis only. |
+| `--rubric <id>` | Score against a single rubric instead of the default set. |
+| `--model <id>` | Override the judge model (default: the rubric's `model_default`, Haiku). |
+| `--json` | Machine-readable verdict. |
+
+Cost is bounded: only sessions with captured turns are judged, capped at the 8 most expensive per PR, on Haiku by default. If no sessions match the PR, nothing is posted.
+
+### Through your AI agent (MCP)
+
+The same PR review is available as the `promptly_review` MCP tool. Tell your agent you're reviewing a PR — "I'm reviewing PR 42", "let's review #42" — and it calls `promptly_review` and relays the quality + spend verdict. It's **read-only**: it analyzes the sessions that produced the PR and never starts a recording.
+
 ## Importing Past Claude Code Sessions
 
 If you used Claude Code before installing Promptly (or want to skip MCP setup entirely), you can import existing sessions directly from `~/.claude/projects`:

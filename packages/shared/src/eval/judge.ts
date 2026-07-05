@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { ConversationTurn } from "@getpromptly/shared";
+import type { ConversationTurn } from "../types.js";
 import type { Rubric } from "./rubric.js";
 
 export interface Verdict {

@@ -472,6 +472,12 @@ export async function initCommand(options: InitOptions = {}) {
         ? "already configured"
         : "found";
     console.log(`  ${tool.name}: ${status}`);
+    // The Claude Desktop Mac app's "Code" panel is the same Claude Code engine
+    // and reads the same MCP config we write here — so configuring Claude Code
+    // covers it too, no separate setup.
+    if (tool.name === "Claude Code" && tool.detected) {
+      console.log("    ✓ Claude Desktop Code panel covered — shares this MCP config");
+    }
   }
 
   const availableToConfigure = tools.filter(t => t.detected && !t.configured);
