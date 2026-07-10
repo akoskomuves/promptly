@@ -117,6 +117,8 @@ program
   .option("--model <id>", "Override the judge model (default: rubric's model_default)")
   .option("--no-quality", "PR mode: skip prompt-quality (judge) scoring — spend analysis only")
   .option("--comment", "PR mode: post the verdict as a PR comment (idempotent — edits in place on re-run)")
+  .option("--status", "PR mode: set a pass/fail commit status on the PR head (shows in the PR checks list)")
+  .option("--status-threshold <n>", "PR mode: score (0–10) at or above which --status passes (default 7)")
   .option("--json", "Print verdict as JSON")
   .action(reviewCommand);
 

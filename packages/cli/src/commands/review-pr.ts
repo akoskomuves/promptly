@@ -9,6 +9,7 @@ import {
   toOptimizeInput,
   summarizeQuality,
   judgePrSessions,
+  computeReviewStatus,
   DEFAULT_PR_RUBRICS,
   type PrDetails,
   type PrMeta,
@@ -17,6 +18,7 @@ import {
 } from "@getpromptly/shared";
 import { fetchPricing } from "./optimize.js";
 import { upsertPrComment } from "./pr-comment.js";
+import { setPrStatus } from "./pr-status.js";
 import { getAnalytics, getDistinctId } from "../analytics.js";
 import type { DbSession } from "../db.js";
 
@@ -27,7 +29,7 @@ function getPrDetails(prNumber: number): PrDetails {
   try {
     raw = execFileSync(
       "gh",
-      ["pr", "view", String(prNumber), "--json", "number,title,headRefName,baseRefName,commits"],
+      ["pr", "view", String(prNumber), "--json", "number,title,headRefName,baseRefName,headRefOid,commits"],
       { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"] }
     );
   } catch (err) {
@@ -72,6 +74,10 @@ export interface ReviewPrOptions {
   model?: string;
   /** Post/update the verdict as a GitHub PR comment (idempotent). */
   comment?: boolean;
+  /** Set a pass/fail commit status on the PR head (quality threshold). */
+  status?: boolean;
+  /** Score (0–10) at or above which `--status` passes (default 7). */
+  statusThreshold?: number;
 }
 
 export async function reviewPrCommand(
@@ -171,6 +177,38 @@ export async function reviewPrCommand(
     }
   }
 
+  // --status: set a pass/fail commit status on the PR head, so the verdict shows
+  // up in the PR's checks list. The status *state* is the gate (green/red check),
+  // not the CLI exit code — a failing verdict still exits 0; only a failed POST
+  // exits non-zero. Skipped when nothing matched or there's no score to gate on.
+  let statusPosted = false;
+  let statusFailed = false;
+  let statusState: string | undefined;
+  if (options.status) {
+    if (verdict.sessionCount === 0) {
+      console.error(`No sessions matched PR #${pr.number} — no status set.`);
+    } else if (!pr.headRefOid) {
+      console.error(`Couldn't resolve PR #${pr.number}'s head commit — no status set.`);
+    } else {
+      const status = computeReviewStatus(verdict, { threshold: options.statusThreshold });
+      if (!status) {
+        console.error("No prompt-quality or spend score available — no status set.");
+      } else {
+        try {
+          setPrStatus(pr.headRefOid, status);
+          statusPosted = true;
+          statusState = status.state;
+          console.error(
+            `${status.state === "success" ? "✅" : "❌"} PR status: ${status.state} — ${status.description}`
+          );
+        } catch (err) {
+          statusFailed = true;
+          console.error(`Couldn't set the PR status: ${(err as Error).message}`);
+        }
+      }
+    }
+  }
+
   getAnalytics().capture({
     distinctId: getDistinctId(),
     event: "pr review run",
@@ -184,11 +222,13 @@ export async function reviewPrCommand(
       eval_cost_usd: verdict.quality?.evalCostUsd ?? 0,
       rubrics: verdict.quality?.rubrics.map((r) => r.rubricId) ?? [],
       commented: commentPosted,
+      status_set: statusPosted,
+      status_state: statusState ?? null,
     },
   });
   await getAnalytics().shutdown();
 
-  // A requested comment that failed to post is a non-zero exit (CI-friendly),
-  // but only after the local verdict and analytics have gone out.
-  if (commentFailed) process.exit(1);
+  // A requested comment or status that failed to POST is a non-zero exit
+  // (CI-friendly), but only after the local verdict and analytics have gone out.
+  if (commentFailed || statusFailed) process.exit(1);
 }

@@ -23,15 +23,18 @@ export interface PrMeta {
 /** PR metadata plus the set of short (7-char) commit SHAs used for matching. */
 export interface PrDetails extends PrMeta {
   shortShas: Set<string>;
+  /** Full head commit SHA — the target for a commit status. */
+  headRefOid?: string;
 }
 
-/** Parse the JSON from `gh pr view <n> --json number,title,headRefName,baseRefName,commits`. */
+/** Parse the JSON from `gh pr view <n> --json number,title,headRefName,baseRefName,headRefOid,commits`. */
 export function parsePrView(raw: string): PrDetails {
   const json = JSON.parse(raw) as {
     number: number;
     title: string;
     headRefName: string;
     baseRefName?: string;
+    headRefOid?: string;
     commits?: { oid?: string }[];
   };
   return {
@@ -39,6 +42,7 @@ export function parsePrView(raw: string): PrDetails {
     title: json.title,
     headRefName: json.headRefName,
     baseRefName: json.baseRefName,
+    headRefOid: typeof json.headRefOid === "string" ? json.headRefOid : undefined,
     shortShas: new Set(
       (json.commits ?? [])
         .map((c) => c.oid)
@@ -556,4 +560,53 @@ export function formatPrReviewMarkdown(v: PrReviewVerdict): string {
 
   out.push(mdFooter());
   return out.join("\n");
+}
+
+// ---- PR commit status -------------------------------------------------------
+
+/** GitHub commit-status state. (No "neutral" — that's the Checks API, not Statuses.) */
+export type PrCommitStatusState = "success" | "failure" | "pending" | "error";
+
+export interface PrCommitStatus {
+  state: PrCommitStatusState;
+  /** ≤140 chars for GitHub; carries the numbers, e.g. "Prompt quality 8/10 · $0.42 avoidable". */
+  description: string;
+  context: string;
+}
+
+/** The status context string that shows in the PR's checks list. */
+export const REVIEW_STATUS_CONTEXT = "promptly/prompt-review";
+
+/** Default score (0–10) at or above which the review status passes. */
+export const DEFAULT_STATUS_THRESHOLD = 7;
+
+/**
+ * Map a review verdict to a pass/fail commit status. Gates on prompt quality
+ * when available, else falls back to spend efficiency (same 0–10 scale), else
+ * returns null — nothing to gate on, so the caller sets no status. Pure.
+ */
+export function computeReviewStatus(
+  v: PrReviewVerdict,
+  opts: { threshold?: number } = {}
+): PrCommitStatus | null {
+  const threshold = opts.threshold ?? DEFAULT_STATUS_THRESHOLD;
+
+  let score: number;
+  let label: string;
+  if (v.quality) {
+    score = v.quality.overall10;
+    label = `Prompt quality ${score}/10`;
+  } else if (v.spendEfficiency != null) {
+    score = v.spendEfficiency;
+    label = `Spend efficiency ${score}/10`;
+  } else {
+    return null;
+  }
+
+  const avoid = v.avoidableUsd > 0.005 ? ` · ${fmtUsd(v.avoidableUsd)} avoidable` : "";
+  return {
+    state: score >= threshold ? "success" : "failure",
+    description: `${label}${avoid}`.slice(0, 140),
+    context: REVIEW_STATUS_CONTEXT,
+  };
 }
