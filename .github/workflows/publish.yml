@@ -29,7 +29,10 @@ jobs:
           npm config delete //registry.npmjs.org/:_authToken || true
 
       - name: Update npm
-        run: npm install -g npm@latest
+        # Pin to the last 11.x — npm 12.0.0's global install is missing the
+        # `sigstore` module, which breaks `npm publish --provenance`. 11.18.0
+        # still supports OIDC trusted publishing.
+        run: npm install -g npm@11.18.0
 
       - name: Publish shared
         working-directory: packages/shared
