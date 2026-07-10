@@ -2,6 +2,18 @@
 
 All notable changes to `@getpromptly/cli` will be documented in this file.
 
+## [0.2.9] - 2026-07-10
+
+### Added
+
+- **`promptly review --pr <n> --status`** — set a pass/fail commit status on the PR head, so the prompt-review verdict shows up in the PR's checks list (context `promptly/prompt-review`). Passes when prompt quality is at or above the threshold, else fails; falls back to spend efficiency when the judge didn't run.
+- **`--status-threshold <n>`** — the score (0–10) at or above which `--status` passes. Default 7.
+
+### Notes
+
+- The status *state* is the gate (the green/red check on the PR), not the CLI exit code — a failing verdict still exits 0, so gate CI on the status check. Only a failed POST to GitHub exits non-zero.
+- Uses the GitHub Statuses API via `gh` (a personal token with `repo:status` write is enough — no GitHub App needed).
+
 ## [0.2.8] - 2026-07-04
 
 ### Added

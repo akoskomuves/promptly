@@ -12,6 +12,10 @@ interface ReviewOptions {
   quality?: boolean;
   /** PR mode: post/update the verdict as a GitHub PR comment. */
   comment?: boolean;
+  /** PR mode: set a pass/fail commit status on the PR head. */
+  status?: boolean;
+  /** PR mode: score threshold (0–10) for `--status` (commander passes a string). */
+  statusThreshold?: string;
 }
 
 function resolveSession(idOrPrefix: string) {
@@ -96,12 +100,20 @@ export async function reviewCommand(
 ): Promise<void> {
   // PR mode: review every session behind a GitHub PR — prompt quality + spend.
   if (options.pr) {
+    const threshold =
+      options.statusThreshold != null ? Number(options.statusThreshold) : undefined;
+    if (threshold != null && !Number.isFinite(threshold)) {
+      console.error(`Invalid --status-threshold: '${options.statusThreshold}'. Expected a number 0–10.`);
+      process.exit(1);
+    }
     await reviewPrCommand(options.pr, {
       json: options.json,
       quality: options.quality,
       rubric: options.rubric,
       model: options.model,
       comment: options.comment,
+      status: options.status,
+      statusThreshold: threshold,
     });
     return;
   }

@@ -168,6 +168,8 @@ Flags:
 | Flag | Effect |
 |---|---|
 | `--comment` | Post the verdict as a PR comment. **Idempotent** — a hidden marker lets a re-run edit the same comment in place instead of stacking new ones. Needs `gh` auth with repo write. |
+| `--status` | Set a pass/fail commit status on the PR head, so the verdict shows in the PR's checks list (context `promptly/prompt-review`). Passes when prompt quality is at or above the threshold, else fails; falls back to spend efficiency when the judge didn't run. |
+| `--status-threshold <n>` | Score (0–10) at or above which `--status` passes. Default 7. |
 | `--no-quality` | Skip the LLM judge — spend analysis only. |
 | `--rubric <id>` | Score against a single rubric instead of the default set. |
 | `--model <id>` | Override the judge model (default: the rubric's `model_default`, Haiku). |

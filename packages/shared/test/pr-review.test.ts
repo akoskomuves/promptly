@@ -8,6 +8,8 @@ import {
   parsePrView,
   matchSessionsToPr,
   summarizeQuality,
+  computeReviewStatus,
+  REVIEW_STATUS_CONTEXT,
 } from "../src/pr-review";
 import type { PrDetails, PrMeta, SessionRubricVerdict } from "../src/pr-review";
 import type { OptimizeSessionInput, ModelPricing } from "../src/optimize";
@@ -213,6 +215,60 @@ describe("formatPrReviewMarkdown", () => {
   });
 });
 
+describe("computeReviewStatus", () => {
+  function quality(overall10: number) {
+    return {
+      overall10,
+      rubrics: [],
+      worst: null,
+      evalCostUsd: 0.01,
+      sessionsJudged: 1,
+      sessionsTotal: 1,
+      judgeModel: "claude-haiku-4-5",
+    };
+  }
+
+  it("passes when quality meets the default threshold (7)", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession({ models: ["claude-sonnet-4"] })], pricing: PRICING });
+    v.quality = quality(8);
+    const s = computeReviewStatus(v);
+    expect(s).not.toBeNull();
+    expect(s?.state).toBe("success");
+    expect(s?.description).toContain("Prompt quality 8/10");
+    expect(s?.context).toBe(REVIEW_STATUS_CONTEXT);
+  });
+
+  it("fails when quality is below the threshold", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession({ models: ["claude-sonnet-4"] })], pricing: PRICING });
+    v.quality = quality(6);
+    expect(computeReviewStatus(v)?.state).toBe("failure");
+  });
+
+  it("honors a custom threshold", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession({ models: ["claude-sonnet-4"] })], pricing: PRICING });
+    v.quality = quality(6);
+    expect(computeReviewStatus(v, { threshold: 5 })?.state).toBe("success");
+  });
+
+  it("appends avoidable spend to the description when present", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: PRICING }); // opus → $72 avoidable
+    v.quality = quality(9);
+    expect(computeReviewStatus(v)?.description).toContain("avoidable");
+  });
+
+  it("falls back to spend efficiency when quality didn't run", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: PRICING }); // spend efficiency 2/10
+    const s = computeReviewStatus(v);
+    expect(s?.description).toContain("Spend efficiency 2/10");
+    expect(s?.state).toBe("failure"); // 2 < 7
+  });
+
+  it("returns null when there's neither quality nor a spend score", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: null }); // no pricing → spendEfficiency null
+    expect(computeReviewStatus(v)).toBeNull();
+  });
+});
+
 describe("parsePrView", () => {
   it("extracts PR metadata and 7-char commit SHAs from gh JSON", () => {
     const raw = JSON.stringify({
@@ -228,6 +284,15 @@ describe("parsePrView", () => {
     expect(pr.headRefName).toBe("fix/receipt");
     expect(pr.shortShas.has("abcdef1")).toBe(true);
     expect(pr.shortShas.has("1234567")).toBe(true);
+  });
+
+  it("captures the head commit SHA and leaves it undefined when absent", () => {
+    const withOid = parsePrView(
+      JSON.stringify({ number: 9, title: "x", headRefName: "b", headRefOid: "deadbeef1234", commits: [] })
+    );
+    expect(withOid.headRefOid).toBe("deadbeef1234");
+    const without = parsePrView(JSON.stringify({ number: 9, title: "x", headRefName: "b", commits: [] }));
+    expect(without.headRefOid).toBeUndefined();
   });
 
   it("skips commits with no oid instead of throwing", () => {
