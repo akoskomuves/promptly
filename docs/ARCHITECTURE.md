@@ -44,15 +44,77 @@ Key shared modules:
 
 MCP server that runs as a subprocess of Claude Code. Provides 5 tools:
 
-| Tool | Purpose |
-|------|---------|
-| `promptly_start` | Initialize conversation buffer for a ticket |
-| `promptly_log` | Record a conversation turn |
-| `promptly_status` | Check current session stats |
-| `promptly_finish` | Finalize session, write to SQLite, clear buffer |
-| `promptly_review` | Review the sessions behind a GitHub PR — prompt quality (LLM-as-judge) + spend. Read-only |
+| Tool | Purpose | Annotations |
+|------|---------|-------------|
+| `promptly_start` | Initialize conversation buffer for a ticket; mints the session handle | — |
+| `promptly_log` | Record a conversation turn | — |
+| `promptly_status` | Check current session stats | `readOnly`, `idempotent` |
+| `promptly_finish` | Finalize session, write to SQLite, clear buffer | `destructive`, `idempotent` |
+| `promptly_review` | Review the sessions behind a GitHub PR — prompt quality (LLM-as-judge) + spend | `readOnly`, `idempotent`, `openWorld` |
 
 Uses `@modelcontextprotocol/sdk` with stdio transport. Buffers data to `~/.promptly/buffer.json` for crash recovery, and writes completed sessions to `~/.promptly/promptly.db` (SQLite).
+
+#### Tool contract
+
+Every tool declares an `outputSchema` and returns `structuredContent` alongside its
+prose, so callers read numbers (token counts, cost, quality score, pass/fail) as
+data instead of re-parsing text. The SDK validates each result against its schema,
+including the failure paths — a review that couldn't run returns
+`reviewed: false` with an `error` string rather than zeros that look like findings.
+
+Tools are registered in a fixed order and never sorted at request time, so
+`tools/list` is deterministic and clients can cache it.
+
+#### Session handles
+
+`promptly_start` mints a `sessionId` and returns it. `promptly_log`,
+`promptly_status`, and `promptly_finish` each take an **optional** `sessionId` —
+pass it to pin the call to that recording, and a call naming a recording that
+isn't the live one is refused instead of silently landing in the wrong session.
+
+This is the MCP 2026-07-28 pattern: the spec removed protocol-level sessions
+(and the `Mcp-Session-Id` header) in favour of explicit, server-minted handles
+passed as ordinary tool arguments. The argument stays optional so the CLI flow
+(`promptly start`, which writes `session.json` without going through
+`promptly_start`) keeps working unchanged, and so do recordings buffered by
+earlier versions.
+
+#### MCP App — the review panel
+
+`promptly_review` is registered with `registerAppTool` from
+`@modelcontextprotocol/ext-apps`, pointing at a `ui://promptly/review.html`
+resource served at `text/html;profile=mcp-app`. Hosts that support the
+`io.modelcontextprotocol/ui` extension (Claude, Claude Desktop) render the
+verdict as an interactive panel — score tiles, per-rubric bars with the weakest
+rubric called out, recommendations, a per-session cost table, and a re-run
+button that calls `tools/call` back into `promptly_review`.
+
+The panel lives in `src/ui/review-app.ts` as an exported string, not an `.html`
+file: this package builds with plain `tsc`, which copies no assets, so a
+separate file would have to be hand-copied into `dist` and would eventually go
+missing from the published tarball.
+
+It talks the MCP Apps postMessage dialect directly (`ui/initialize` →
+`ui/notifications/initialized`, then `ui/notifications/tool-result`) instead of
+bundling `ext-apps`' `App` class. The spec explicitly permits this, and the
+pre-bundled `App` is ~330KB that the host would re-fetch on every render; the
+panel is ~10KB with everything inlined, which also satisfies the sandboxed
+iframe's CSP — no external scripts, styles, or fonts.
+
+This is additive. A host without Apps support still gets the prose and
+`structuredContent`, unchanged.
+
+#### Protocol version
+
+The server targets the revision `@modelcontextprotocol/sdk` (1.x) implements —
+currently `2025-11-25`. It uses none of the features 2026-07-28 deprecates
+(Roots, Sampling, Logging) or removes (`ping`, `logging/setLevel`), and stdio
+transport is unaffected by that revision's transport changes.
+
+Note that 2026-07-28 *is* implemented, in the separate
+`@modelcontextprotocol/core` / `server` **2.0.0** package family — not in the 1.x
+`sdk` line. We stay on 1.x because `ext-apps` peer-deps it, and moving would
+strand the review panel. See ROADMAP § "MCP 2026-07-28 migration".
 
 ### @getpromptly/cli
 

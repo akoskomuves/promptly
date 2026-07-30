@@ -69,7 +69,8 @@ export function initBuffer(
   ticketId: string,
   clientTool?: string,
   externalSessionId?: string,
-  projectDir?: string
+  projectDir?: string,
+  sessionId?: string
 ): LocalSession {
   const session: LocalSession = {
     ticketId,
@@ -80,6 +81,7 @@ export function initBuffer(
     clientTool,
     externalSessionId,
     projectDir,
+    sessionId,
     totalTokens: 0,
     promptTokens: 0,
     responseTokens: 0,
