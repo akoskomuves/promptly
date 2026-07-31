@@ -518,10 +518,16 @@ export function createServer(): McpServer {
               id: z.string(),
               ticketId: z.string(),
               model: z.string().nullable(),
-              costUsd: z.number(),
+              costUsd: z
+                .number()
+                .nullable()
+                .describe("null when the model wasn't in the pricing table — unknown, not free"),
             })
           )
           .describe("The sessions that produced the PR"),
+        unpricedSessions: z
+          .number()
+          .describe("Sessions with no price for their model; >0 means totalCostUsd is a floor"),
         weakestRubricId: z
           .string()
           .nullable()
@@ -557,6 +563,7 @@ export function createServer(): McpServer {
             rubrics: [],
             sessions: [],
             weakestRubricId: null,
+            unpricedSessions: 0,
             error: result.text,
           },
         };

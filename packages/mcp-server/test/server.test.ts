@@ -230,6 +230,7 @@ describe("promptly_review", () => {
           { id: "s2", ticketId: "AUTH-43", model: null, costUsd: 0.34 },
         ],
         weakestRubricId: "scope-discipline",
+        unpricedSessions: 0,
       },
     });
 
@@ -247,6 +248,31 @@ describe("promptly_review", () => {
     expect(res.rubrics).toHaveLength(2);
     expect(res.rubrics[1].worst.ticketId).toBe("AUTH-42");
     expect(res.sessions.map((s: any) => s.ticketId)).toEqual(["AUTH-42", "AUTH-43"]);
+  });
+
+  it("carries an unpriced session through as null cost, not zero", async () => {
+    reviewPr.mockResolvedValue({
+      ok: true,
+      text: "1 session unpriced",
+      summary: {
+        prNumber: 9, prTitle: null, sessionCount: 2, totalTokens: 111_000,
+        totalCostUsd: 0.11, avoidableUsd: 0,
+        // No spend score, because the total is only a floor.
+        spendEfficiency: null, qualityScore: null, status: null,
+        recommendations: [], rubrics: [], weakestRubricId: null,
+        sessions: [
+          { id: "s1", ticketId: "MCP-32", model: "claude-sonnet-5", costUsd: 0.11 },
+          { id: "s2", ticketId: "MCP-31", model: "model-not-in-feed", costUsd: null },
+        ],
+        unpricedSessions: 1,
+      },
+    });
+
+    const res = await call("promptly_review", { prNumber: 9 });
+    expect(res.unpricedSessions).toBe(1);
+    expect(res.spendEfficiency).toBeNull();
+    // null must survive the schema — coercing it to 0 is the bug this guards.
+    expect(res.sessions[1].costUsd).toBeNull();
   });
 
   it("reports a failed review without inventing numbers", async () => {

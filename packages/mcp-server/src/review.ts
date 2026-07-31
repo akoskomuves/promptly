@@ -52,8 +52,10 @@ export interface PrReviewSummary {
     /** Lowest-scoring session for this rubric, for the callout. */
     worst: { ticketId: string; score: number; note: string } | null;
   }[];
-  /** The sessions that produced the PR, for the cost table. */
-  sessions: { id: string; ticketId: string; model: string | null; costUsd: number }[];
+  /** The sessions that produced the PR, for the cost table. `costUsd` is null when unpriced. */
+  sessions: { id: string; ticketId: string; model: string | null; costUsd: number | null }[];
+  /** Sessions whose model wasn't in the pricing table — totalCostUsd is a floor when non-zero. */
+  unpricedSessions: number;
   /** Rubric id with the lowest score — the thing to fix first. */
   weakestRubricId: string | null;
 }
@@ -94,6 +96,7 @@ function toSummary(prNumber: number, v: PrReviewVerdict): PrReviewSummary {
       costUsd: s.costUsd,
     })),
     weakestRubricId: v.quality?.worst?.rubricId ?? null,
+    unpricedSessions: v.unpricedSessions,
   };
 }
 

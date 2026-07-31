@@ -76,6 +76,11 @@ export const REVIEW_APP_HTML = String.raw`<!doctype html>
     font-size: 12.5px; color: var(--fg);
   }
   .note b { font-weight: 600; }
+  .warnbar {
+    margin: -4px 0 14px; padding: 8px 10px; border-radius: 8px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-left: 3px solid var(--warn); color: var(--fg); font-size: 12.5px;
+  }
   .scroll { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -161,6 +166,9 @@ export const REVIEW_APP_HTML = String.raw`<!doctype html>
     if (typeof n !== "number" || !isFinite(n)) return "—";
     return n < 0.01 && n > 0 ? "<$0.01" : "$" + n.toFixed(2);
   }
+  // null cost means the model had no price — unknown, not free. Say so, rather
+  // than rendering "$0.00" next to a session that may have been the priciest.
+  function sessionCost(n) { return n == null ? "unpriced" : usd(n); }
   function tone(score) { return score >= 7 ? "good" : score >= 5 ? "warn" : "bad"; }
 
   function scoreTile(label, score) {
@@ -194,12 +202,22 @@ export const REVIEW_APP_HTML = String.raw`<!doctype html>
     html += '<div class="scores">';
     html += scoreTile("Quality", data.qualityScore);
     html += scoreTile("Spend", data.spendEfficiency);
-    html += '<div class="tile"><div class="label">Cost</div><div class="value">' +
-            usd(data.totalCostUsd) + "</div></div>";
+    var unpriced = data.unpricedSessions || 0;
+    html += '<div class="tile"><div class="label">Cost' + (unpriced ? " (min)" : "") +
+            '</div><div class="value">' + usd(data.totalCostUsd) + "</div></div>";
     html += '<div class="tile"><div class="label">Avoidable</div><div class="value ' +
             (data.avoidableUsd > 0.005 ? "warn" : "") + '">' + usd(data.avoidableUsd) +
             "</div></div>";
     html += "</div>";
+
+    // An understated total is worse than no total, so name it rather than
+    // letting the tiles imply the figures are complete.
+    if (unpriced) {
+      html += '<div class="warnbar">' + esc(unpriced) +
+              (unpriced === 1 ? " session has" : " sessions have") +
+              " no price for its model — cost is a floor, and spend can't be scored." +
+              "</div>";
+    }
 
     if (data.rubrics && data.rubrics.length) {
       html += "<section><h2>Rubrics</h2>";
@@ -235,7 +253,7 @@ export const REVIEW_APP_HTML = String.raw`<!doctype html>
               "</tr></thead><tbody>";
       data.sessions.forEach(function (s) {
         html += "<tr><td>" + esc(s.ticketId || "—") + '</td><td class="model">' +
-                esc(s.model || "—") + '</td><td class="num">' + usd(s.costUsd) + "</td></tr>";
+                esc(s.model || "—") + '</td><td class="num">' + sessionCost(s.costUsd) + "</td></tr>";
       });
       html += "</tbody></table></div></section>";
     }

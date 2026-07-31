@@ -90,7 +90,12 @@ export interface PrSessionCost {
   ticketId: string;
   startedAt: string;
   model: string | null;
-  costUsd: number;
+  /**
+   * Session cost in USD, or null when the model isn't in the pricing table.
+   * Null means *unknown*, not free — treating it as 0 understates the PR's
+   * spend and inflates the efficiency score.
+   */
+  costUsd: number | null;
   /** Judge (LLM-as-judge) cost for this session, when quality scoring ran. */
   evalCostUsd?: number;
 }
@@ -137,9 +142,18 @@ export interface PrReviewVerdict {
   totalTokens: number;
   totalCostUsd: number;
   avoidableUsd: number;
-  /** 0-10 spend efficiency; null when pricing is unavailable. */
+  /**
+   * 0-10 spend efficiency; null when pricing is unavailable **or** any session
+   * is unpriced — a score computed against an understated total reads falsely
+   * clean, so we decline to give one.
+   */
   spendEfficiency: number | null;
   pricingAvailable: boolean;
+  /**
+   * Sessions whose model wasn't in the pricing table. Non-zero means
+   * `totalCostUsd` is a floor, not the real figure.
+   */
+  unpricedSessions: number;
   recommendations: OptimizationRecommendation[];
   sessions: PrSessionCost[];
   /** Prompt-quality verdict from the judge; null when quality scoring didn't run. */
@@ -173,27 +187,39 @@ export function buildPrReview(args: {
     ? runOptimizationDetectors({ sessions, pricing, windowDays })
     : [];
 
+  // A model the pricing table doesn't know is *unpriced*, which is not the same
+  // as free. Conflating them understated the spend of the most expensive
+  // sessions and let the efficiency score read "clean" precisely because the
+  // costly work was invisible — so `costUsd` is null when we can't price it and
+  // every consumer has to decide what that means.
   const sessionCosts: PrSessionCost[] = sessions.map((s) => {
     const model = s.models[0] ?? null;
-    let costUsd = 0;
+    let costUsd: number | null = null;
     if (pricing && model) {
       const price = findPricing(pricing, model);
       if (price) costUsd = costFor(s.promptTokens, s.responseTokens, price);
     }
     return { id: s.id, ticketId: s.ticketId, startedAt: s.startedAt, model, costUsd };
   });
-  sessionCosts.sort((a, b) => b.costUsd - a.costUsd);
+  // Unpriced sessions sort last — an unknown cost is not a small cost.
+  sessionCosts.sort((a, b) => (b.costUsd ?? -1) - (a.costUsd ?? -1));
 
+  const unpricedSessions = sessionCosts.filter((s) => s.costUsd == null).length;
   const totalTokens = sessions.reduce((n, s) => n + s.totalTokens, 0);
-  const totalCostUsd = sessionCosts.reduce((n, s) => n + s.costUsd, 0);
+  const totalCostUsd = sessionCosts.reduce((n, s) => n + (s.costUsd ?? 0), 0);
   const avoidableUsd = recommendations.reduce((n, r) => n + recAvoidableUsd(r), 0);
 
+  // Refuse to score spend on incomplete data. With any session unpriced the
+  // ratio is computed against an understated total, which inflates the score —
+  // the failure mode is a confident "clean" verdict, so null is the safe answer.
   let spendEfficiency: number | null = null;
-  if (pricing && totalCostUsd > 0) {
-    const ratio = 1 - avoidableUsd / totalCostUsd;
-    spendEfficiency = Math.round(Math.max(0, Math.min(1, ratio)) * 10);
-  } else if (pricing) {
-    spendEfficiency = 10;
+  if (pricing && unpricedSessions === 0) {
+    if (totalCostUsd > 0) {
+      const ratio = 1 - avoidableUsd / totalCostUsd;
+      spendEfficiency = Math.round(Math.max(0, Math.min(1, ratio)) * 10);
+    } else {
+      spendEfficiency = 10;
+    }
   }
 
   return {
@@ -204,9 +230,20 @@ export function buildPrReview(args: {
     avoidableUsd,
     spendEfficiency,
     pricingAvailable: pricing != null,
+    unpricedSessions,
     recommendations,
     sessions: sessionCosts,
   };
+}
+
+/**
+ * A session's cost cell. `null` means the model wasn't in the pricing table —
+ * render that as "unpriced" rather than "—" or "$0.00", so a reader can tell an
+ * unknown cost from a genuinely tiny one.
+ */
+function fmtSessionCost(costUsd: number | null): string {
+  if (costUsd == null) return "unpriced";
+  return costUsd > 0 ? fmtUsd(costUsd) : "—";
 }
 
 /** 1-5 judge score → 0-10 display score. */
@@ -346,7 +383,12 @@ export function formatPrReview(v: PrReviewVerdict): string {
     return out.join("\n");
   }
 
-  const costStr = v.totalCostUsd > 0 ? ` · ${fmtUsd(v.totalCostUsd)}` : "";
+  // With any session unpriced the total is a lower bound, not the figure — say
+  // "at least" rather than presenting a partial sum as complete.
+  const costStr =
+    v.totalCostUsd > 0
+      ? ` · ${v.unpricedSessions > 0 ? "≥" : ""}${fmtUsd(v.totalCostUsd)}`
+      : "";
   out.push(
     `  Built in ${v.sessionCount} session${v.sessionCount === 1 ? "" : "s"} · ${fmtTokens(v.totalTokens)} tokens${costStr}`
   );
@@ -364,6 +406,11 @@ export function formatPrReview(v: PrReviewVerdict): string {
   // Spend efficiency.
   if (!v.pricingAvailable) {
     out.push("  Model pricing unavailable — spend analysis skipped (offline?).");
+  } else if (v.unpricedSessions > 0) {
+    const n = v.unpricedSessions;
+    out.push(
+      `  Spend not scored — ${n} session${n === 1 ? " has" : "s have"} no price for ${n === 1 ? "its" : "their"} model, so cost is a floor.`
+    );
   } else if (v.spendEfficiency != null) {
     const tail = v.avoidableUsd > 0.005 ? `   ← ${fmtUsd(v.avoidableUsd)} avoidable` : "   ✓ clean";
     out.push(`  Spend efficiency   ${bar10(v.spendEfficiency)}  ${v.spendEfficiency}/10${tail}`);
@@ -384,7 +431,11 @@ export function formatPrReview(v: PrReviewVerdict): string {
 
   if (v.pricingAvailable) {
     if (v.recommendations.length === 0) {
-      out.push("  No spend leaks detected in the prompts behind this PR. 👍");
+      out.push(
+        v.unpricedSessions > 0
+          ? "  Leak detection incomplete — an unpriced session can't be checked for model misuse."
+          : "  No spend leaks detected in the prompts behind this PR. 👍"
+      );
       out.push("");
     } else {
       out.push("  Leaks:");
@@ -408,7 +459,7 @@ export function formatPrReview(v: PrReviewVerdict): string {
   out.push("  Sessions:");
   for (const s of v.sessions) {
     const date = s.startedAt.slice(0, 10);
-    const cost = s.costUsd > 0 ? fmtUsd(s.costUsd) : "—";
+    const cost = fmtSessionCost(s.costUsd);
     const evalStr = s.evalCostUsd && s.evalCostUsd > 0 ? `  eval ${fmtUsdFine(s.evalCostUsd)}` : "";
     out.push(
       `    ${(s.ticketId || "(no ticket)").padEnd(12)} ${s.id.slice(0, 8)}  ${date}  ${shortModel(s.model).padEnd(7)} ${cost}${evalStr}`
@@ -469,7 +520,10 @@ export function formatPrReviewMarkdown(v: PrReviewVerdict): string {
     return out.join("\n");
   }
 
-  const costStr = v.totalCostUsd > 0 ? ` · ${fmtUsd(v.totalCostUsd)}` : "";
+  const costStr =
+    v.totalCostUsd > 0
+      ? ` · ${v.unpricedSessions > 0 ? "≥" : ""}${fmtUsd(v.totalCostUsd)}`
+      : "";
   out.push(
     `Built in **${v.sessionCount} session${v.sessionCount === 1 ? "" : "s"}** · ${fmtTokens(v.totalTokens)} tokens${costStr} · branch \`${v.pr.headRefName}\``
   );
@@ -485,6 +539,10 @@ export function formatPrReviewMarkdown(v: PrReviewVerdict): string {
   }
   if (!v.pricingAvailable) {
     scoreRows.push(`| Spend efficiency | — | | pricing unavailable (offline?) |`);
+  } else if (v.unpricedSessions > 0) {
+    scoreRows.push(
+      `| Spend efficiency | — | | not scored — ${v.unpricedSessions} session(s) unpriced, cost is a floor |`
+    );
   } else if (v.spendEfficiency != null) {
     const note = v.avoidableUsd > 0.005 ? `${fmtUsd(v.avoidableUsd)} avoidable` : "clean ✓";
     scoreRows.push(
@@ -543,7 +601,7 @@ export function formatPrReviewMarkdown(v: PrReviewVerdict): string {
   out.push(hasEval ? "|---|---|---|---|---|---|" : "|---|---|---|---|---|");
   for (const s of v.sessions) {
     const date = s.startedAt.slice(0, 10);
-    const cost = s.costUsd > 0 ? fmtUsd(s.costUsd) : "—";
+    const cost = fmtSessionCost(s.costUsd);
     const cells = [s.ticketId || "(no ticket)", `\`${s.id.slice(0, 8)}\``, date, shortModel(s.model), cost];
     if (hasEval) cells.push(s.evalCostUsd && s.evalCostUsd > 0 ? fmtUsdFine(s.evalCostUsd) : "—");
     out.push(`| ${cells.join(" | ")} |`);
