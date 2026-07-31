@@ -75,6 +75,12 @@ export interface LocalSession {
   intelligence?: SessionIntelligence;
   externalSessionId?: string;
   projectDir?: string; // absolute path of the project the recording belongs to
+  /**
+   * Server-minted recording handle, mirrored from ActiveSessionState.sessionId.
+   * Callers pass it back on log/status/finish so a turn can never land in a
+   * recording it doesn't belong to. Absent on buffers written before 0.2.0.
+   */
+  sessionId?: string;
 }
 
 // API request to create a session
