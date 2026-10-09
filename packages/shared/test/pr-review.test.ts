@@ -338,3 +338,117 @@ describe("matchSessionsToPr", () => {
     expect(matchSessionsToPr(rows, pr).map((r) => r.id)).toEqual(["byBranch"]);
   });
 });
+
+describe("unpriced models", () => {
+  // Regression: a model missing from the pricing table used to cost $0, which is
+  // indistinguishable from free. The expensive session then vanished from the
+  // total, avoidableUsd stayed 0 because the misuse detector had no price delta
+  // to work with, and spendEfficiency came back 10/10 "clean" — the exact
+  // inverse of the verdict the data warranted. Found live on 2026-07-31 with
+  // claude-opus-5, which the upstream feed didn't carry.
+  function unpricedSession(overrides: Partial<OptimizeSessionInput> = {}): OptimizeSessionInput {
+    return opusSession({ id: "unpriced1", ticketId: "MCP-31", models: ["model-not-in-feed"], ...overrides });
+  }
+
+  it("reports an unknown model as unpriced rather than free", () => {
+    const v = buildPrReview({ pr: PR, sessions: [unpricedSession()], pricing: PRICING });
+    expect(v.sessions[0].costUsd).toBeNull();
+    expect(v.unpricedSessions).toBe(1);
+  });
+
+  it("refuses to score spend when any session is unpriced", () => {
+    const v = buildPrReview({
+      pr: PR,
+      sessions: [opusSession(), unpricedSession()],
+      pricing: PRICING,
+    });
+    // The priced session still contributes, but the total is only a floor...
+    expect(v.totalCostUsd).toBeGreaterThan(0);
+    expect(v.unpricedSessions).toBe(1);
+    // ...so no spend score, rather than a falsely clean one.
+    expect(v.spendEfficiency).toBeNull();
+    // pricingAvailable stays true — the feed loaded fine, it just lacked this
+    // model. That's why it can't be the guard on its own.
+    expect(v.pricingAvailable).toBe(true);
+  });
+
+  it("still scores spend when every session is priced", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: PRICING });
+    expect(v.unpricedSessions).toBe(0);
+    expect(v.spendEfficiency).not.toBeNull();
+  });
+
+  it("sorts unpriced sessions last — an unknown cost is not a small one", () => {
+    const v = buildPrReview({
+      pr: PR,
+      sessions: [unpricedSession(), opusSession()],
+      pricing: PRICING,
+    });
+    expect(v.sessions.map((s) => s.id)).toEqual(["sess1234abcd", "unpriced1"]);
+  });
+
+  it("renders unpriced distinctly from zero in both renderers", () => {
+    const v = buildPrReview({ pr: PR, sessions: [unpricedSession()], pricing: PRICING });
+    expect(formatPrReview(v)).toContain("unpriced");
+    expect(formatPrReviewMarkdown(v)).toContain("unpriced");
+  });
+
+  it("does not set a commit status off an unscorable review", () => {
+    const v = buildPrReview({ pr: PR, sessions: [unpricedSession()], pricing: PRICING });
+    // No quality (no judge) and no spend score — nothing trustworthy to gate on.
+    expect(computeReviewStatus(v)).toBeNull();
+  });
+});
+
+describe("renderers never overstate incomplete data", () => {
+  function unpricedOnly() {
+    return buildPrReview({
+      pr: PR,
+      sessions: [opusSession({ id: "u1", models: ["model-not-in-feed"] })],
+      pricing: PRICING,
+    });
+  }
+
+  // The floor marker matters when *some* cost is known — a partial sum is the
+  // dangerous case, because it looks like a complete one.
+  function mixed() {
+    return buildPrReview({
+      pr: PR,
+      sessions: [opusSession(), opusSession({ id: "u1", models: ["model-not-in-feed"] })],
+      pricing: PRICING,
+    });
+  }
+
+  it("marks a partial cost total as a floor", () => {
+    expect(formatPrReview(mixed())).toContain("≥");
+    expect(formatPrReviewMarkdown(mixed())).toContain("≥");
+  });
+
+  it("shows no total at all when nothing could be priced", () => {
+    // "≥$0.00" would be noise; the not-scored line carries the explanation.
+    expect(formatPrReview(unpricedOnly())).not.toContain("≥");
+  });
+
+  it("says spend is not scored instead of printing a bar", () => {
+    const text = formatPrReview(unpricedOnly());
+    expect(text).toContain("Spend not scored");
+    expect(text).not.toContain("Spend efficiency  ");
+  });
+
+  it("does not claim a clean bill of health it can't verify", () => {
+    // The misuse detector can't price an unknown model, so zero findings here
+    // means "couldn't check", not "nothing wrong".
+    const text = formatPrReview(unpricedOnly());
+    expect(text).not.toContain("No spend leaks detected");
+    expect(text).toContain("Leak detection incomplete");
+  });
+
+  it("still gives the clean verdict when everything was priced", () => {
+    const v = buildPrReview({
+      pr: PR,
+      sessions: [opusSession({ intelligence: undefined })],
+      pricing: PRICING,
+    });
+    expect(formatPrReview(v)).toContain("No spend leaks detected");
+  });
+});
