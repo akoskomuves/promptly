@@ -18,6 +18,12 @@ export interface PrMeta {
   title: string;
   headRefName: string;
   baseRefName?: string;
+  /**
+   * Kumano's committed feature artifacts (intent/spec/plan) changed in this
+   * PR, linked at the head commit. Rendered above the verdict so a reviewer
+   * reads what was asked for before how well it was asked.
+   */
+  artifacts?: KumanoFeatureArtifacts[];
 }
 
 /** PR metadata plus the set of short (7-char) commit SHAs used for matching. */
@@ -25,9 +31,13 @@ export interface PrDetails extends PrMeta {
   shortShas: Set<string>;
   /** Full head commit SHA — the target for a commit status. */
   headRefOid?: string;
+  /** The PR's web URL; the base for links into the repo. */
+  url?: string;
+  /** Paths changed by the PR (gh caps this list; see extractKumanoArtifacts). */
+  files?: string[];
 }
 
-/** Parse the JSON from `gh pr view <n> --json number,title,headRefName,baseRefName,headRefOid,commits`. */
+/** Parse the JSON from `gh pr view <n> --json number,title,headRefName,baseRefName,headRefOid,commits,url,files`. */
 export function parsePrView(raw: string): PrDetails {
   const json = JSON.parse(raw) as {
     number: number;
@@ -36,6 +46,8 @@ export function parsePrView(raw: string): PrDetails {
     baseRefName?: string;
     headRefOid?: string;
     commits?: { oid?: string }[];
+    url?: string;
+    files?: { path?: string }[];
   };
   return {
     number: json.number,
@@ -43,6 +55,10 @@ export function parsePrView(raw: string): PrDetails {
     headRefName: json.headRefName,
     baseRefName: json.baseRefName,
     headRefOid: typeof json.headRefOid === "string" ? json.headRefOid : undefined,
+    url: typeof json.url === "string" ? json.url : undefined,
+    files: (json.files ?? [])
+      .map((f) => f.path)
+      .filter((p): p is string => typeof p === "string"),
     shortShas: new Set(
       (json.commits ?? [])
         .map((c) => c.oid)
@@ -50,6 +66,68 @@ export function parsePrView(raw: string): PrDetails {
         .map((oid) => oid.slice(0, 7))
     ),
   };
+}
+
+// ── Kumano artifacts ────────────────────────────────────────────────────────
+
+export type KumanoArtifactKind = "intent" | "spec" | "plan" | "review";
+
+export interface KumanoFeatureArtifacts {
+  /** `.kumano/features/<folder>/` — Kumano names it `<slug>-<8 hex of the id>`. */
+  folder: string;
+  /** The folder without its id suffix, for display. */
+  name: string;
+  links: { kind: KumanoArtifactKind; url: string }[];
+}
+
+export const KUMANO_FEATURES_DIR = ".kumano/features/";
+const ARTIFACT_ORDER: KumanoArtifactKind[] = ["intent", "spec", "plan", "review"];
+
+/**
+ * `https://github.com/o/r/pull/42` + sha → `https://github.com/o/r/blob/<sha>`.
+ * Pinned to the head commit so a link shows what the PR was reviewed against,
+ * not whatever the branch says later. Null when the URL isn't a PR URL.
+ */
+export function blobBaseFromPrUrl(prUrl: string | undefined, headSha: string | undefined): string | null {
+  if (!prUrl || !headSha) return null;
+  const m = prUrl.match(/^(https?:\/\/[^/]+\/[^/]+\/[^/]+)\/pull\/\d+/);
+  return m ? `${m[1]}/blob/${headSha}` : null;
+}
+
+/**
+ * Group the PR's changed paths into Kumano feature folders. Kumano commits
+ * intent/spec/plan on the feature branch, so they appear in the PR's diff.
+ * `gh pr view --json files` is capped (100 files), so a very large PR can
+ * miss them — the comment then simply has no artifact line. Pure.
+ */
+export function extractKumanoArtifacts(paths: string[], blobBase: string | null): KumanoFeatureArtifacts[] {
+  if (!blobBase) return [];
+  const byFolder = new Map<string, Map<KumanoArtifactKind, string>>();
+  for (const path of paths) {
+    if (!path.startsWith(KUMANO_FEATURES_DIR)) continue;
+    const rest = path.slice(KUMANO_FEATURES_DIR.length).split("/");
+    if (rest.length !== 2) continue;
+    const [folder, file] = rest;
+    const kind = file.replace(/\.md$/, "") as KumanoArtifactKind;
+    if (!file.endsWith(".md") || !ARTIFACT_ORDER.includes(kind)) continue;
+    if (!byFolder.has(folder)) byFolder.set(folder, new Map());
+    byFolder.get(folder)!.set(kind, `${blobBase}/${path.split("/").map(encodeURIComponent).join("/")}`);
+  }
+  return [...byFolder.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([folder, files]) => ({
+      folder,
+      name: folder.replace(/-[0-9a-f]{8}$/, ""),
+      links: ARTIFACT_ORDER.filter((k) => files.has(k)).map((kind) => ({ kind, url: files.get(kind)! })),
+    }));
+}
+
+function mdArtifacts(artifacts: KumanoFeatureArtifacts[] | undefined): string[] {
+  if (!artifacts || artifacts.length === 0) return [];
+  const lines = artifacts.map(
+    (a) => `**Built from** \`${a.name}\` — ${a.links.map((l) => `[${l.kind}](${l.url})`).join(" · ")}`
+  );
+  return [...lines, ""];
 }
 
 interface GitActivityLike {
@@ -510,6 +588,7 @@ export function formatPrReviewMarkdown(v: PrReviewVerdict): string {
   out.push("");
   out.push(`## 🔍 Promptly — prompt review of PR #${v.pr.number}`);
   out.push("");
+  out.push(...mdArtifacts(v.pr.artifacts));
 
   if (v.sessionCount === 0) {
     out.push(
