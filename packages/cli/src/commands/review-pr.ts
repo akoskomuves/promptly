@@ -5,6 +5,8 @@ import {
   formatPrReview,
   formatPrReviewMarkdown,
   parsePrView,
+  extractKumanoArtifacts,
+  blobBaseFromPrUrl,
   matchSessionsToPr,
   toOptimizeInput,
   summarizeQuality,
@@ -29,7 +31,7 @@ function getPrDetails(prNumber: number): PrDetails {
   try {
     raw = execFileSync(
       "gh",
-      ["pr", "view", String(prNumber), "--json", "number,title,headRefName,baseRefName,headRefOid,commits"],
+      ["pr", "view", String(prNumber), "--json", "number,title,headRefName,baseRefName,headRefOid,commits,url,files"],
       { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"] }
     );
   } catch (err) {
@@ -104,6 +106,7 @@ export async function reviewPrCommand(
     title: pr.title,
     headRefName: pr.headRefName,
     baseRefName: pr.baseRefName,
+    artifacts: extractKumanoArtifacts(pr.files ?? [], blobBaseFromPrUrl(pr.url, pr.headRefOid)),
   };
 
   const pricing = rows.length > 0 ? await fetchPricing() : null;

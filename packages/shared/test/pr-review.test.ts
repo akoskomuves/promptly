@@ -10,6 +10,8 @@ import {
   summarizeQuality,
   computeReviewStatus,
   REVIEW_STATUS_CONTEXT,
+  extractKumanoArtifacts,
+  blobBaseFromPrUrl,
 } from "../src/pr-review";
 import type { PrDetails, PrMeta, SessionRubricVerdict } from "../src/pr-review";
 import type { OptimizeSessionInput, ModelPricing } from "../src/optimize";
@@ -450,5 +452,91 @@ describe("renderers never overstate incomplete data", () => {
       pricing: PRICING,
     });
     expect(formatPrReview(v)).toContain("No spend leaks detected");
+  });
+});
+
+describe("Kumano artifacts", () => {
+  const SHA = "0123456789abcdef0123456789abcdef01234567";
+  const BASE = `https://github.com/acme/app/blob/${SHA}`;
+
+  it("pins links to the head commit, derived from the PR URL", () => {
+    expect(blobBaseFromPrUrl("https://github.com/acme/app/pull/42", SHA)).toBe(BASE);
+    expect(blobBaseFromPrUrl("https://github.com/acme/app/pull/42/files", SHA)).toBe(BASE);
+    expect(blobBaseFromPrUrl("https://github.com/acme/app", SHA)).toBeNull();
+    expect(blobBaseFromPrUrl(undefined, SHA)).toBeNull();
+    expect(blobBaseFromPrUrl("https://github.com/acme/app/pull/42", undefined)).toBeNull();
+  });
+
+  it("groups intent/spec/plan per feature folder in reading order", () => {
+    const got = extractKumanoArtifacts(
+      [
+        "src/login.ts",
+        ".kumano/features/add-login-3f2a9c01/plan.md",
+        ".kumano/features/add-login-3f2a9c01/intent.md",
+        ".kumano/features/add-login-3f2a9c01/spec.md",
+      ],
+      BASE
+    );
+    expect(got).toHaveLength(1);
+    expect(got[0].folder).toBe("add-login-3f2a9c01");
+    expect(got[0].name).toBe("add-login");
+    expect(got[0].links.map((l) => l.kind)).toEqual(["intent", "spec", "plan"]);
+    expect(got[0].links[0].url).toBe(`${BASE}/.kumano/features/add-login-3f2a9c01/intent.md`);
+  });
+
+  it("ignores other files under .kumano and nested paths", () => {
+    const got = extractKumanoArtifacts(
+      [
+        ".kumano/tasks/t.json",
+        ".kumano/features/x-12345678/notes.md",
+        ".kumano/features/x-12345678/sub/intent.md",
+        ".kumano/features/x-12345678/intent.txt",
+      ],
+      BASE
+    );
+    expect(got).toEqual([]);
+  });
+
+  it("returns nothing without a link base, so no broken links are rendered", () => {
+    expect(extractKumanoArtifacts([".kumano/features/a-12345678/intent.md"], null)).toEqual([]);
+  });
+
+  it("keeps a folder name without an id suffix as-is", () => {
+    const got = extractKumanoArtifacts([".kumano/features/hand-made/intent.md"], BASE);
+    expect(got[0].name).toBe("hand-made");
+  });
+
+  it("parses url and changed files from gh pr view", () => {
+    const pr = parsePrView(
+      JSON.stringify({
+        number: 42,
+        title: "x",
+        headRefName: "feature/add-login",
+        headRefOid: SHA,
+        url: "https://github.com/acme/app/pull/42",
+        commits: [],
+        files: [{ path: ".kumano/features/add-login-3f2a9c01/intent.md", additions: 10 }, { additions: 1 }],
+      })
+    );
+    expect(pr.url).toBe("https://github.com/acme/app/pull/42");
+    expect(pr.files).toEqual([".kumano/features/add-login-3f2a9c01/intent.md"]);
+  });
+
+  it("renders the artifacts above the verdict in the PR comment", () => {
+    const artifacts = extractKumanoArtifacts(
+      [".kumano/features/add-login-3f2a9c01/intent.md", ".kumano/features/add-login-3f2a9c01/plan.md"],
+      BASE
+    );
+    const v = buildPrReview({ pr: { ...PR, artifacts }, sessions: [opusSession()], pricing: PRICING });
+    const md = formatPrReviewMarkdown(v);
+    const line = `**Built from** \`add-login\` — [intent](${BASE}/.kumano/features/add-login-3f2a9c01/intent.md) · [plan](${BASE}/.kumano/features/add-login-3f2a9c01/plan.md)`;
+    expect(md).toContain(line);
+    expect(md.indexOf(line)).toBeLessThan(md.indexOf("| Signal | Score | | |"));
+    expect(md.startsWith(PROMPTLY_REVIEW_MARKER)).toBe(true);
+  });
+
+  it("adds nothing when the PR has no Kumano artifacts", () => {
+    const v = buildPrReview({ pr: PR, sessions: [opusSession()], pricing: PRICING });
+    expect(formatPrReviewMarkdown(v)).not.toContain("Built from");
   });
 });
